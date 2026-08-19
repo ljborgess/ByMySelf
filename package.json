@@ -7,7 +7,7 @@
     "node": ">=22 <23"
   },
   "scripts": {
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky"
@@ -15,6 +15,9 @@
   "lint-staged": {
     "*.{ts,tsx}": [
       "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,cjs,mjs,json,jsonc,yml,yaml,css}": [
       "prettier --write"
     ]
   },

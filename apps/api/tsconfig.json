@@ -17,10 +17,10 @@
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
-    "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
-    "noImplicitAny": false,
-    "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
+    // strict comes from tsconfig.base.json; the Nest CLI scaffold switched
+    // parts of it back off, which contradicts the strict-everywhere decision
+    // and quietly weakened the type-check CI runs on this package
+    "noFallthroughCasesInSwitch": true
   }
 }
