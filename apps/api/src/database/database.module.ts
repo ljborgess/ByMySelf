@@ -8,7 +8,13 @@ import {
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { env } from '../config/env';
-import { DRIZZLE, DrizzleDatabase, PG_POOL } from './database.tokens';
+import {
+  DB_CONNECTION_TIMEOUT_MS,
+  DB_STATEMENT_TIMEOUT_MS,
+  DRIZZLE,
+  DrizzleDatabase,
+  PG_POOL,
+} from './database.tokens';
 import * as schema from './schema';
 
 export { DRIZZLE, PG_POOL };
@@ -19,7 +25,13 @@ const poolLogger = new Logger('DatabasePool');
 function createPool(): Pool {
   const pool = new Pool({
     connectionString: env.DATABASE_URL,
-    connectionTimeoutMillis: 5000,
+    connectionTimeoutMillis: DB_CONNECTION_TIMEOUT_MS,
+    // Postgres cancels the query server-side and the client goes back to the
+    // pool healthy; query_timeout is the client-side backstop if the server
+    // never answers at all. Without these a caller-side timeout would abandon
+    // the query and leak its pooled client.
+    statement_timeout: DB_STATEMENT_TIMEOUT_MS,
+    query_timeout: DB_STATEMENT_TIMEOUT_MS,
   });
 
   // pg emits 'error' on idle clients when Postgres goes away. With no listener

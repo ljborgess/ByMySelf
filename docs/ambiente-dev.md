@@ -10,11 +10,14 @@ services:
     image: postgres:17-alpine
     environment:
       POSTGRES_PASSWORD: postgres
-    ports: ["5432:5432"]
+      POSTGRES_DB: portfolio
+    ports: ["127.0.0.1:5432:5432"]
     volumes: ["pgdata:/var/lib/postgresql/data"]
 volumes:
   pgdata:
 ```
+
+`POSTGRES_DB` precisa bater com o banco do `DATABASE_URL` — sem ele o container só cria o banco padrão `postgres` e a conexão falha. Porta em loopback: a API roda fora do container, ninguém precisa desta porta pela rede, e a credencial aqui é trivial.
 
 `.env.example`:
 
@@ -30,3 +33,5 @@ COOKIE_DOMAIN=localhost
 FRONTEND_URL=http://localhost:3001
 SENTRY_DSN=
 ```
+
+Os dois segredos JWT são validados com mínimo de 32 caracteres — HS256 depende inteiramente da entropia do segredo, e um valor curto é quebrável offline a partir de qualquer token capturado. Gere com `openssl rand -base64 48`.

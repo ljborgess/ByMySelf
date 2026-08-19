@@ -4,8 +4,8 @@ const validEnv = {
   NODE_ENV: 'development',
   PORT: '3000',
   DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/portfolio',
-  JWT_ACCESS_SECRET: 'access-secret',
-  JWT_REFRESH_SECRET: 'refresh-secret',
+  JWT_ACCESS_SECRET: 'a'.repeat(32),
+  JWT_REFRESH_SECRET: 'r'.repeat(32),
   JWT_ACCESS_EXPIRATION: '15m',
   JWT_REFRESH_EXPIRATION: '30d',
   COOKIE_DOMAIN: 'localhost',
@@ -21,8 +21,14 @@ describe('envSchema', () => {
       NODE_ENV: 'development',
       PORT: 3000,
       DATABASE_URL: validEnv.DATABASE_URL,
-      JWT_ACCESS_SECRET: 'access-secret',
+      JWT_ACCESS_SECRET: validEnv.JWT_ACCESS_SECRET,
     });
+  });
+
+  it('rejects a JWT secret too short to resist offline brute force', () => {
+    expect(() =>
+      envSchema.parse({ ...validEnv, JWT_ACCESS_SECRET: 'short' }),
+    ).toThrow();
   });
 
   it('throws when a required variable is missing', () => {

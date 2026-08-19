@@ -1,6 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
-import { DRIZZLE } from '../database/database.tokens';
+import {
+  DB_CONNECTION_TIMEOUT_MS,
+  DB_STATEMENT_TIMEOUT_MS,
+  DRIZZLE,
+} from '../database/database.tokens';
 import type { DrizzleDatabase } from '../database/database.tokens';
 
 export interface HealthStatus {
@@ -9,11 +13,16 @@ export interface HealthStatus {
 }
 
 /**
- * Ceiling for the database probe. A hung Postgres must not hang the health
- * check itself, otherwise the orchestrator's own timeout is what fires and it
- * cannot tell "database is down" from "app is wedged".
+ * Last-resort ceiling so a wedged driver cannot hang the probe — the
+ * orchestrator must be able to tell "database is down" from "app is wedged".
+ *
+ * Deliberately above the driver's own budget (connection + statement): the
+ * driver is what cancels the query and releases the pooled client, so it has
+ * to be the one that fires first. Firing earlier here would abandon a query
+ * pg still owns and leak a client on every probe.
  */
-const DB_CHECK_TIMEOUT_MS = 2000;
+const PROBE_BACKSTOP_MS =
+  DB_CONNECTION_TIMEOUT_MS + DB_STATEMENT_TIMEOUT_MS + 1000;
 
 @Injectable()
 export class HealthService {
@@ -38,11 +47,9 @@ export class HealthService {
       timer = setTimeout(
         () =>
           reject(
-            new Error(
-              `Database check timed out after ${DB_CHECK_TIMEOUT_MS}ms`,
-            ),
+            new Error(`Database check timed out after ${PROBE_BACKSTOP_MS}ms`),
           ),
-        DB_CHECK_TIMEOUT_MS,
+        PROBE_BACKSTOP_MS,
       );
     });
 
