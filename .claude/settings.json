@@ -1,0 +1,56 @@
+{
+  "extraKnownMarketplaces": {
+    "b2ml": {
+      "source": {
+        "source": "git",
+        "url": "https://gitlab.b2ml.com.br/b2ml/sistemas-internos-b2ml/b2ml-ia/b2ml-agentes-e-skills.git"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "core@b2ml": true,
+    "api-design@b2ml": true,
+    "auth-patterns@b2ml": true,
+    "backend-service-conventions@b2ml": true,
+    "background-jobs@b2ml": true,
+    "backup-restore@b2ml": true,
+    "ci-cd-pipeline@b2ml": true,
+    "client-state-management@b2ml": true,
+    "codebase-design@b2ml": true,
+    "container-conventions@b2ml": true,
+    "diagnose@b2ml": true,
+    "docs-writing@b2ml": true,
+    "domain-modeling@b2ml": true,
+    "environment-config@b2ml": true,
+    "error-tracking@b2ml": true,
+    "error-ux@b2ml": true,
+    "estimation@b2ml": true,
+    "forms-validation@b2ml": true,
+    "frontend-conventions@b2ml": true,
+    "grill-me@b2ml": true,
+    "handoff@b2ml": true,
+    "implement-prd@b2ml": true,
+    "improve-codebase-architecture@b2ml": true,
+    "input-validation@b2ml": true,
+    "integration-testing@b2ml": true,
+    "lgpd-checklist@b2ml": true,
+    "postgres-conventions@b2ml": true,
+    "project-kickoff@b2ml": true,
+    "project-planner@b2ml": true,
+    "proposta-comercial@b2ml": true,
+    "prototype@b2ml": true,
+    "query-performance@b2ml": true,
+    "rate-limiting@b2ml": true,
+    "research@b2ml": true,
+    "rollback-runbook@b2ml": true,
+    "safe-migrations@b2ml": true,
+    "secrets-management@b2ml": true,
+    "security-review-checklist@b2ml": true,
+    "seed-data@b2ml": true,
+    "stack-scaffold@b2ml": true,
+    "structured-logging@b2ml": true,
+    "tanstack-query-patterns@b2ml": true,
+    "tdd@b2ml": true,
+    "to-prd@b2ml": true
+  }
+}
