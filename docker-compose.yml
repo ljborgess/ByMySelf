@@ -4,7 +4,9 @@ services:
     environment:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: portfolio
-    ports: ['5432:5432']
+    # bound to loopback: the API runs outside the container in dev, so nothing
+    # needs this port from the network, and the credentials here are trivial
+    ports: ['127.0.0.1:5432:5432']
     volumes: ['pgdata:/var/lib/postgresql/data']
 volumes:
   pgdata:

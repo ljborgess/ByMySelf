@@ -10,8 +10,8 @@ process.env.NODE_ENV ??= 'test';
 process.env.PORT ??= '3000';
 process.env.DATABASE_URL ??=
   'postgresql://postgres:postgres@localhost:5432/portfolio_test';
-process.env.JWT_ACCESS_SECRET ??= 'test-access-secret';
-process.env.JWT_REFRESH_SECRET ??= 'test-refresh-secret';
+process.env.JWT_ACCESS_SECRET ??= 'test-access-secret'.padEnd(32, '-');
+process.env.JWT_REFRESH_SECRET ??= 'test-refresh-secret'.padEnd(32, '-');
 process.env.JWT_ACCESS_EXPIRATION ??= '15m';
 process.env.JWT_REFRESH_EXPIRATION ??= '30d';
 process.env.COOKIE_DOMAIN ??= 'localhost';

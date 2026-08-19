@@ -1,20 +1,55 @@
-import { Global, Inject, Module, OnApplicationShutdown } from '@nestjs/common';
-import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
+import {
+  Global,
+  Inject,
+  Logger,
+  Module,
+  OnApplicationShutdown,
+} from '@nestjs/common';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { env } from '../config/env';
+import {
+  DB_CONNECTION_TIMEOUT_MS,
+  DB_STATEMENT_TIMEOUT_MS,
+  DRIZZLE,
+  DrizzleDatabase,
+  PG_POOL,
+} from './database.tokens';
 import * as schema from './schema';
 
-export const DRIZZLE = Symbol('DRIZZLE');
-export const PG_POOL = Symbol('PG_POOL');
+export { DRIZZLE, PG_POOL };
+export type { DrizzleDatabase };
 
-export type DrizzleDatabase = NodePgDatabase<typeof schema>;
+const poolLogger = new Logger('DatabasePool');
+
+function createPool(): Pool {
+  const pool = new Pool({
+    connectionString: env.DATABASE_URL,
+    connectionTimeoutMillis: DB_CONNECTION_TIMEOUT_MS,
+    // Postgres cancels the query server-side and the client goes back to the
+    // pool healthy; query_timeout is the client-side backstop if the server
+    // never answers at all. Without these a caller-side timeout would abandon
+    // the query and leak its pooled client.
+    statement_timeout: DB_STATEMENT_TIMEOUT_MS,
+    query_timeout: DB_STATEMENT_TIMEOUT_MS,
+  });
+
+  // pg emits 'error' on idle clients when Postgres goes away. With no listener
+  // Node treats it as an unhandled 'error' event and kills the process — the
+  // app would die exactly when /health should be reporting 503 instead.
+  pool.on('error', (error) => {
+    poolLogger.error('Idle client error', error);
+  });
+
+  return pool;
+}
 
 @Global()
 @Module({
   providers: [
     {
       provide: PG_POOL,
-      useFactory: () => new Pool({ connectionString: env.DATABASE_URL }),
+      useFactory: createPool,
     },
     {
       provide: DRIZZLE,
