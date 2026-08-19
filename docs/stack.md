@@ -8,7 +8,7 @@
 | Backend | NestJS | — |
 | Frontend | Next.js (App Router) + Tailwind + shadcn/ui | Vite/SPA (perde SSR/SEO) |
 | Banco | PostgreSQL puro | Supabase (auth própria já é requisito), MySQL, MongoDB |
-| ORM | MikroORM (Data Mapper + Unit of Work) | Prisma (mais reconhecido no mercado, mas menos profundidade técnica pra mostrar), TypeORM (migration instável) |
+| ORM | Drizzle ORM (SQL-first, tipagem inferida do schema) | MikroORM (v7 é ESM puro — quebra o runner Jest CJS do NestJS; v6 não instalava de forma confiável no ambiente Windows), Prisma (mais reconhecido no mercado, mas menos profundidade técnica pra mostrar), TypeORM (migration instável) |
 | Validação | Zod via `nestjs-zod` | `class-validator` (não compartilha schema com o frontend) |
 | Documentação de API | Swagger/OpenAPI (`@nestjs/swagger`) | — |
 | Testes unitários | Jest, por rota (controller/service, repository mockado) | — |

@@ -1,8 +1,11 @@
+import { env } from './config/env';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  await app.listen(process.env.PORT ?? 3000);
+  // required for DatabaseModule.onApplicationShutdown to run and close the pool
+  app.enableShutdownHooks();
+  await app.listen(env.PORT);
 }
-bootstrap();
+void bootstrap();
