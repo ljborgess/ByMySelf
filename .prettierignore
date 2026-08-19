@@ -1,0 +1,13 @@
+node_modules
+dist
+.next
+coverage
+pnpm-lock.yaml
+
+# prose maintained by hand, not code — out of scope for auto-formatting
+.claude
+docs
+*.md
+
+# hand-maintained root config, untouched by this sub-issue
+pnpm-workspace.yaml
