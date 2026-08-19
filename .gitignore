@@ -8,10 +8,12 @@ build/
 .next/
 out/
 
-# env
+# env — ignore every variant, then re-admit the committed template.
+# The previous list missed .env.production/.env.staging, which are exactly the
+# files that would carry real credentials.
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 # logs
 *.log
