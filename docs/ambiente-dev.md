@@ -34,4 +34,6 @@ FRONTEND_URL=http://localhost:3001
 SENTRY_DSN=
 ```
 
+Portas: `apps/api` em **3000** (`PORT`), `apps/web` em **3001** — fixada via `next dev -p 3001`, já que o default do Next também é 3000 e colidiria com a API. É o que faz `FRONTEND_URL` bater com a realidade sem configuração extra.
+
 Os dois segredos JWT são validados com mínimo de 32 caracteres — HS256 depende inteiramente da entropia do segredo, e um valor curto é quebrável offline a partir de qualquer token capturado. Gere com `openssl rand -base64 48`.

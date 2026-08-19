@@ -43,3 +43,11 @@ jobs:
 
       - name: Type-check
         run: pnpm -r type-check
+
+      # Integration (Testcontainers) and e2e (Playwright) stages get appended
+      # by the sub-issues that introduce those suites — see docs/ci-cd.md.
+      - name: Unit tests
+        run: pnpm --filter api test
+
+      - name: API e2e tests
+        run: pnpm --filter api test:e2e
