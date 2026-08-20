@@ -21,6 +21,14 @@
       "linkedin": "LinkedIn"
     }
   },
+  "about": {
+    "title": "Sobre",
+    "bioHeading": "Quem sou",
+    "objectiveHeading": "Objetivo",
+    "skillsHeading": "Habilidades",
+    "languagesHeading": "Idiomas",
+    "downloadCv": "Baixar CV"
+  },
   "home": {
     "title": "Início",
     "sectionsHeading": "Seções do site",
