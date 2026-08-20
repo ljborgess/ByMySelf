@@ -30,6 +30,12 @@
     "languagesHeading": "Idiomas",
     "downloadCv": "Baixar CV"
   },
+  "education": {
+    "title": "Formação",
+    "description": "Formação acadêmica de Luciano Borges.",
+    "ongoing": "Em andamento",
+    "empty": "Nenhuma formação cadastrada ainda."
+  },
   "home": {
     "title": "Início",
     "sectionsHeading": "Seções do site",

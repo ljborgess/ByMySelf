@@ -20,6 +20,17 @@ export interface Language {
   level: LanguageLevel;
 }
 
+export interface Education {
+  course: string;
+  /** Nullable: the CV names the course but not always the institution. */
+  institution: string | null;
+  /** ISO date or `YYYY-MM`. Nullable, and the period is then hidden. */
+  startDate: string | null;
+  /** `null` means ongoing, which the page shows as "Em andamento". */
+  endDate: string | null;
+  technologies?: string[];
+}
+
 export interface Profile {
   name: string;
   headline: string;
@@ -33,6 +44,7 @@ export interface Profile {
   cvUrl: string | null;
   skills: string[];
   languages: Language[];
+  education: Education[];
   links: {
     github: string | null;
     linkedin: string | null;
@@ -103,6 +115,25 @@ Meu foco é backend — NestJS, PostgreSQL, Docker — mas trabalho a stack comp
   languages: [
     { language: 'Português', level: 'nativo' },
     { language: 'Inglês', level: 'avançado' },
+  ],
+
+  // The CV says only "Information Systems — currently enrolled, 6th
+  // semester", so that is all this claims.
+  education: [
+    {
+      course: 'Sistemas de Informação',
+      // TODO: the institution's name. The card shows the course alone until
+      // then rather than inventing one.
+      institution: null,
+      // TODO: when you started (e.g. '2023-02'). The 6th semester implies
+      // roughly 2023, but "roughly" has no place on a page a recruiter
+      // reads -- the period stays hidden while this is null.
+      startDate: null,
+      // null = ongoing, rendered as "Em andamento"
+      endDate: null,
+      // TODO: optional. Technologies the course actually covered, if you
+      // want the formal education tied to practical skill (RF-PUB5).
+    },
   ],
 
   links: {
