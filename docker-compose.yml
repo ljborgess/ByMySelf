@@ -4,9 +4,14 @@ services:
     environment:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: portfolio
-    # bound to loopback: the API runs outside the container in dev, so nothing
-    # needs this port from the network, and the credentials here are trivial
-    ports: ['127.0.0.1:5432:5432']
+    # Bound to loopback: the API runs outside the container in dev, so nothing
+    # needs this port from the network, and the credentials here are trivial.
+    #
+    # Host port is overridable because 5432 is the default every other local
+    # Postgres also wants, and a container from an unrelated project holding
+    # it is enough to stop this one from starting. Set POSTGRES_PORT in .env
+    # (and match it in DATABASE_URL) when that happens.
+    ports: ['127.0.0.1:${POSTGRES_PORT:-5432}:5432']
     volumes: ['pgdata:/var/lib/postgresql/data']
 volumes:
   pgdata:
