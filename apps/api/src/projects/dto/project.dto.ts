@@ -1,5 +1,6 @@
 import {
   createProjectSchema,
+  localeQuerySchema,
   reorderProjectSchema,
   updateProjectSchema,
 } from '@portfolio/shared';
@@ -13,3 +14,4 @@ import { createZodDto } from 'nestjs-zod';
 export class CreateProjectDto extends createZodDto(createProjectSchema) {}
 export class UpdateProjectDto extends createZodDto(updateProjectSchema) {}
 export class ReorderProjectDto extends createZodDto(reorderProjectSchema) {}
+export class LocaleQueryDto extends createZodDto(localeQuerySchema) {}

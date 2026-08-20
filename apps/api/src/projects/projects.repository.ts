@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, ne, sql } from 'drizzle-orm';
 import { DRIZZLE } from '../database/database.tokens';
 import type { DrizzleDatabase } from '../database/database.tokens';
 import { NewProject, Project, projects } from './projects.schema';
@@ -32,6 +32,19 @@ export class ProjectsRepository {
       .select()
       .from(projects)
       .where(includeDeleted ? undefined : isNull(projects.deletedAt))
+      .orderBy(projects.order, desc(projects.createdAt));
+  }
+
+  /**
+   * The public listing (RF-PUB1): live projects that are not archived,
+   * in manual order. Archived is excluded here but *not* from findBySlug --
+   * see PublicProjectsController for why a direct link still resolves.
+   */
+  async findPublished(): Promise<Project[]> {
+    return this.db
+      .select()
+      .from(projects)
+      .where(and(isNull(projects.deletedAt), ne(projects.status, 'archived')))
       .orderBy(projects.order, desc(projects.createdAt));
   }
 

@@ -50,6 +50,7 @@ describe('ProjectsService', () => {
     softDelete: jest.Mock;
     maxOrder: jest.Mock;
     applyOrdering: jest.Mock;
+    findPublished: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -66,6 +67,7 @@ describe('ProjectsService', () => {
       ),
       maxOrder: jest.fn().mockResolvedValue(null),
       applyOrdering: jest.fn().mockResolvedValue(undefined),
+      findPublished: jest.fn().mockResolvedValue([]),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -180,6 +182,95 @@ describe('ProjectsService', () => {
       await service.update('some-id', { featured: true });
 
       expect(repository.findBySlug).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('public reads', () => {
+    it('returns the published listing with fields resolved for the locale', async () => {
+      repository.findPublished.mockResolvedValue([
+        projectRow({
+          id: 'one',
+          title: { pt: 'Primeiro', en: 'First' },
+          description: { pt: 'Descrição' },
+          content: { pt: 'Conteúdo' },
+        }),
+      ]);
+
+      const [project] = await service.findPublished('en');
+
+      expect(project.title).toBe('First');
+      // half-translated is the common case; each field falls back on its own
+      expect(project.description).toBe('Descrição');
+    });
+
+    it('reads from the published scope, which excludes archived and deleted', async () => {
+      repository.findPublished.mockResolvedValue([]);
+
+      await service.findPublished('pt');
+
+      // the scoping lives in the repository query, so the service must not
+      // reach for the unscoped listing here
+      expect(repository.findPublished).toHaveBeenCalledTimes(1);
+      expect(repository.findAll).not.toHaveBeenCalled();
+    });
+
+    it('preserves the order the repository returned', async () => {
+      repository.findPublished.mockResolvedValue([
+        projectRow({ id: 'second', slug: 'b', order: 0 }),
+        projectRow({ id: 'first', slug: 'a', order: 1 }),
+      ]);
+
+      const listing = await service.findPublished('pt');
+
+      expect(listing.map((project) => project.id)).toEqual(['second', 'first']);
+    });
+
+    it('never leaks the soft-delete column to the public shape', async () => {
+      repository.findPublished.mockResolvedValue([projectRow()]);
+
+      const [project] = await service.findPublished('pt');
+
+      expect(project).not.toHaveProperty('deletedAt');
+    });
+
+    it('returns a project by slug with the locale applied', async () => {
+      repository.findBySlug.mockResolvedValue(
+        projectRow({ title: { pt: 'Olá', en: 'Hello' } }),
+      );
+
+      const project = await service.findPublishedBySlug('meu-projeto', 'en');
+
+      expect(project.title).toBe('Hello');
+    });
+
+    it('raises 404 for an unknown slug rather than throwing something unhandled', async () => {
+      repository.findBySlug.mockResolvedValue(undefined);
+
+      await expect(
+        service.findPublishedBySlug('nao-existe', 'pt'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('raises the same 404 for a soft-deleted slug, revealing nothing', async () => {
+      // the repository's default scoping hides it, so the service cannot
+      // tell this apart from a slug that never existed -- which is the point
+      repository.findBySlug.mockResolvedValue(undefined);
+
+      await expect(
+        service.findPublishedBySlug('excluido', 'pt'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('serves an archived project by direct link even though it is unlisted', async () => {
+      repository.findBySlug.mockResolvedValue(
+        projectRow({ status: 'archived' }),
+      );
+
+      const project = await service.findPublishedBySlug('arquivado', 'pt');
+
+      // archived means unlisted, not gone: 404-ing an already-indexed URL
+      // would be worse than serving it
+      expect(project.status).toBe('archived');
     });
   });
 
