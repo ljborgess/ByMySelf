@@ -2,13 +2,25 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { env } from '../src/config/env';
+import type { DrizzleDatabase } from '../src/database/database.tokens';
+import * as schema from '../src/database/schema';
+import { ProjectsRepository } from '../src/projects/projects.repository';
 import { notDeleted, projects } from '../src/projects/projects.schema';
 
+type Tx = Parameters<Parameters<DrizzleDatabase['transaction']>[0]>[0];
+
 /**
- * Verifies the projects table against a real Postgres, which is the part of
- * a schema no unit test can check: that jsonb round-trips the bilingual
- * shape, that the unique slug constraint actually rejects a duplicate, and
- * that the soft-delete predicate hides a deleted row.
+ * Verifies the projects table and ProjectsRepository against a real
+ * Postgres -- the parts no unit test can check: that jsonb round-trips the
+ * bilingual shape, that the unique slug constraint actually rejects a
+ * duplicate, and above all that the repository's soft-delete scoping really
+ * hides deleted rows.
+ *
+ * That last one is why this file matters. Drizzle has no ORM-level global
+ * filter, so "a deleted project disappears from every query" is a promise
+ * kept by ProjectsRepository applying `deletedAt IS NULL` itself. A
+ * mock-based unit test could only assert that a query builder was called;
+ * whether the row is actually excluded is a question for a database.
  *
  * Manual on purpose -- automated integration coverage arrives with
  * Testcontainers in Fase 2 (RNF-QUA2). Run against the local compose
@@ -26,9 +38,117 @@ function check(label: string, passed: boolean): boolean {
   return passed;
 }
 
+/**
+ * Drives ProjectsRepository itself, so the soft-delete exclusion is proven
+ * by observing what the database returns rather than by inspecting how the
+ * query was built.
+ */
+async function checkRepository(tx: Tx): Promise<boolean[]> {
+  const results: boolean[] = [];
+  // the repository takes the injected db; a transaction satisfies the same
+  // interface, which keeps this run rollback-safe
+  const repository = new ProjectsRepository(tx);
+
+  const live = await repository.create({
+    title: { pt: 'Repo vivo' },
+    description: { pt: 'Descrição' },
+    content: { pt: 'Conteúdo' },
+    slug: '__smoke-repo-live',
+  });
+  const doomed = await repository.create({
+    title: { pt: 'Repo excluído' },
+    description: { pt: 'Descrição' },
+    content: { pt: 'Conteúdo' },
+    slug: '__smoke-repo-doomed',
+  });
+
+  results.push(
+    check(
+      'repository.maxOrder reflete as linhas vivas',
+      (await repository.maxOrder()) !== null,
+    ),
+  );
+
+  const deleted = await repository.softDelete(doomed.id);
+  results.push(
+    check('repository.softDelete marca deletedAt', deleted?.deletedAt != null),
+  );
+  results.push(
+    check(
+      'repository.softDelete de novo devolve undefined, sem sobrescrever o timestamp',
+      (await repository.softDelete(doomed.id)) === undefined,
+    ),
+  );
+
+  const listed = await repository.findAll();
+  results.push(
+    check(
+      'repository.findAll esconde o excluído e mantém o vivo',
+      listed.some((row) => row.id === live.id) &&
+        listed.every((row) => row.id !== doomed.id),
+    ),
+  );
+  results.push(
+    check(
+      'repository.findAll({ includeDeleted }) volta a mostrá-lo',
+      (await repository.findAll({ includeDeleted: true })).some(
+        (row) => row.id === doomed.id,
+      ),
+    ),
+  );
+
+  results.push(
+    check(
+      'repository.findById esconde o excluído',
+      (await repository.findById(doomed.id)) === undefined,
+    ),
+  );
+  results.push(
+    check(
+      'repository.findById({ includeDeleted }) o encontra',
+      (await repository.findById(doomed.id, { includeDeleted: true }))?.id ===
+        doomed.id,
+    ),
+  );
+
+  results.push(
+    check(
+      'repository.findBySlug esconde o excluído',
+      (await repository.findBySlug('__smoke-repo-doomed')) === undefined,
+    ),
+  );
+  results.push(
+    check(
+      'repository.findBySlug({ includeDeleted }) o encontra — é o que detecta slug preso',
+      (
+        await repository.findBySlug('__smoke-repo-doomed', {
+          includeDeleted: true,
+        })
+      )?.id === doomed.id,
+    ),
+  );
+
+  results.push(
+    check(
+      'repository.update não alcança linha excluída',
+      (await repository.update(doomed.id, { featured: true })) === undefined,
+    ),
+  );
+  results.push(
+    check(
+      'repository.update altera a linha viva',
+      (await repository.update(live.id, { featured: true }))?.featured === true,
+    ),
+  );
+
+  return results;
+}
+
 async function run(): Promise<boolean> {
   const pool = new Pool({ connectionString: env.DATABASE_URL });
-  const db = drizzle(pool, { schema: { projects } });
+  // full schema, not just { projects }: ProjectsRepository is typed against
+  // DrizzleDatabase, and a narrower schema is not assignable to it
+  const db = drizzle(pool, { schema });
   const results: boolean[] = [];
 
   try {
@@ -131,6 +251,8 @@ async function run(): Promise<boolean> {
           liveOnly.every((row) => row.id !== inserted.id),
         ),
       );
+
+      results.push(...(await checkRepository(tx)));
 
       // never leave the smoke row behind
       tx.rollback();

@@ -6,9 +6,10 @@ import { AuthModule } from './auth/auth.module';
 import { CsrfGuard } from './common/csrf.guard';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
+import { ProjectsModule } from './projects/projects.module';
 
 @Module({
-  imports: [DatabaseModule, HealthModule, AuthModule],
+  imports: [DatabaseModule, HealthModule, AuthModule, ProjectsModule],
   controllers: [AppController],
   providers: [
     AppService,
