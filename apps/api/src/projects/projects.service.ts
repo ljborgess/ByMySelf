@@ -3,7 +3,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { CreateProjectInput, UpdateProjectInput } from '@portfolio/shared';
+import type {
+  CreateProjectInput,
+  Locale,
+  PublicProject,
+  UpdateProjectInput,
+} from '@portfolio/shared';
+import { toPublicProject } from './locale';
 import { ProjectsRepository } from './projects.repository';
 import { Project } from './projects.schema';
 import { computeReordering } from './reorder';
@@ -15,6 +21,34 @@ export class ProjectsService {
   /** Admin listing: every status, including archived (RF-PROJ4). */
   async findAll(): Promise<Project[]> {
     return this.repository.findAll();
+  }
+
+  /**
+   * RF-PUB1: live and not archived, in manual order, with bilingual fields
+   * resolved for `locale`.
+   */
+  async findPublished(locale: Locale): Promise<PublicProject[]> {
+    const published = await this.repository.findPublished();
+    return published.map((project) => toPublicProject(project, locale));
+  }
+
+  /**
+   * RF-PUB2. Archived projects stay reachable by direct link even though
+   * they are absent from the listing: archived means unlisted, not gone, and
+   * 404-ing a URL that search engines already indexed would be worse than
+   * serving it. A soft-deleted project, by contrast, is invisible here --
+   * the repository's default scoping makes it indistinguishable from a slug
+   * that never existed, which is the point (user story 5).
+   */
+  async findPublishedBySlug(
+    slug: string,
+    locale: Locale,
+  ): Promise<PublicProject> {
+    const project = await this.repository.findBySlug(slug);
+    if (!project) {
+      throw new NotFoundException('Projeto não encontrado');
+    }
+    return toPublicProject(project, locale);
   }
 
   async findById(id: string): Promise<Project> {

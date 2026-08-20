@@ -106,3 +106,39 @@ export const reorderProjectSchema = z.object({
 });
 
 export type ReorderProjectInput = z.infer<typeof reorderProjectSchema>;
+
+export const LOCALES = ['pt', 'en'] as const;
+
+export const localeSchema = z.enum(LOCALES);
+export type Locale = z.infer<typeof localeSchema>;
+
+export const DEFAULT_LOCALE: Locale = 'pt';
+
+/** `?locale=en`, defaulting to pt (RNF-I18N1 makes PT-BR the default). */
+export const localeQuerySchema = z.object({
+  locale: localeSchema.default(DEFAULT_LOCALE),
+});
+
+/**
+ * What the public routes return: bilingual fields already resolved to a
+ * single string for the requested locale, and the internal bookkeeping
+ * (`order`, `deletedAt`) left out. An explicit shape rather than the raw row
+ * so the soft-delete mechanism is not part of the public contract and
+ * cannot leak by accident.
+ */
+export interface PublicProject {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  content: string;
+  techStack: string[];
+  repoUrl: string | null;
+  demoUrl: string | null;
+  coverImageUrl: string | null;
+  status: ProjectStatus;
+  featured: boolean;
+  completedAt: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}

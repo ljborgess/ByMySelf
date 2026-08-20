@@ -184,6 +184,54 @@ async function checkRepository(tx: Tx): Promise<boolean[]> {
     ),
   );
 
+  // findPublished layers `status != archived` on top of the soft-delete
+  // scoping -- both are SQL predicates, so only a database can confirm they
+  // combine the way the public listing needs
+  const archived = await repository.create({
+    title: { pt: 'Repo arquivado' },
+    description: { pt: 'Descrição' },
+    content: { pt: 'Conteúdo' },
+    slug: '__smoke-repo-archived',
+    status: 'archived',
+  });
+
+  const published = await repository.findPublished();
+  results.push(
+    check(
+      'repository.findPublished esconde o arquivado',
+      published.every((row) => row.id !== archived.id),
+    ),
+  );
+  results.push(
+    check(
+      'repository.findPublished esconde o excluído',
+      published.every((row) => row.id !== doomed.id),
+    ),
+  );
+  results.push(
+    check(
+      'repository.findPublished mantém o vivo e não-arquivado',
+      published.some((row) => row.id === live.id),
+    ),
+  );
+  results.push(
+    check(
+      'repository.findPublished vem ordenado por order',
+      published
+        .map((row) => row.order)
+        .every((order, index, all) => index === 0 || all[index - 1] <= order),
+    ),
+  );
+  // the detail route uses findBySlug, which deliberately does *not* filter
+  // archived: an already-indexed URL keeps working
+  results.push(
+    check(
+      'repository.findBySlug ainda encontra o arquivado (link direto continua válido)',
+      (await repository.findBySlug('__smoke-repo-archived'))?.id ===
+        archived.id,
+    ),
+  );
+
   return results;
 }
 
