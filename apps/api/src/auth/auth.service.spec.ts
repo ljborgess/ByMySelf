@@ -23,6 +23,7 @@ describe('AuthService', () => {
   let selectLimit: jest.Mock;
   let insertValues: jest.Mock;
   let updateWhere: jest.Mock;
+  let updateReturning: jest.Mock;
   let jwtSign: jest.Mock;
   let jwtVerify: jest.Mock;
 
@@ -35,7 +36,13 @@ describe('AuthService', () => {
   beforeEach(async () => {
     selectLimit = jest.fn().mockResolvedValue([]);
     insertValues = jest.fn().mockResolvedValue(undefined);
-    updateWhere = jest.fn().mockResolvedValue(undefined);
+    // won by default: the atomic rotation UPDATE returns the row it revoked,
+    // as if no concurrent request raced it for the same token.
+    updateReturning = jest.fn().mockResolvedValue([{ id: 'row-1' }]);
+    // `await db.update().set().where()` (no .returning()) just awaits this
+    // plain object, which resolves to itself -- same as the real query
+    // builder when nothing consumes its result.
+    updateWhere = jest.fn().mockReturnValue({ returning: updateReturning });
     jwtSign = jest.fn((_payload: unknown, options: { secret: string }) =>
       options.secret === env.JWT_ACCESS_SECRET
         ? 'signed.access.token'
@@ -43,7 +50,7 @@ describe('AuthService', () => {
     );
     jwtVerify = jest.fn().mockReturnValue({ sub: existingUser.id });
 
-    const db = {
+    const db: Record<string, unknown> = {
       select: jest.fn().mockReturnValue({
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({ limit: selectLimit }),
@@ -54,6 +61,9 @@ describe('AuthService', () => {
         set: jest.fn().mockReturnValue({ where: updateWhere }),
       }),
     };
+    db.transaction = jest.fn((callback: (tx: unknown) => unknown) =>
+      callback(db),
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -166,6 +176,22 @@ describe('AuthService', () => {
       // old row revoked, new row inserted -- exactly one of each
       expect(updateWhere).toHaveBeenCalledTimes(1);
       expect(insertValues).toHaveBeenCalledTimes(1);
+    });
+
+    it('loses a concurrent rotation race for the same token: revokes the family instead of issuing a second pair', async () => {
+      selectLimit.mockResolvedValue([validRow]);
+      // the atomic revoke matched zero rows -- another request already
+      // revoked this exact row between our SELECT and this UPDATE
+      updateReturning.mockResolvedValue([]);
+
+      await expect(service.refresh('valid-refresh-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
+
+      // one failed atomic revoke attempt + one family-wide revoke; never a
+      // second token pair issued from the same presented token
+      expect(updateWhere).toHaveBeenCalledTimes(2);
+      expect(insertValues).not.toHaveBeenCalled();
     });
 
     it('detects reuse of an already-rotated token and revokes the entire family, touching only that family', async () => {
