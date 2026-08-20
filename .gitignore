@@ -40,5 +40,8 @@ coverage/
 !.claude/skills/grill-with-docs/
 !.claude/skills/implement/
 
+# especificação do projeto — mantida local, fora do repositório
+docs/
+
 # misc
 *.tsbuildinfo
