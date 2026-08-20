@@ -1,11 +1,9 @@
 import { Body, Controller, HttpCode, Post, Req, Res } from '@nestjs/common';
 import type { CookieOptions, Request, Response } from 'express';
 import { env } from '../config/env';
+import { ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } from './auth.constants';
 import { AuthService, LoginResult } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-
-const ACCESS_TOKEN_COOKIE = 'access_token';
-const REFRESH_TOKEN_COOKIE = 'refresh_token';
 
 @Controller('auth')
 export class AuthController {
