@@ -20,12 +20,14 @@ Requer Node 22 (fixado em `.nvmrc`) e pnpm.
 
 ```bash
 pnpm install
-docker compose up -d postgres      # Postgres local na 5432
+docker compose up -d postgres      # Postgres local na 5434
 cp .env.example .env               # preencha os segredos, ver abaixo
 pnpm --filter api db:migrate       # aplica as migrations
-pnpm --filter api start:dev        # API na 3000
-pnpm --filter web dev              # site na 3001
+pnpm --filter api start:dev        # API na 3100
+pnpm --filter web dev              # site na 3101
 ```
+
+Portas escolhidas fora dos defaults de propósito — API em **3100**, site em **3101**, Postgres em **5434**. As portas óbvias (3000, 5432) são as que todo projeto local disputa, e uma delas ocupada por outro projeto é o suficiente para impedir este de subir. Ficar fora delas significa não precisar derrubar o banco ou o servidor de mais ninguém para trabalhar aqui. Todas ajustáveis por `PORT`, `POSTGRES_PORT` e o script `dev` do `apps/web`.
 
 ### Variáveis de ambiente
 

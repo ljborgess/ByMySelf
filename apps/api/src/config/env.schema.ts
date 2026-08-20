@@ -57,7 +57,7 @@ export const envSchema = z.object({
   NODE_ENV: z
     .enum(['development', 'test', 'production'])
     .default('development'),
-  PORT: z.coerce.number().int().positive().default(3000),
+  PORT: z.coerce.number().int().positive().default(3100),
   TRUST_PROXY_HOPS: trustProxySchema,
   DATABASE_URL: z.url(),
   // HS256 (docs/stack.md) rests entirely on the secret's entropy: a short one

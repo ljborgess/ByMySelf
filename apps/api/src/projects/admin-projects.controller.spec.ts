@@ -39,6 +39,7 @@ describe('AdminProjectsController', () => {
     update: jest.Mock;
     softDelete: jest.Mock;
     reorder: jest.Mock;
+    restore: jest.Mock;
   };
 
   function authCookie(): string {
@@ -57,6 +58,7 @@ describe('AdminProjectsController', () => {
       update: jest.fn().mockResolvedValue({ id: PROJECT_ID }),
       softDelete: jest.fn().mockResolvedValue(undefined),
       reorder: jest.fn().mockResolvedValue([]),
+      restore: jest.fn().mockResolvedValue({ id: PROJECT_ID }),
     };
 
     const moduleRef = await Test.createTestingModule({
@@ -232,6 +234,35 @@ describe('AdminProjectsController', () => {
         .expect(400);
 
       expect(service.reorder).not.toHaveBeenCalled();
+    });
+
+    it('routes the restore to its own handler', async () => {
+      await request(app.getHttpServer())
+        .patch(`/admin/projects/${PROJECT_ID}/restore`)
+        .set('Cookie', authCookie())
+        .set('X-Requested-With', 'XMLHttpRequest')
+        .expect(200);
+
+      expect(service.restore).toHaveBeenCalledWith(PROJECT_ID);
+      expect(service.update).not.toHaveBeenCalled();
+    });
+
+    it('hides soft-deleted projects from the listing by default', async () => {
+      await request(app.getHttpServer())
+        .get('/admin/projects')
+        .set('Cookie', authCookie())
+        .expect(200);
+
+      expect(service.findAll).toHaveBeenCalledWith({ includeDeleted: false });
+    });
+
+    it('surfaces soft-deleted projects on ?includeDeleted=true', async () => {
+      await request(app.getHttpServer())
+        .get('/admin/projects?includeDeleted=true')
+        .set('Cookie', authCookie())
+        .expect(200);
+
+      expect(service.findAll).toHaveBeenCalledWith({ includeDeleted: true });
     });
 
     it('rejects an id that is not a uuid before hitting the service', async () => {

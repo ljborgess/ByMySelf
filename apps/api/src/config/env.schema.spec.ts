@@ -2,15 +2,15 @@ import { envSchema } from './env.schema';
 
 const validEnv = {
   NODE_ENV: 'development',
-  PORT: '3000',
+  PORT: '3100',
   TRUST_PROXY_HOPS: '0',
-  DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/portfolio',
+  DATABASE_URL: 'postgresql://postgres:postgres@localhost:5434/portfolio',
   JWT_ACCESS_SECRET: 'a'.repeat(32),
   JWT_REFRESH_SECRET: 'r'.repeat(32),
   JWT_ACCESS_EXPIRATION: '15m',
   JWT_REFRESH_EXPIRATION: '30d',
   COOKIE_DOMAIN: 'localhost',
-  FRONTEND_URL: 'http://localhost:3001',
+  FRONTEND_URL: 'http://localhost:3101',
   SENTRY_DSN: '',
 };
 
@@ -20,7 +20,7 @@ describe('envSchema', () => {
 
     expect(result).toMatchObject({
       NODE_ENV: 'development',
-      PORT: 3000,
+      PORT: 3100,
       DATABASE_URL: validEnv.DATABASE_URL,
       JWT_ACCESS_SECRET: validEnv.JWT_ACCESS_SECRET,
     });
@@ -121,6 +121,6 @@ describe('envSchema', () => {
     const result = envSchema.parse(withoutDefaults);
 
     expect(result.NODE_ENV).toBe('development');
-    expect(result.PORT).toBe(3000);
+    expect(result.PORT).toBe(3100);
   });
 });

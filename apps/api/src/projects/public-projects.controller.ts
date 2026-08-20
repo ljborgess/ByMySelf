@@ -1,5 +1,5 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
-import type { PublicProject } from '@portfolio/shared';
+import type { PublicProject, PublicProjectSummary } from '@portfolio/shared';
 import { LocaleQueryDto } from './dto/project.dto';
 import { ProjectsService } from './projects.service';
 
@@ -18,7 +18,9 @@ export class PublicProjectsController {
 
   /** RF-PUB1: live and not archived, in manual order, `featured` included. */
   @Get()
-  async findAll(@Query() { locale }: LocaleQueryDto): Promise<PublicProject[]> {
+  async findAll(
+    @Query() { locale }: LocaleQueryDto,
+  ): Promise<PublicProjectSummary[]> {
     return this.projectsService.findPublished(locale);
   }
 

@@ -1,15 +1,19 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { projectSlugSchema } from '@portfolio/shared';
 import type {
   CreateProjectInput,
   Locale,
   PublicProject,
+  ProjectStatus,
+  PublicProjectSummary,
   UpdateProjectInput,
 } from '@portfolio/shared';
-import { toPublicProject } from './locale';
+import { toPublicProject, toPublicProjectSummary } from './locale';
 import { ProjectsRepository } from './projects.repository';
 import { Project } from './projects.schema';
 import { computeReordering } from './reorder';
@@ -18,18 +22,24 @@ import { computeReordering } from './reorder';
 export class ProjectsService {
   constructor(private readonly repository: ProjectsRepository) {}
 
-  /** Admin listing: every status, including archived (RF-PROJ4). */
-  async findAll(): Promise<Project[]> {
-    return this.repository.findAll();
+  /**
+   * Admin listing: every status, including archived (RF-PROJ4).
+   *
+   * `includeDeleted` surfaces soft-deleted projects so they can be found and
+   * restored -- without it, RF-PROJ3's "recoverable" would only hold with
+   * direct database access.
+   */
+  async findAll({ includeDeleted = false } = {}): Promise<Project[]> {
+    return this.repository.findAll({ includeDeleted });
   }
 
   /**
    * RF-PUB1: live and not archived, in manual order, with bilingual fields
    * resolved for `locale`.
    */
-  async findPublished(locale: Locale): Promise<PublicProject[]> {
+  async findPublished(locale: Locale): Promise<PublicProjectSummary[]> {
     const published = await this.repository.findPublished();
-    return published.map((project) => toPublicProject(project, locale));
+    return published.map((project) => toPublicProjectSummary(project, locale));
   }
 
   /**
@@ -44,6 +54,15 @@ export class ProjectsService {
     slug: string,
     locale: Locale,
   ): Promise<PublicProject> {
+    // A slug that cannot match the format every stored slug was created
+    // under cannot exist, so it is answered without a database round trip.
+    // 404 rather than 400: to a visitor or a crawler this is a URL that is
+    // not there, and the distinction between "malformed" and "absent" is not
+    // worth telling them apart.
+    if (!projectSlugSchema.safeParse(slug).success) {
+      throw new NotFoundException('Projeto não encontrado');
+    }
+
     const project = await this.repository.findBySlug(slug);
     if (!project) {
       throw new NotFoundException('Projeto não encontrado');
@@ -60,6 +79,7 @@ export class ProjectsService {
   }
 
   async create(input: CreateProjectInput): Promise<Project> {
+    assertCompletionConsistent(input.status, input.completedAt);
     await this.assertSlugAvailable(input.slug);
 
     const highestOrder = await this.repository.maxOrder();
@@ -73,6 +93,23 @@ export class ProjectsService {
   }
 
   async update(id: string, input: UpdateProjectInput): Promise<Project> {
+    // An empty patch reached the database as `SET` with no columns, which
+    // Postgres rejects -- surfacing a malformed request as a 500. It arrives
+    // here either as `{}` or as a body whose every key Zod stripped as
+    // unknown, so the check belongs after validation, not in the schema.
+    if (Object.keys(input).length === 0) {
+      throw new BadRequestException('Nenhum campo válido para atualizar');
+    }
+
+    const current = await this.findById(id);
+
+    // status and completedAt have to be judged together, and on a patch only
+    // the merged state says whether the result is coherent
+    assertCompletionConsistent(
+      input.status ?? current.status,
+      input.completedAt === undefined ? current.completedAt : input.completedAt,
+    );
+
     if (input.slug !== undefined) {
       await this.assertSlugAvailable(input.slug, id);
     }
@@ -82,6 +119,17 @@ export class ProjectsService {
       throw new NotFoundException('Projeto não encontrado');
     }
     return updated;
+  }
+
+  /** RF-PROJ3: undoes a soft delete, making a mistaken delete recoverable. */
+  async restore(id: string): Promise<Project> {
+    const restored = await this.repository.restore(id);
+    if (!restored) {
+      throw new NotFoundException(
+        'Nenhum projeto excluído encontrado com esse id',
+      );
+    }
+    return restored;
   }
 
   /**
@@ -147,6 +195,24 @@ export class ProjectsService {
       existing.deletedAt
         ? `O slug "${slug}" pertence a um projeto excluído. Restaure-o ou escolha outro slug.`
         : `O slug "${slug}" já está em uso.`,
+    );
+  }
+}
+
+/**
+ * docs/dominio.md: completedAt is "preenchido quando status = completed".
+ * A completion date on a project that is not completed is nonsense, so it is
+ * refused -- but a `completed` project without a date is allowed, since
+ * marking something done and filling the date later is a reasonable flow and
+ * forcing it would block the more common action.
+ */
+function assertCompletionConsistent(
+  status: ProjectStatus,
+  completedAt: string | null | undefined,
+): void {
+  if (status !== 'completed' && completedAt) {
+    throw new BadRequestException(
+      'completedAt só se aplica a um projeto com status "completed"',
     );
   }
 }
