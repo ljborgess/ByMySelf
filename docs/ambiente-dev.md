@@ -24,6 +24,7 @@ volumes:
 ```
 NODE_ENV=development
 PORT=3000
+TRUST_PROXY_HOPS=0
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/portfolio
 JWT_ACCESS_SECRET=
 JWT_REFRESH_SECRET=
@@ -37,6 +38,28 @@ SENTRY_DSN=
 Portas: `apps/api` em **3000** (`PORT`), `apps/web` em **3001** — fixada via `next dev -p 3001`, já que o default do Next também é 3000 e colidiria com a API. É o que faz `FRONTEND_URL` bater com a realidade sem configuração extra.
 
 Os dois segredos JWT são validados com mínimo de 32 caracteres — HS256 depende inteiramente da entropia do segredo, e um valor curto é quebrável offline a partir de qualquer token capturado. Gere com `openssl rand -base64 48`.
+
+As duas expirações são validadas contra os limites do RNF-SEG4 (access até 15 min, refresh entre 7 e 30 dias) — não basta a string parsear. Um `JWT_ACCESS_EXPIRATION=15d`, típico erro de digitação, subiria emitindo credencial válida por duas semanas; agora recusa bootar.
+
+### `TRUST_PROXY_HOPS`
+
+Quantos proxies reversos ficam na frente da API. **0 em dev** (conexão direta), **1 em produção** atrás do Dokploy.
+
+O rate limit do login usa `req.ip`. Atrás de um proxy, esse valor é o endereço do *proxy*, não do cliente — sem esse ajuste todo mundo cai num balde compartilhado, o limite deixa de ser por IP e um único atacante consegue esgotá-lo para todos os outros.
+
+É um número de hops, não um booleano, de propósito: `trust proxy: true` faria o Express acreditar na cadeia inteira de `X-Forwarded-For`, deixando qualquer cliente forjar o próprio endereço e furar o limite sem esforço. Contar hops só confia nos endereços que os seus próprios proxies anexaram.
+
+## Requisições de mutação: header obrigatório
+
+Toda requisição `POST`/`PUT`/`PATCH`/`DELETE` precisa levar:
+
+```
+X-Requested-With: XMLHttpRequest
+```
+
+Sem ele a resposta é `403`, em qualquer rota — inclusive `/auth/login`. É a mitigação de CSRF do RNF-SEG3, somada ao `SameSite=Strict` dos cookies: um `<form>` cross-site não consegue definir header customizado, e um `fetch` cross-origin que tentasse já seria barrado pelo CORS antes de chegar ao servidor.
+
+`GET`/`HEAD`/`OPTIONS` passam sem o header.
 
 ## Criando a conta admin
 

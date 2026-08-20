@@ -46,8 +46,14 @@ jobs:
 
       # Integration (Testcontainers) and e2e (Playwright) stages get appended
       # by the sub-issues that introduce those suites — see docs/ci-cd.md.
-      - name: Unit tests
-        run: pnpm --filter api test
+      #
+      # Runs with coverage so the 80% threshold in the api's jest config
+      # (RNF-QUA4) fails the build instead of only being reported. Pure DI
+      # wiring — modules, main.ts, Drizzle schema declarations — is excluded
+      # from the measurement there rather than padded with tests that assert
+      # nothing.
+      - name: Unit tests with coverage
+        run: pnpm --filter api test:cov
 
       - name: API e2e tests
         run: pnpm --filter api test:e2e

@@ -87,4 +87,56 @@ describe('AccountBackoffService', () => {
     expect(service.getRetryAfterMs('victim@example.com', t)).toBeGreaterThan(0);
     expect(service.getRetryAfterMs('someone-else@example.com', t)).toBe(0);
   });
+
+  describe('eviction', () => {
+    const HOUR_MS = 60 * 60 * 1000;
+
+    it('does not grow without bound as failures arrive for new keys over time', () => {
+      const t = 1_000_000;
+
+      // login keys this map by the submitted email, so an attacker picks
+      // the key -- without eviction these would accumulate for good
+      for (let i = 0; i < 500; i += 1) {
+        service.recordFailure(`attacker-${i}@example.com`, t);
+      }
+      expect(service.size).toBe(500);
+
+      // one more failure an hour later sweeps every stale entry
+      service.recordFailure('later@example.com', t + HOUR_MS + 1);
+
+      expect(service.size).toBe(1);
+    });
+
+    it('never evicts an entry whose backoff is still being served', () => {
+      const t = 1_000_000;
+      for (let i = 0; i < 6; i += 1) {
+        service.recordFailure('admin@example.com', t);
+      }
+      // capped at 30s, so still blocked moments later
+      expect(service.getRetryAfterMs('admin@example.com', t + 1000)).toBe(
+        29_000,
+      );
+
+      service.recordFailure('unrelated@example.com', t + 1000);
+
+      expect(service.getRetryAfterMs('admin@example.com', t + 1000)).toBe(
+        29_000,
+      );
+    });
+
+    it('treats a long-idle key as fresh, restarting escalation at the base delay', () => {
+      const t = 1_000_000;
+      service.recordFailure('admin@example.com', t);
+      service.recordFailure('admin@example.com', t);
+      service.recordFailure('admin@example.com', t);
+
+      const muchLater = t + HOUR_MS + 1;
+      expect(service.getRetryAfterMs('admin@example.com', muchLater)).toBe(0);
+
+      service.recordFailure('admin@example.com', muchLater);
+      expect(service.getRetryAfterMs('admin@example.com', muchLater)).toBe(
+        1000,
+      );
+    });
+  });
 });

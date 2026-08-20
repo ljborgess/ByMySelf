@@ -1,5 +1,6 @@
 import { env } from './config/env';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { ZodValidationPipe } from 'nestjs-zod';
@@ -7,9 +8,15 @@ import { AppModule } from './app.module';
 import { setupSwagger } from './swagger';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   // required for DatabaseModule.onApplicationShutdown to run and close the pool
   app.enableShutdownHooks();
+  // RNF-SEG5: the per-IP throttler keys on req.ip. Behind a reverse proxy
+  // that is the proxy's address unless Express is told how many hops to
+  // trust, which would collapse every client into a single shared bucket --
+  // no longer per-IP, and one attacker could exhaust it for everybody.
+  // 0 (the default) is correct when nothing fronts the app, as in local dev.
+  app.set('trust proxy', env.TRUST_PROXY_HOPS);
   // RNF-SEG6: HSTS, X-Frame-Options, X-Content-Type-Options and the rest of
   // Helmet's defaults, plus a CSP scoped to the one origin this API is ever
   // meant to be embedded by or connect out to.
