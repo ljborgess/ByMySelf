@@ -22,6 +22,13 @@
     }
   },
   "home": {
-    "title": "Início"
+    "title": "Início",
+    "sectionsHeading": "Seções do site",
+    "cards": {
+      "about": "Quem sou, no que trabalho e o que busco.",
+      "education": "Formação acadêmica e as tecnologias de cada etapa.",
+      "certificates": "Certificados, com link de validação.",
+      "projects": "Projetos que construí, com stack e código."
+    }
   }
 }
