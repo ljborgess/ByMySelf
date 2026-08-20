@@ -1,6 +1,18 @@
 import type { PublicProjectSummary } from '@portfolio/shared';
 
 /**
+ * What a card actually needs. Narrower than `PublicProjectSummary` on
+ * purpose: that type declares `createdAt`/`updatedAt` as `Date`, but this
+ * function hands back `response.json()` verbatim, where every date is still
+ * the ISO string it was serialized as -- typing them as `Date` here would
+ * be a lie the compiler couldn't catch, since neither field is read.
+ */
+export type PublicProjectListItem = Omit<
+  PublicProjectSummary,
+  'createdAt' | 'updatedAt'
+>;
+
+/**
  * RF-PUB1: live and not archived, owner's manual order, `featured` included.
  * The frontend does not reimplement locale fallback or ordering -- it
  * renders exactly what the API already resolved for `locale`.
@@ -11,7 +23,7 @@ import type { PublicProjectSummary } from '@portfolio/shared';
  */
 export async function getPublishedProjects(
   locale: string,
-): Promise<PublicProjectSummary[]> {
+): Promise<PublicProjectListItem[]> {
   const apiUrl = process.env.API_URL ?? 'http://localhost:3100';
 
   const response = await fetch(

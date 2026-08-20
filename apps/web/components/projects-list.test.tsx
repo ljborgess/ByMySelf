@@ -1,12 +1,12 @@
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import type { PublicProjectSummary } from '@portfolio/shared';
+import type { PublicProjectListItem } from '../lib/projects';
 import messages from '../messages/pt.json';
 import { ProjectsList } from './projects-list';
 
 function project(
-  overrides: Partial<PublicProjectSummary> = {},
-): PublicProjectSummary {
+  overrides: Partial<PublicProjectListItem> = {},
+): PublicProjectListItem {
   return {
     id: overrides.id ?? '1',
     slug: overrides.slug ?? 'projeto',
@@ -19,12 +19,10 @@ function project(
     status: overrides.status ?? 'completed',
     featured: overrides.featured ?? false,
     completedAt: overrides.completedAt ?? null,
-    createdAt: overrides.createdAt ?? new Date('2026-01-01'),
-    updatedAt: overrides.updatedAt ?? new Date('2026-01-01'),
   };
 }
 
-function renderList(projects: PublicProjectSummary[], failed = false) {
+function renderList(projects: PublicProjectListItem[], failed = false) {
   return render(
     <NextIntlClientProvider locale="pt" messages={messages}>
       <ProjectsList projects={projects} failed={failed} />

@@ -1,4 +1,4 @@
-import type { PublicProjectSummary } from '@portfolio/shared';
+import type { PublicProjectListItem } from '../lib/projects';
 import { useTranslations } from 'next-intl';
 import { Link } from '../i18n/navigation';
 
@@ -14,7 +14,7 @@ export function ProjectsList({
   projects,
   failed,
 }: {
-  projects: PublicProjectSummary[];
+  projects: PublicProjectListItem[];
   failed: boolean;
 }) {
   const t = useTranslations('projects');
