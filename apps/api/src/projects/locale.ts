@@ -1,4 +1,9 @@
-import { DEFAULT_LOCALE, Locale, PublicProject } from '@portfolio/shared';
+import {
+  DEFAULT_LOCALE,
+  Locale,
+  PublicProject,
+  PublicProjectSummary,
+} from '@portfolio/shared';
 import { LocalizedText, Project } from './projects.schema';
 
 /**
@@ -48,11 +53,25 @@ export function toPublicProject(
   locale: Locale,
 ): PublicProject {
   return {
+    ...toPublicProjectSummary(project, locale),
+    content: resolveText(project.content, locale),
+  };
+}
+
+/**
+ * The listing projection: the same resolution, minus `content`. Built by
+ * omission rather than by listing fields again, so a field added to the
+ * public shape cannot be silently missing from cards.
+ */
+export function toPublicProjectSummary(
+  project: Project,
+  locale: Locale,
+): PublicProjectSummary {
+  return {
     id: project.id,
     slug: project.slug,
     title: resolveText(project.title, locale),
     description: resolveText(project.description, locale),
-    content: resolveText(project.content, locale),
     techStack: project.techStack,
     repoUrl: project.repoUrl,
     demoUrl: project.demoUrl,

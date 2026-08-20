@@ -1,4 +1,4 @@
-import { resolveText, toPublicProject } from './locale';
+import { resolveText, toPublicProject, toPublicProjectSummary } from './locale';
 import { Project } from './projects.schema';
 
 function projectRow(overrides: Partial<Project> = {}): Project {
@@ -101,6 +101,37 @@ describe('toPublicProject', () => {
 
     expect(result).not.toHaveProperty('deletedAt');
     expect(result).not.toHaveProperty('order');
+  });
+
+  it('omits content from the listing summary, keeping it on the detail', () => {
+    const row = projectRow();
+
+    // content is the detail page's markdown, not card data -- sending it in
+    // the listing shipped hundreds of KB no card renders
+    expect(toPublicProjectSummary(row, 'pt')).not.toHaveProperty('content');
+    expect(toPublicProject(row, 'pt').content).toBe('# Conteúdo');
+  });
+
+  it('resolves the summary fields for the locale, same as the detail', () => {
+    const summary = toPublicProjectSummary(
+      projectRow({ description: { pt: 'Descrição' } }),
+      'en',
+    );
+
+    expect(summary.title).toBe('My project');
+    expect(summary.description).toBe('Descrição');
+  });
+
+  it('keeps every non-content field the detail carries', () => {
+    const row = projectRow();
+    const { content, ...detailWithoutContent } = toPublicProject(row, 'pt');
+    void content;
+
+    // built by omission, so a field added to the public shape cannot go
+    // silently missing from cards
+    expect(Object.keys(toPublicProjectSummary(row, 'pt')).sort()).toEqual(
+      Object.keys(detailWithoutContent).sort(),
+    );
   });
 
   it('passes the non-localized fields through untouched', () => {

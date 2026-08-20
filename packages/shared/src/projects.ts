@@ -120,6 +120,18 @@ export const localeQuerySchema = z.object({
 });
 
 /**
+ * `?includeDeleted=true` on the admin listing, so a soft-deleted project can
+ * be found and restored. Without it RF-PROJ3's "recoverable" would only be
+ * true with direct database access.
+ */
+export const adminListQuerySchema = z.object({
+  includeDeleted: z
+    .union([z.boolean(), z.literal('true'), z.literal('false')])
+    .transform((value) => value === true || value === 'true')
+    .default(false),
+});
+
+/**
  * What the public routes return: bilingual fields already resolved to a
  * single string for the requested locale, and the internal bookkeeping
  * (`order`, `deletedAt`) left out. An explicit shape rather than the raw row
@@ -142,3 +154,15 @@ export interface PublicProject {
   createdAt: Date;
   updatedAt: Date;
 }
+
+/**
+ * The listing shape: everything a card needs, and no `content`.
+ *
+ * `content` is the detail page's markdown (docs/dominio.md calls
+ * `description` "curta, para card de listagem" and `content` "markdown,
+ * página de detalhe"), so it is not listing data by definition. Sending it
+ * anyway meant a listing of ten real projects shipping hundreds of kilobytes
+ * no card renders -- straight into mobile LCP (RNF-USA1) and the SSR payload
+ * (RNF-SEO2).
+ */
+export type PublicProjectSummary = Omit<PublicProject, 'content'>;

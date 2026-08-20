@@ -1,4 +1,8 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { createProjectSchema, updateProjectSchema } from '@portfolio/shared';
 import { ProjectsRepository } from './projects.repository';
@@ -50,13 +54,16 @@ describe('ProjectsService', () => {
     softDelete: jest.Mock;
     maxOrder: jest.Mock;
     applyOrdering: jest.Mock;
+    restore: jest.Mock;
     findPublished: jest.Mock;
   };
 
   beforeEach(async () => {
     repository = {
       findAll: jest.fn().mockResolvedValue([]),
-      findById: jest.fn().mockResolvedValue(undefined),
+      // update reads the current row to judge status/completedAt together,
+      // so the default is "the project exists"
+      findById: jest.fn().mockResolvedValue(projectRow()),
       findBySlug: jest.fn().mockResolvedValue(undefined),
       create: jest.fn((values: Project) => Promise.resolve(projectRow(values))),
       update: jest.fn((id: string, values: Partial<Project>) =>
@@ -68,6 +75,7 @@ describe('ProjectsService', () => {
       maxOrder: jest.fn().mockResolvedValue(null),
       applyOrdering: jest.fn().mockResolvedValue(undefined),
       findPublished: jest.fn().mockResolvedValue([]),
+      restore: jest.fn().mockResolvedValue(undefined),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -182,6 +190,102 @@ describe('ProjectsService', () => {
       await service.update('some-id', { featured: true });
 
       expect(repository.findBySlug).not.toHaveBeenCalled();
+    });
+
+    // An empty patch reached Drizzle as `SET` with no columns, which Postgres
+    // rejects -- turning a malformed request into a 500.
+    it('rejects an empty patch with 400 instead of failing at the database', async () => {
+      await expect(service.update('some-id', {})).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(repository.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('completedAt consistency', () => {
+    it('rejects a completion date on a project that is not completed', async () => {
+      await expect(
+        service.create(
+          createInput({ status: 'in_progress', completedAt: '2026-03-01' }),
+        ),
+      ).rejects.toThrow(BadRequestException);
+      expect(repository.create).not.toHaveBeenCalled();
+    });
+
+    it('accepts a completion date on a completed project', async () => {
+      await expect(
+        service.create(
+          createInput({ status: 'completed', completedAt: '2026-03-01' }),
+        ),
+      ).resolves.toBeDefined();
+    });
+
+    it('allows a completed project with no date yet', async () => {
+      await expect(
+        service.create(createInput({ status: 'completed' })),
+      ).resolves.toBeDefined();
+    });
+
+    it('judges a patch against the merged state, not the patch alone', async () => {
+      // the row already carries a date; moving it back to in_progress would
+      // leave the nonsensical combination, and the patch alone does not show it
+      repository.findById.mockResolvedValue(
+        projectRow({ status: 'completed', completedAt: '2026-03-01' }),
+      );
+
+      await expect(
+        service.update('some-id', { status: 'in_progress' }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('accepts moving back to in_progress when the date is cleared in the same patch', async () => {
+      repository.findById.mockResolvedValue(
+        projectRow({ status: 'completed', completedAt: '2026-03-01' }),
+      );
+
+      await expect(
+        service.update('some-id', {
+          status: 'in_progress',
+          completedAt: undefined,
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('restore', () => {
+    it('undoes a soft delete', async () => {
+      repository.restore.mockResolvedValue(projectRow({ deletedAt: null }));
+
+      const restored = await service.restore('some-id');
+
+      expect(restored.deletedAt).toBeNull();
+    });
+
+    it('raises 404 for a project that was never deleted', async () => {
+      repository.restore.mockResolvedValue(undefined);
+
+      await expect(service.restore('some-id')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('admin listing', () => {
+    it('hides soft-deleted projects by default', async () => {
+      await service.findAll();
+
+      expect(repository.findAll).toHaveBeenCalledWith({
+        includeDeleted: false,
+      });
+    });
+
+    // without this, RF-PROJ3's "recoverable" holds only with database access
+    it('can surface soft-deleted projects so they can be found and restored', async () => {
+      await service.findAll({ includeDeleted: true });
+
+      expect(repository.findAll).toHaveBeenCalledWith({
+        includeDeleted: true,
+      });
     });
   });
 

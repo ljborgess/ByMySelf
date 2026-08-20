@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, isNull, ne, sql } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, isNull, ne, sql } from 'drizzle-orm';
 import { DRIZZLE } from '../database/database.tokens';
 import type { DrizzleDatabase } from '../database/database.tokens';
 import { NewProject, Project, projects } from './projects.schema';
@@ -106,6 +106,26 @@ export class ProjectsRepository {
       .returning();
 
     return deleted;
+  }
+
+  /**
+   * Undoes a soft delete (RF-PROJ3). Guarded on `deletedAt IS NOT NULL` so
+   * restoring something that was never deleted returns undefined instead of
+   * silently reporting success.
+   *
+   * Cannot fail on the unique slug: the constraint spans deleted rows, so a
+   * deleted project never released its slug and nothing else could have
+   * taken it meanwhile. That was the reason for choosing a full unique index
+   * over one scoped to live rows.
+   */
+  async restore(id: string): Promise<Project | undefined> {
+    const [restored] = await this.db
+      .update(projects)
+      .set({ deletedAt: null })
+      .where(and(eq(projects.id, id), isNotNull(projects.deletedAt)))
+      .returning();
+
+    return restored;
   }
 
   /**

@@ -232,6 +232,26 @@ async function checkRepository(tx: Tx): Promise<boolean[]> {
     ),
   );
 
+  // restore has to work for RF-PROJ3's "recoverable" to mean anything, and
+  // it cannot collide on slug precisely because the unique index spans
+  // deleted rows -- the deleted project never released it
+  const restored = await repository.restore(doomed.id);
+  results.push(
+    check('repository.restore limpa deletedAt', restored?.deletedAt === null),
+  );
+  results.push(
+    check(
+      'repository.restore devolve o projeto à listagem',
+      (await repository.findAll()).some((row) => row.id === doomed.id),
+    ),
+  );
+  results.push(
+    check(
+      'repository.restore de novo devolve undefined (não estava excluído)',
+      (await repository.restore(doomed.id)) === undefined,
+    ),
+  );
+
   return results;
 }
 

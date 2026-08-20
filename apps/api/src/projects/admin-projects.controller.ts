@@ -8,8 +8,10 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import {
+  AdminListQueryDto,
   CreateProjectDto,
   ReorderProjectDto,
   UpdateProjectDto,
@@ -27,10 +29,17 @@ import { Project } from './projects.schema';
 export class AdminProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
-  /** RF-PROJ4: every status, archived included. */
+  /**
+   * RF-PROJ4: every status, archived included.
+   *
+   * `?includeDeleted=true` also surfaces soft-deleted projects, which is how
+   * one is found in order to be restored.
+   */
   @Get()
-  async findAll(): Promise<Project[]> {
-    return this.projectsService.findAll();
+  async findAll(
+    @Query() { includeDeleted }: AdminListQueryDto,
+  ): Promise<Project[]> {
+    return this.projectsService.findAll({ includeDeleted });
   }
 
   @Get(':id')
@@ -62,6 +71,12 @@ export class AdminProjectsController {
     @Body() { order }: ReorderProjectDto,
   ): Promise<Project[]> {
     return this.projectsService.reorder(id, order);
+  }
+
+  /** RF-PROJ3: undoes a soft delete, so a mistaken one is recoverable. */
+  @Patch(':id/restore')
+  async restore(@Param('id', ParseUUIDPipe) id: string): Promise<Project> {
+    return this.projectsService.restore(id);
   }
 
   @Delete(':id')
