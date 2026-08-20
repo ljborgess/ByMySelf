@@ -1,0 +1,27 @@
+{
+  "site": {
+    "name": "Luciano Borges",
+    "tagline": "Desenvolvedor Backend Node.js/NestJS"
+  },
+  "nav": {
+    "label": "Navegação principal",
+    "home": "Início",
+    "about": "Sobre",
+    "education": "Formação",
+    "certificates": "Certificados",
+    "projects": "Projetos",
+    "openMenu": "Abrir menu",
+    "closeMenu": "Fechar menu"
+  },
+  "footer": {
+    "rights": "Todos os direitos reservados.",
+    "builtWith": "Feito com NestJS e Next.js",
+    "links": {
+      "github": "GitHub",
+      "linkedin": "LinkedIn"
+    }
+  },
+  "home": {
+    "title": "Início"
+  }
+}
