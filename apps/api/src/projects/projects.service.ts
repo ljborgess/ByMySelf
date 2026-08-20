@@ -6,6 +6,7 @@ import {
 import type { CreateProjectInput, UpdateProjectInput } from '@portfolio/shared';
 import { ProjectsRepository } from './projects.repository';
 import { Project } from './projects.schema';
+import { computeReordering } from './reorder';
 
 @Injectable()
 export class ProjectsService {
@@ -47,6 +48,35 @@ export class ProjectsService {
       throw new NotFoundException('Projeto não encontrado');
     }
     return updated;
+  }
+
+  /**
+   * RF-PROJ5. Moves the project to `position` in the active listing and
+   * reindexes every other active project so no two ever share an `order`.
+   *
+   * Soft-deleted projects are absent from the sequence entirely (the
+   * repository's default scoping), so a deleted project neither occupies a
+   * position nor shifts the visible ones.
+   *
+   * Returns the whole reordered listing, since a single project's new
+   * position tells the caller nothing about where the rest ended up.
+   */
+  async reorder(id: string, position: number): Promise<Project[]> {
+    const active = await this.repository.findAll();
+
+    if (!active.some((project) => project.id === id)) {
+      throw new NotFoundException('Projeto não encontrado');
+    }
+
+    const reordered = computeReordering(
+      active.map((project) => project.id),
+      id,
+      position,
+    );
+
+    await this.repository.applyOrdering(reordered);
+
+    return this.repository.findAll();
   }
 
   /** RF-PROJ3: the row survives, so a mistaken delete stays recoverable. */

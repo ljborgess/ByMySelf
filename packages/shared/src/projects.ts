@@ -89,3 +89,20 @@ export type CreateProjectInput = z.infer<typeof createProjectSchema>;
 export const updateProjectSchema = z.object(projectFields).partial();
 
 export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
+
+/**
+ * Target *position* in the active listing, zero-based -- not an arbitrary
+ * order column value. Reordering reindexes every active project to a
+ * contiguous 0..n-1 sequence, so a raw column value would be meaningless
+ * to send.
+ *
+ * No upper bound: the caller would have to know the exact project count to
+ * respect one, and that count can change between the read and the write.
+ * A position past the end is clamped to last, which is also the natural way
+ * to express "move to the end".
+ */
+export const reorderProjectSchema = z.object({
+  order: z.number().int().min(0),
+});
+
+export type ReorderProjectInput = z.infer<typeof reorderProjectSchema>;

@@ -38,6 +38,7 @@ describe('AdminProjectsController', () => {
     create: jest.Mock;
     update: jest.Mock;
     softDelete: jest.Mock;
+    reorder: jest.Mock;
   };
 
   function authCookie(): string {
@@ -55,6 +56,7 @@ describe('AdminProjectsController', () => {
       create: jest.fn().mockResolvedValue({ id: PROJECT_ID }),
       update: jest.fn().mockResolvedValue({ id: PROJECT_ID }),
       softDelete: jest.fn().mockResolvedValue(undefined),
+      reorder: jest.fn().mockResolvedValue([]),
     };
 
     const moduleRef = await Test.createTestingModule({
@@ -119,6 +121,16 @@ describe('AdminProjectsController', () => {
   });
 
   describe('CSRF', () => {
+    it('rejects a reorder without the required header', async () => {
+      await request(app.getHttpServer())
+        .patch(`/admin/projects/${PROJECT_ID}/order`)
+        .set('Cookie', authCookie())
+        .send({ order: 0 })
+        .expect(403);
+
+      expect(service.reorder).not.toHaveBeenCalled();
+    });
+
     it('rejects a mutation without the required header', async () => {
       await request(app.getHttpServer())
         .post('/admin/projects')
@@ -184,6 +196,42 @@ describe('AdminProjectsController', () => {
 
       expect(response.body).toEqual({});
       expect(service.softDelete).toHaveBeenCalledWith(PROJECT_ID);
+    });
+
+    // PATCH :id is declared before PATCH :id/order, so this also confirms
+    // the two-segment route is not swallowed by the single-segment one
+    it('routes the reorder to its own handler, not to the generic patch', async () => {
+      await request(app.getHttpServer())
+        .patch(`/admin/projects/${PROJECT_ID}/order`)
+        .set('Cookie', authCookie())
+        .set('X-Requested-With', 'XMLHttpRequest')
+        .send({ order: 2 })
+        .expect(200);
+
+      expect(service.reorder).toHaveBeenCalledWith(PROJECT_ID, 2);
+      expect(service.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects a negative order before the service runs', async () => {
+      await request(app.getHttpServer())
+        .patch(`/admin/projects/${PROJECT_ID}/order`)
+        .set('Cookie', authCookie())
+        .set('X-Requested-With', 'XMLHttpRequest')
+        .send({ order: -1 })
+        .expect(400);
+
+      expect(service.reorder).not.toHaveBeenCalled();
+    });
+
+    it('rejects a non-integer order', async () => {
+      await request(app.getHttpServer())
+        .patch(`/admin/projects/${PROJECT_ID}/order`)
+        .set('Cookie', authCookie())
+        .set('X-Requested-With', 'XMLHttpRequest')
+        .send({ order: 1.5 })
+        .expect(400);
+
+      expect(service.reorder).not.toHaveBeenCalled();
     });
 
     it('rejects an id that is not a uuid before hitting the service', async () => {

@@ -1,4 +1,8 @@
-import { createProjectSchema, updateProjectSchema } from '@portfolio/shared';
+import {
+  createProjectSchema,
+  reorderProjectSchema,
+  updateProjectSchema,
+} from '@portfolio/shared';
 import { createZodDto } from 'nestjs-zod';
 
 /**
@@ -8,3 +12,4 @@ import { createZodDto } from 'nestjs-zod';
  */
 export class CreateProjectDto extends createZodDto(createProjectSchema) {}
 export class UpdateProjectDto extends createZodDto(updateProjectSchema) {}
+export class ReorderProjectDto extends createZodDto(reorderProjectSchema) {}
