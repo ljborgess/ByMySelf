@@ -28,6 +28,7 @@ Site público: somente leitura, sem cadastro, sem coleta de dado pessoal de terc
 
 | Documento | Conteúdo |
 |---|---|
+| [implementado.md](./implementado.md) | **Estado atual** — o que já existe no código, decisões que divergiram da spec, achados de review, pendências |
 | [roadmap.md](./roadmap.md) | Ordem de implementação — Fase 1 (vai ao ar) → Fase 2 (endurece) → Fase 3 (polimento) |
 | [stack.md](./stack.md) | Stack tecnológica e alternativas descartadas |
 | [arquitetura.md](./arquitetura.md) | Monorepo, camadas, estrutura de pastas, contrato de rotas, IA do site |

@@ -6,14 +6,16 @@ Fases, não cortes — nada sai do escopo formal (RF/RNF), só muda a ordem de e
 
 ## Fase 1 — vai ao ar
 
-- Auth completo: login/refresh/logout/rotation, Argon2id, rate limit, bootstrap via CLI (`RF-AUT1-5`)
-- CRUD de projeto (admin) + soft delete + reorder (`RF-PROJ1-6`)
-- **Estrutura de i18n nasce aqui, conteúdo não.** Rota já sob prefixo `/pt` (`next-intl` configurado, só locale `pt` ativo/linkado), `Project.title`/`description`/`content` já `jsonb { pt, en }` desde a primeira migration (`en` fica vazio). Evita migration de schema e redirect de URL depois que o site já estiver indexado.
-- Site público PT-BR: home, sobre, formação, certificados, projetos, projeto/slug — layout Tailwind/shadcn responsivo (`RNF-USA1`), sem animação elaborada ainda
-- CV download (`RF-PUB7`)
-- Health check (`RNF-INF6`), deploy Dokploy/VPS/Docker/HTTPS/secrets (`RNF-INF1`, `RNF-SEG8`, `RNF-SEG10`)
-- Segurança de base: Helmet, CORS, validação Zod em toda borda (`RNF-SEG6`, `RNF-SEG7`, `RNF-SEG9`)
-- Teste unitário por rota (`RNF-QUA1`), lint/format + pre-commit (`RNF-QUA6`)
+Estado detalhado do que já existe em [implementado.md](./implementado.md).
+
+- ✅ Auth completo: login/refresh/logout/rotation, Argon2id, rate limit, bootstrap via CLI (`RF-AUT1-5`)
+- ⬜ CRUD de projeto (admin) + soft delete + reorder (`RF-PROJ1-6`)
+- ⬜ **Estrutura de i18n nasce aqui, conteúdo não.** Rota já sob prefixo `/pt` (`next-intl` configurado, só locale `pt` ativo/linkado), `Project.title`/`description`/`content` já `jsonb { pt, en }` desde a primeira migration (`en` fica vazio). Evita migration de schema e redirect de URL depois que o site já estiver indexado.
+- ⬜ Site público PT-BR: home, sobre, formação, certificados, projetos, projeto/slug — layout Tailwind/shadcn responsivo (`RNF-USA1`), sem animação elaborada ainda
+- ⬜ CV download (`RF-PUB7`)
+- ✅ Health check (`RNF-INF6`) — ⬜ deploy Dokploy/VPS/Docker/HTTPS/secrets (`RNF-INF1`, `RNF-SEG8`, `RNF-SEG10`)
+- ✅ Segurança de base: Helmet, CORS, validação Zod em toda borda (`RNF-SEG6`, `RNF-SEG7`, `RNF-SEG9`)
+- ✅ Teste unitário por rota (`RNF-QUA1`), lint/format + pre-commit (`RNF-QUA6`)
 
 ## Fase 2 — endurece
 
