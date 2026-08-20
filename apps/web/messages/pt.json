@@ -18,7 +18,8 @@
     "builtWith": "Feito com NestJS e Next.js",
     "links": {
       "github": "GitHub",
-      "linkedin": "LinkedIn"
+      "linkedin": "LinkedIn",
+      "email": "E-mail"
     }
   },
   "about": {

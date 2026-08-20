@@ -10,8 +10,7 @@
  * `null` and `[]` mean "not filled in yet", and every consumer has to handle
  * it. That is deliberate: a portfolio showing a broken image, an empty
  * heading or a "Baixar CV" button that 404s is worse than one showing
- * neither, and inventing plausible-looking values here would put wrong
- * information on every page.
+ * neither.
  */
 export type LanguageLevel =
   'básico' | 'intermediário' | 'avançado' | 'fluente' | 'nativo';
@@ -44,37 +43,75 @@ export interface Profile {
 export const profile: Profile = {
   name: 'Luciano Borges',
 
-  // TODO: confirm. Taken from the example in docs/dominio.md, not from you.
-  headline: 'Desenvolvedor Backend Node.js/NestJS',
+  // From the CV's own summary line ("Frontend | Backend | Full-Stack") plus
+  // the current role. REVIEW: the previous value said "Backend" only, which
+  // undersold the Next.js/React half of the experience -- but how you want to
+  // be positioned is your call, not the CV's.
+  headline: 'Desenvolvedor Full-Stack — NestJS, Next.js e TypeScript',
 
-  // TODO: a short paragraph in the first person. The Sobre page omits the
-  // section entirely while this is null, rather than showing a bare heading.
-  bio: null,
+  // DRAFT, written from the CV. Every fact here traces back to it, but the
+  // voice is not yours -- rewrite it in your own words before this ships.
+  bio: `Estudante de Sistemas de Informação, atualmente no 6º semestre, e desenvolvedor na B2ML, onde atuo como analista e desenvolvedor de sistemas.
 
-  // TODO: the kind of role or project you are after.
+Hoje lidero a re-arquitetura da Timer API para a Plataforma B2ML, um monolito modular que cobre vários domínios de negócio (timer, cliente, usuário, relatórios), incluindo a correção de vulnerabilidades críticas de controle de acesso e isolamento de dados entre tenants.
+
+Meu foco é backend — NestJS, PostgreSQL, Docker — mas trabalho a stack completa, e me interesso especialmente por arquitetura, segurança e as práticas que fazem um projeto sobreviver ao próprio crescimento: teste, revisão e automação.`,
+
+  // TODO: the one field the CV does not state. What kind of role or project
+  // are you after? The file name suggested you are aiming at roles abroad,
+  // but that is a guess and guesses do not belong on the page -- the section
+  // stays hidden until you write it.
   objective: null,
 
   // TODO: an external image URL. The avatar falls back to initials while
   // this is null, so leaving it unset costs nothing but a photo.
   photoUrl: null,
 
-  // TODO: put the file at apps/web/public/cv-pt.pdf and set this to
-  // '/cv-pt.pdf'. Deliberately not a hardcoded path: a "Baixar CV" button
-  // that 404s is worse than no button, so it only renders once this is set.
+  // TODO: the CV you sent is in English ("CV-EUA"), and this button is the
+  // pt one. Export a PT-BR version to apps/web/public/cv-pt.pdf and set this
+  // to '/cv-pt.pdf'. The English one becomes cv-en.pdf in Fase 3.
   cvUrl: null,
 
-  // TODO: the technologies you want to be evaluated on.
-  skills: [],
+  // Straight from the CV's Skills section, plus the notable ones its project
+  // descriptions name. Trim anything you would rather not be asked about in
+  // an interview -- this list is a promise.
+  skills: [
+    'TypeScript',
+    'Node.js',
+    'NestJS',
+    'Next.js',
+    'React',
+    'PostgreSQL',
+    'MySQL',
+    'Drizzle ORM',
+    'MikroORM',
+    'Zod',
+    'TanStack Query',
+    'Tailwind CSS',
+    'Docker',
+    'Turborepo',
+    'JWT',
+    'Testes unitários',
+    'Microsserviços',
+    'Sistemas distribuídos',
+  ],
 
-  // TODO: e.g. { language: 'Inglês', level: 'avançado' }
-  languages: [],
+  // The CV says "Portuguese, English – All professional proficiency or
+  // above". REVIEW: "professional proficiency" is between avançado and
+  // fluente in this scale, so I picked the lower one -- raise it if fluente
+  // is the honest answer.
+  languages: [
+    { language: 'Português', level: 'nativo' },
+    { language: 'Inglês', level: 'avançado' },
+  ],
 
   links: {
     github: 'https://github.com/ljborgess',
     linkedin: 'https://www.linkedin.com/in/lucianojunqueira/',
-    // TODO: only if you want it public. Publishing an address invites
-    // scraping, so this stays unset until you decide -- the footer simply
-    // omits the link.
-    email: null,
+    // On the CV you distribute, so publishing it is a decision you have
+    // already made. Worth knowing it is not the same decision: a web page
+    // gets scraped far more aggressively than a PDF. Set to null to drop the
+    // link entirely.
+    email: 'lucianoborges04@hotmail.com',
   },
 };
