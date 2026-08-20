@@ -52,8 +52,19 @@ jobs:
       # wiring — modules, main.ts, Drizzle schema declarations — is excluded
       # from the measurement there rather than padded with tests that assert
       # nothing.
-      - name: Unit tests with coverage
+      - name: API unit tests with coverage
         run: pnpm --filter api test:cov
 
       - name: API e2e tests
         run: pnpm --filter api test:e2e
+
+      # No coverage threshold on the web app yet: there is one shared layout
+      # and no pages, so a percentage now would measure almost nothing. It
+      # gets one once the page sub-issues give it something to measure.
+      - name: Web unit tests
+        run: pnpm --filter web test
+
+      # Catches what unit tests cannot: a build that fails, or pages silently
+      # falling back to per-request rendering when they should prerender.
+      - name: Web build
+        run: pnpm --filter web build
