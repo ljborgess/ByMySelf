@@ -18,8 +18,17 @@
     "builtWith": "Feito com NestJS e Next.js",
     "links": {
       "github": "GitHub",
-      "linkedin": "LinkedIn"
+      "linkedin": "LinkedIn",
+      "email": "E-mail"
     }
+  },
+  "about": {
+    "title": "Sobre",
+    "bioHeading": "Quem sou",
+    "objectiveHeading": "Objetivo",
+    "skillsHeading": "Habilidades",
+    "languagesHeading": "Idiomas",
+    "downloadCv": "Baixar CV"
   },
   "home": {
     "title": "Início",

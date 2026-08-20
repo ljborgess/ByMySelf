@@ -7,7 +7,12 @@ import messages from '../../messages/pt.json';
 const mockProfile: Profile = {
   name: 'Nome Sobrenome',
   headline: 'Headline de teste',
+  bio: null,
+  objective: null,
   photoUrl: null,
+  cvUrl: null,
+  skills: [],
+  languages: [],
   links: { github: null, linkedin: null, email: null },
 };
 

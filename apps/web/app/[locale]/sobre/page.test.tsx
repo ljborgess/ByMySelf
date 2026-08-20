@@ -1,0 +1,183 @@
+import { render, screen } from '@testing-library/react';
+import { NextIntlClientProvider } from 'next-intl';
+import type { Profile } from '../../../content/profile';
+import messages from '../../../messages/pt.json';
+
+/** Fully populated: individual tests blank out what they are checking. */
+const mockProfile: Profile = {
+  name: 'Nome Sobrenome',
+  headline: 'Headline de teste',
+  bio: 'Primeira linha da bio.\n\nSegunda linha.',
+  objective: 'Objetivo profissional de teste.',
+  photoUrl: null,
+  cvUrl: '/cv-pt.pdf',
+  skills: ['NestJS', 'PostgreSQL', 'TypeScript'],
+  languages: [
+    { language: 'Português', level: 'nativo' },
+    { language: 'Inglês', level: 'avançado' },
+  ],
+  links: { github: null, linkedin: null, email: null },
+};
+
+jest.mock('../../../content/profile', () => ({
+  get profile() {
+    return mockProfile;
+  },
+}));
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const AboutPage = require('./page').default as () => React.ReactElement;
+
+function renderAbout() {
+  return render(
+    <NextIntlClientProvider locale="pt" messages={messages}>
+      <AboutPage />
+    </NextIntlClientProvider>,
+  );
+}
+
+const fullProfile = { ...mockProfile };
+
+describe('AboutPage', () => {
+  beforeEach(() => {
+    Object.assign(mockProfile, fullProfile);
+  });
+
+  it('is headed as the Sobre page', () => {
+    renderAbout();
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: messages.about.title }),
+    ).toBeVisible();
+  });
+
+  it('shows the bio and the objective (RF-PUB4)', () => {
+    renderAbout();
+
+    expect(screen.getByText(/Primeira linha da bio/)).toBeVisible();
+    expect(screen.getByText(mockProfile.objective!)).toBeVisible();
+  });
+
+  it('lists every skill', () => {
+    renderAbout();
+
+    for (const skill of fullProfile.skills) {
+      expect(screen.getByText(skill)).toBeVisible();
+    }
+  });
+
+  it('lists each language with its proficiency level', () => {
+    renderAbout();
+
+    for (const { language, level } of fullProfile.languages) {
+      expect(screen.getByText(language)).toBeVisible();
+      // the level is the point of the list; a bare language name says nothing
+      expect(screen.getByText(new RegExp(level))).toBeVisible();
+    }
+  });
+
+  describe('CV download (RF-PUB7)', () => {
+    it('points at the static file and asks the browser to download it', () => {
+      renderAbout();
+
+      const link = screen.getByRole('link', {
+        name: new RegExp(messages.about.downloadCv),
+      });
+
+      expect(link).toHaveAttribute('href', '/cv-pt.pdf');
+      // a plain <a download>, not a JS fetch, so it survives client JS failing
+      expect(link).toHaveAttribute('download');
+    });
+
+    it('renders no button at all while there is no CV', () => {
+      mockProfile.cvUrl = null;
+
+      renderAbout();
+
+      // a button that 404s makes the visitor blame the site rather than
+      // conclude there is nothing to download
+      expect(
+        screen.queryByRole('link', {
+          name: new RegExp(messages.about.downloadCv),
+        }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('sections that have no content yet', () => {
+    it('omits the bio heading rather than showing it empty', () => {
+      mockProfile.bio = null;
+
+      renderAbout();
+
+      expect(
+        screen.queryByRole('heading', { name: messages.about.bioHeading }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('omits the objective heading rather than showing it empty', () => {
+      mockProfile.objective = null;
+
+      renderAbout();
+
+      expect(
+        screen.queryByRole('heading', {
+          name: messages.about.objectiveHeading,
+        }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('omits the skills and languages sections when both lists are empty', () => {
+      mockProfile.skills = [];
+      mockProfile.languages = [];
+
+      renderAbout();
+
+      expect(
+        screen.queryByRole('heading', { name: messages.about.skillsHeading }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', {
+          name: messages.about.languagesHeading,
+        }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('still renders the page identifiably with nothing filled in', () => {
+      Object.assign(mockProfile, {
+        bio: null,
+        objective: null,
+        cvUrl: null,
+        skills: [],
+        languages: [],
+      });
+
+      renderAbout();
+
+      // the page has to look unfinished, not broken, at any stage of filling
+      // profile.ts in
+      expect(
+        screen.getByRole('heading', { level: 1, name: messages.about.title }),
+      ).toBeVisible();
+      expect(screen.getByText(mockProfile.headline)).toBeVisible();
+    });
+  });
+
+  describe('photo', () => {
+    it('falls back to initials when there is no photo', () => {
+      renderAbout();
+
+      expect(screen.getByText('NS')).toBeInTheDocument();
+    });
+
+    it('renders the photo when one is set', () => {
+      mockProfile.photoUrl = 'https://example.com/foto.jpg';
+
+      renderAbout();
+
+      expect(
+        screen.getByRole('img', { name: mockProfile.name }),
+      ).toBeInTheDocument();
+    });
+  });
+});
