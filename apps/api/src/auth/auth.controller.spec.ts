@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { AuthController } from './auth.controller';
 import { AuthService, LoginResult } from './auth.service';
@@ -38,7 +39,14 @@ describe('AuthController', () => {
       providers: [
         { provide: AuthService, useValue: { login, refresh, logout } },
       ],
-    }).compile();
+    })
+      // these tests call controller methods directly, bypassing Nest's HTTP
+      // pipeline entirely -- @UseGuards(ThrottlerGuard) is still resolved as
+      // part of building the DI container, so it needs a stand-in here even
+      // though it never actually runs in this test style.
+      .overrideGuard(ThrottlerGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get(AuthController);
   });

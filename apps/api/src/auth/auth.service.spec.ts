@@ -1,10 +1,15 @@
-import { UnauthorizedException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as argon2 from 'argon2';
 import { createHash } from 'node:crypto';
 import { env } from '../config/env';
 import { DRIZZLE } from '../database/database.tokens';
+import { AccountBackoffService } from './account-backoff.service';
 import { AuthService } from './auth.service';
 
 jest.mock('argon2');
@@ -68,6 +73,7 @@ describe('AuthService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
+        AccountBackoffService,
         { provide: DRIZZLE, useValue: db },
         {
           provide: JwtService,
@@ -142,6 +148,53 @@ describe('AuthService', () => {
       );
       expect(insertValues).not.toHaveBeenCalled();
     });
+
+    it('backs off after repeated failures on the same account: rejects with 429 without even checking the password', async () => {
+      selectLimit.mockResolvedValue([existingUser]);
+      mockedArgon2.verify.mockResolvedValue(false);
+
+      await expect(
+        service.login(existingUser.email, 'wrong-password'),
+      ).rejects.toThrow(UnauthorizedException);
+      mockedArgon2.verify.mockClear();
+
+      const secondAttempt = service.login(
+        existingUser.email,
+        'wrong-password-again',
+      );
+      await expect(secondAttempt).rejects.toBeInstanceOf(HttpException);
+      await secondAttempt.catch((error: HttpException) => {
+        expect(error.getStatus()).toBe(HttpStatus.TOO_MANY_REQUESTS);
+      });
+      expect(mockedArgon2.verify).not.toHaveBeenCalled();
+    });
+
+    it('resets the backoff after a successful login, so a later failure starts back at the base delay', async () => {
+      jest.useFakeTimers();
+      try {
+        selectLimit.mockResolvedValue([existingUser]);
+        mockedArgon2.verify.mockResolvedValueOnce(false);
+        await expect(
+          service.login(existingUser.email, 'wrong-password'),
+        ).rejects.toThrow(UnauthorizedException);
+
+        // past the 1s backoff window from that single failure
+        jest.advanceTimersByTime(1000);
+
+        mockedArgon2.verify.mockResolvedValueOnce(true);
+        await service.login(existingUser.email, 'correct-password');
+
+        // immediately after success (no further time advance): a fresh
+        // wrong attempt is not backed off, proving the counter was reset
+        // rather than merely having its window elapse
+        mockedArgon2.verify.mockResolvedValueOnce(false);
+        await expect(
+          service.login(existingUser.email, 'wrong-password'),
+        ).rejects.toThrow(UnauthorizedException);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
   });
 
   describe('refresh', () => {
@@ -204,6 +257,24 @@ describe('AuthService', () => {
       // one UPDATE, scoped to this row's familyId -- not a single-row revoke
       expect(updateWhere).toHaveBeenCalledTimes(1);
       expect(insertValues).not.toHaveBeenCalled();
+    });
+
+    it('backs off the account after reuse is detected: a second attempt rejects with 429 without re-revoking the family', async () => {
+      selectLimit.mockResolvedValue([{ ...validRow, revokedAt: new Date() }]);
+
+      await expect(service.refresh('already-rotated-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(updateWhere).toHaveBeenCalledTimes(1);
+
+      const secondAttempt = service.refresh('already-rotated-token');
+      await expect(secondAttempt).rejects.toBeInstanceOf(HttpException);
+      await secondAttempt.catch((error: HttpException) => {
+        expect(error.getStatus()).toBe(HttpStatus.TOO_MANY_REQUESTS);
+      });
+      // the family was already revoked by the first attempt -- the second
+      // attempt is stopped by the backoff check before touching the DB again
+      expect(updateWhere).toHaveBeenCalledTimes(1);
     });
 
     it('rejects an unknown token hash without touching any row', async () => {

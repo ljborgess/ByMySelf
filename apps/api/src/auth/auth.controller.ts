@@ -1,4 +1,13 @@
-import { Body, Controller, HttpCode, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import type { CookieOptions, Request, Response } from 'express';
 import { env } from '../config/env';
 import { ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } from './auth.constants';
@@ -9,6 +18,10 @@ import { LoginDto } from './dto/login.dto';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  // RNF-SEG5: per-IP throttle on top of AuthService.login's own per-account
+  // backoff -- login/refresh are the only two routes that carry it, so it's
+  // applied here rather than globally.
+  @UseGuards(ThrottlerGuard)
   @Post('login')
   @HttpCode(200)
   async login(
@@ -20,6 +33,7 @@ export class AuthController {
     return { status: 'ok' };
   }
 
+  @UseGuards(ThrottlerGuard)
   @Post('refresh')
   @HttpCode(200)
   async refresh(
