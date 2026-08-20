@@ -110,6 +110,27 @@ export class ProjectsRepository {
     return row?.max ?? null;
   }
 
+  /**
+   * Writes `order` for each id as its index in the array, all inside one
+   * transaction so a failure halfway cannot leave the listing with
+   * duplicate or missing positions -- which would make the public ordering
+   * non-deterministic until someone reordered again.
+   */
+  async applyOrdering(orderedIds: string[]): Promise<void> {
+    if (orderedIds.length === 0) {
+      return;
+    }
+
+    await this.db.transaction(async (tx) => {
+      for (const [index, id] of orderedIds.entries()) {
+        await tx
+          .update(projects)
+          .set({ order: index })
+          .where(and(eq(projects.id, id), isNull(projects.deletedAt)));
+      }
+    });
+  }
+
   private scopedById(id: string, includeDeleted: boolean) {
     const byId = eq(projects.id, id);
     return includeDeleted ? byId : and(byId, isNull(projects.deletedAt));

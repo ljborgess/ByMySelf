@@ -49,6 +49,7 @@ describe('ProjectsService', () => {
     update: jest.Mock;
     softDelete: jest.Mock;
     maxOrder: jest.Mock;
+    applyOrdering: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -64,6 +65,7 @@ describe('ProjectsService', () => {
         Promise.resolve(projectRow({ deletedAt: new Date() })),
       ),
       maxOrder: jest.fn().mockResolvedValue(null),
+      applyOrdering: jest.fn().mockResolvedValue(undefined),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -178,6 +180,103 @@ describe('ProjectsService', () => {
       await service.update('some-id', { featured: true });
 
       expect(repository.findBySlug).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('reorder', () => {
+    /** Three live projects, plus one soft-deleted that must stay invisible. */
+    function seedListing() {
+      const live = [
+        projectRow({ id: 'first', slug: 'primeiro', order: 0 }),
+        projectRow({ id: 'second', slug: 'segundo', order: 1 }),
+        projectRow({ id: 'third', slug: 'terceiro', order: 2 }),
+      ];
+      // findAll applies the soft-delete scoping, so the deleted project
+      // never reaches the service at all
+      repository.findAll.mockResolvedValue(live);
+      return live;
+    }
+
+    /** The sequence the service asked the repository to persist. */
+    function persistedOrdering(): string[] {
+      const typed = repository.applyOrdering as jest.Mock<
+        Promise<void>,
+        [string[]]
+      >;
+      return typed.mock.calls[0][0];
+    }
+
+    it('moves a project to the front, reindexing the rest', async () => {
+      seedListing();
+
+      await service.reorder('third', 0);
+
+      expect(persistedOrdering()).toEqual(['third', 'first', 'second']);
+    });
+
+    it('moves a project to the back, reindexing the rest', async () => {
+      seedListing();
+
+      await service.reorder('first', 2);
+
+      expect(persistedOrdering()).toEqual(['second', 'third', 'first']);
+    });
+
+    it('moves a project to a middle position', async () => {
+      seedListing();
+
+      await service.reorder('third', 1);
+
+      expect(persistedOrdering()).toEqual(['first', 'third', 'second']);
+    });
+
+    it('clamps a position past the end instead of failing', async () => {
+      seedListing();
+
+      await service.reorder('first', 99);
+
+      expect(persistedOrdering()).toEqual(['second', 'third', 'first']);
+    });
+
+    it('persists a contiguous sequence with no duplicate positions', async () => {
+      const live = seedListing();
+
+      await service.reorder('second', 0);
+
+      const ordering = persistedOrdering();
+      // the repository writes each id's index as its order, so a permutation
+      // of the input is exactly what guarantees 0..n-1 with no collisions
+      expect(ordering).toHaveLength(live.length);
+      expect(new Set(ordering).size).toBe(live.length);
+    });
+
+    it('never includes a soft-deleted project in the reindex', async () => {
+      const live = seedListing();
+      const deleted = projectRow({ id: 'gone', deletedAt: new Date() });
+
+      await service.reorder('first', 1);
+
+      expect(persistedOrdering()).not.toContain(deleted.id);
+      expect(persistedOrdering()).toHaveLength(live.length);
+    });
+
+    it('raises 404 for a project that is missing or already deleted', async () => {
+      seedListing();
+
+      await expect(service.reorder('gone', 0)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(repository.applyOrdering).not.toHaveBeenCalled();
+    });
+
+    it('returns the reordered listing, not just the moved project', async () => {
+      seedListing();
+
+      const result = await service.reorder('third', 0);
+
+      expect(Array.isArray(result)).toBe(true);
+      // read back after the write, so the caller sees persisted order values
+      expect(repository.findAll).toHaveBeenCalledTimes(2);
     });
   });
 

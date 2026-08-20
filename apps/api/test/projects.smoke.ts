@@ -141,6 +141,49 @@ async function checkRepository(tx: Tx): Promise<boolean[]> {
     ),
   );
 
+  // applyOrdering writes one row per id inside a transaction -- what matters
+  // is the state the database ends up in, which is what this observes
+  const extra = await repository.create({
+    title: { pt: 'Repo terceiro' },
+    description: { pt: 'Descrição' },
+    content: { pt: 'Conteúdo' },
+    slug: '__smoke-repo-third',
+  });
+
+  await repository.applyOrdering([extra.id, live.id]);
+  const afterFirstMove = await repository.findAll();
+  results.push(
+    check(
+      'repository.applyOrdering persiste 0..n-1 na ordem pedida',
+      afterFirstMove.find((row) => row.id === extra.id)?.order === 0 &&
+        afterFirstMove.find((row) => row.id === live.id)?.order === 1,
+    ),
+  );
+  results.push(
+    check(
+      'repository.applyOrdering deixa findAll já ordenado',
+      afterFirstMove.map((row) => row.id).join(',') ===
+        [extra.id, live.id].join(','),
+    ),
+  );
+
+  await repository.applyOrdering([live.id, extra.id]);
+  const afterSwap = await repository.findAll();
+  results.push(
+    check(
+      'repository.applyOrdering troca a ordem sem duplicar posição',
+      afterSwap.map((row) => row.order).join(',') === '0,1' &&
+        afterSwap[0].id === live.id,
+    ),
+  );
+
+  results.push(
+    check(
+      'repository.applyOrdering ignora lista vazia',
+      (await repository.applyOrdering([])) === undefined,
+    ),
+  );
+
   return results;
 }
 

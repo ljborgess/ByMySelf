@@ -9,7 +9,11 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { CreateProjectDto, UpdateProjectDto } from './dto/project.dto';
+import {
+  CreateProjectDto,
+  ReorderProjectDto,
+  UpdateProjectDto,
+} from './dto/project.dto';
 import { ProjectsService } from './projects.service';
 import { Project } from './projects.schema';
 
@@ -45,6 +49,19 @@ export class AdminProjectsController {
     @Body() body: UpdateProjectDto,
   ): Promise<Project> {
     return this.projectsService.update(id, body);
+  }
+
+  /**
+   * RF-PROJ5. Answers with the whole reordered listing, because moving one
+   * project shifts the others and the caller needs the resulting sequence,
+   * not just the moved row.
+   */
+  @Patch(':id/order')
+  async reorder(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() { order }: ReorderProjectDto,
+  ): Promise<Project[]> {
+    return this.projectsService.reorder(id, order);
   }
 
   @Delete(':id')
