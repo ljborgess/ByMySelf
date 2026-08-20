@@ -31,6 +31,25 @@ export interface Education {
   technologies?: string[];
 }
 
+export interface Certificate {
+  /**
+   * The credential's actual title, in the language it was issued in. Not
+   * translated: a certificate name is a proper noun, and rendering
+   * "Introduction to Agent Skills" in Portuguese would describe a credential
+   * that does not exist.
+   */
+  name: string;
+  issuer: string;
+  /** ISO date or `YYYY-MM`. Nullable, and the date is then hidden. */
+  issuedAt: string | null;
+  /**
+   * Validation link. `null` renders no link at all rather than a dead one --
+   * an unverifiable claim is better shown as a plain claim than as a broken
+   * promise of verification (RF-PUB6).
+   */
+  credentialUrl: string | null;
+}
+
 export interface Profile {
   name: string;
   headline: string;
@@ -45,6 +64,7 @@ export interface Profile {
   skills: string[];
   languages: Language[];
   education: Education[];
+  certificates: Certificate[];
   links: {
     github: string | null;
     linkedin: string | null;
@@ -133,6 +153,54 @@ Meu foco é backend — NestJS, PostgreSQL, Docker — mas trabalho a stack comp
       endDate: null,
       // TODO: optional. Technologies the course actually covered, if you
       // want the formal education tied to practical skill (RF-PUB5).
+    },
+  ],
+
+  // Names and issuers straight from the CV, kept in the language each was
+  // issued in. The CV gives neither dates nor validation links, so both are
+  // null -- and RF-PUB6 is about verifiability, which makes credentialUrl
+  // the field most worth filling: without it each line is a claim a
+  // recruiter has to take on trust.
+  certificates: [
+    {
+      name: 'Introduction to Agent Skills',
+      issuer: 'Anthropic',
+      // TODO: when it was issued (e.g. '2026-02'). The date is hidden while
+      // this is null.
+      issuedAt: null,
+      // TODO: the validation URL. No link is rendered while this is null,
+      // rather than a dead one.
+      credentialUrl: null,
+    },
+    {
+      name: 'TypeScript: Building an API with Type Safety',
+      issuer: 'Alura',
+      issuedAt: null,
+      credentialUrl: null,
+    },
+    {
+      name: 'Prompt Engineering',
+      issuer: 'Alura',
+      issuedAt: null,
+      credentialUrl: null,
+    },
+    {
+      name: 'Artificial Intelligence',
+      issuer: 'Alura',
+      issuedAt: null,
+      credentialUrl: null,
+    },
+    {
+      name: 'Computational Thinking',
+      issuer: 'Alura',
+      issuedAt: null,
+      credentialUrl: null,
+    },
+    {
+      name: 'Introduction to JavaScript',
+      issuer: 'Udemy',
+      issuedAt: null,
+      credentialUrl: null,
     },
   ],
 

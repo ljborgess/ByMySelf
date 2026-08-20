@@ -22,6 +22,7 @@ export function makeProfile(overrides: Partial<Profile> = {}): Profile {
     skills: [],
     languages: [],
     education: [],
+    certificates: [],
     links: { github: null, linkedin: null, email: null },
     ...overrides,
   };

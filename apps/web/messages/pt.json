@@ -30,6 +30,12 @@
     "languagesHeading": "Idiomas",
     "downloadCv": "Baixar CV"
   },
+  "certificates": {
+    "title": "Certificados",
+    "description": "Certificados de Luciano Borges, com link de validação.",
+    "validate": "Validar credencial",
+    "empty": "Nenhum certificado cadastrado ainda."
+  },
   "education": {
     "title": "Formação",
     "description": "Formação acadêmica de Luciano Borges.",
