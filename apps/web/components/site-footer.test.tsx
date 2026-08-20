@@ -1,24 +1,16 @@
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import type { Profile } from '../content/profile';
+import { makeProfile } from '../content/profile.fixture';
 import messages from '../messages/pt.json';
 import { SiteFooter } from './site-footer';
 
-const mockProfile: Profile = {
-  name: 'Nome Sobrenome',
-  headline: 'Headline de teste',
-  bio: null,
-  objective: null,
-  photoUrl: null,
-  cvUrl: null,
-  skills: [],
-  languages: [],
+const mockProfile = makeProfile({
   links: {
     github: 'https://github.com/exemplo',
     linkedin: 'https://www.linkedin.com/in/exemplo/',
     email: 'exemplo@dominio.com',
   },
-};
+});
 
 jest.mock('../content/profile', () => ({
   get profile() {

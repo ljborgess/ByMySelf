@@ -1,23 +1,19 @@
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import type { Profile } from '../../../content/profile';
+import { makeProfile } from '../../../content/profile.fixture';
 import messages from '../../../messages/pt.json';
 
 /** Fully populated: individual tests blank out what they are checking. */
-const mockProfile: Profile = {
-  name: 'Nome Sobrenome',
-  headline: 'Headline de teste',
+const mockProfile = makeProfile({
   bio: 'Primeira linha da bio.\n\nSegunda linha.',
   objective: 'Objetivo profissional de teste.',
-  photoUrl: null,
   cvUrl: '/cv-pt.pdf',
   skills: ['NestJS', 'PostgreSQL', 'TypeScript'],
   languages: [
     { language: 'Português', level: 'nativo' },
     { language: 'Inglês', level: 'avançado' },
   ],
-  links: { github: null, linkedin: null, email: null },
-};
+});
 
 jest.mock('../../../content/profile', () => ({
   get profile() {

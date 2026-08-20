@@ -1,20 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import type { Profile } from '../../content/profile';
+import { makeProfile } from '../../content/profile.fixture';
 import { NAVIGATION_SECTIONS } from '../../lib/navigation-sections';
 import messages from '../../messages/pt.json';
 
-const mockProfile: Profile = {
+const mockProfile = makeProfile({
   name: 'Nome Sobrenome',
   headline: 'Headline de teste',
-  bio: null,
-  objective: null,
-  photoUrl: null,
-  cvUrl: null,
-  skills: [],
-  languages: [],
-  links: { github: null, linkedin: null, email: null },
-};
+});
 
 // mocked so the page's own rendering is under test, not the real content --
 // otherwise every edit to profile.ts would break these assertions
