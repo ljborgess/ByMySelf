@@ -24,6 +24,7 @@ describe('AuthService', () => {
   let insertValues: jest.Mock;
   let updateWhere: jest.Mock;
   let jwtSign: jest.Mock;
+  let jwtVerify: jest.Mock;
 
   const existingUser = {
     id: 'a3f6b7f0-1c2d-4e5f-9a8b-1234567890ab',
@@ -40,6 +41,7 @@ describe('AuthService', () => {
         ? 'signed.access.token'
         : 'signed.refresh.token',
     );
+    jwtVerify = jest.fn().mockReturnValue({ sub: existingUser.id });
 
     const db = {
       select: jest.fn().mockReturnValue({
@@ -57,7 +59,10 @@ describe('AuthService', () => {
       providers: [
         AuthService,
         { provide: DRIZZLE, useValue: db },
-        { provide: JwtService, useValue: { sign: jwtSign } },
+        {
+          provide: JwtService,
+          useValue: { sign: jwtSign, verify: jwtVerify },
+        },
       ],
     }).compile();
 
@@ -126,6 +131,98 @@ describe('AuthService', () => {
         expect.anything(),
       );
       expect(insertValues).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('refresh', () => {
+    const familyId = 'b2f6b7f0-1c2d-4e5f-9a8b-1234567890cd';
+    const validRow = {
+      id: 'row-1',
+      userId: existingUser.id,
+      familyId,
+      revokedAt: null as Date | null,
+      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+    };
+
+    it('rotates a valid token: revokes the old row and issues a new pair under the same family', async () => {
+      selectLimit.mockResolvedValue([validRow]);
+
+      const result = await service.refresh('valid-refresh-token');
+
+      expect(result.accessToken).toBe('signed.access.token');
+      expect(result.refreshToken).toBe('signed.refresh.token');
+      expect(result.userId).toBe(existingUser.id);
+
+      // the new refresh JWT carries the same familyId forward
+      const typedJwtSign = jwtSign as jest.Mock<
+        string,
+        [{ sub: string; familyId?: string }, { secret: string }]
+      >;
+      const refreshCall = typedJwtSign.mock.calls.find(
+        ([, options]) => options.secret === env.JWT_REFRESH_SECRET,
+      );
+      expect(refreshCall?.[0].familyId).toBe(familyId);
+
+      // old row revoked, new row inserted -- exactly one of each
+      expect(updateWhere).toHaveBeenCalledTimes(1);
+      expect(insertValues).toHaveBeenCalledTimes(1);
+    });
+
+    it('detects reuse of an already-rotated token and revokes the entire family, touching only that family', async () => {
+      selectLimit.mockResolvedValue([{ ...validRow, revokedAt: new Date() }]);
+
+      await expect(service.refresh('already-rotated-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
+
+      // one UPDATE, scoped to this row's familyId -- not a single-row revoke
+      expect(updateWhere).toHaveBeenCalledTimes(1);
+      expect(insertValues).not.toHaveBeenCalled();
+    });
+
+    it('rejects an unknown token hash without touching any row', async () => {
+      selectLimit.mockResolvedValue([]);
+
+      await expect(service.refresh('never-issued-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
+
+      expect(updateWhere).not.toHaveBeenCalled();
+      expect(insertValues).not.toHaveBeenCalled();
+    });
+
+    it('rejects an expired-but-not-revoked token without rotating or revoking the family', async () => {
+      selectLimit.mockResolvedValue([
+        { ...validRow, expiresAt: new Date(Date.now() - 1000) },
+      ]);
+
+      await expect(service.refresh('expired-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
+
+      expect(updateWhere).not.toHaveBeenCalled();
+      expect(insertValues).not.toHaveBeenCalled();
+    });
+
+    it('rejects a token with an invalid JWT signature without ever querying the database', async () => {
+      jwtVerify.mockImplementation(() => {
+        throw new Error('invalid signature');
+      });
+
+      await expect(service.refresh('tampered-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
+
+      expect(selectLimit).not.toHaveBeenCalled();
+      expect(updateWhere).not.toHaveBeenCalled();
+      expect(insertValues).not.toHaveBeenCalled();
+    });
+
+    it('is rejected immediately when there is no refresh token cookie', async () => {
+      await expect(service.refresh(undefined)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(jwtVerify).not.toHaveBeenCalled();
     });
   });
 

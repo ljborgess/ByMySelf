@@ -22,18 +22,33 @@ export class AuthController {
     return { status: 'ok' };
   }
 
+  @Post('refresh')
+  @HttpCode(200)
+  async refresh(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<{ status: 'ok' }> {
+    const result = await this.authService.refresh(
+      readRefreshTokenCookie(request),
+    );
+    setAuthCookies(response, result);
+    return { status: 'ok' };
+  }
+
   @Post('logout')
   @HttpCode(200)
   async logout(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ): Promise<{ status: 'ok' }> {
-    const refreshToken = request.cookies?.[REFRESH_TOKEN_COOKIE] as
-      string | undefined;
-    await this.authService.logout(refreshToken);
+    await this.authService.logout(readRefreshTokenCookie(request));
     clearAuthCookies(response);
     return { status: 'ok' };
   }
+}
+
+function readRefreshTokenCookie(request: Request): string | undefined {
+  return request.cookies?.[REFRESH_TOKEN_COOKIE] as string | undefined;
 }
 
 /**

@@ -17,6 +17,7 @@ function mockResponse(): {
 describe('AuthController', () => {
   let controller: AuthController;
   let login: jest.Mock;
+  let refresh: jest.Mock;
   let logout: jest.Mock;
 
   const loginResult: LoginResult = {
@@ -29,11 +30,14 @@ describe('AuthController', () => {
 
   beforeEach(async () => {
     login = jest.fn();
+    refresh = jest.fn();
     logout = jest.fn();
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [{ provide: AuthService, useValue: { login, logout } }],
+      providers: [
+        { provide: AuthService, useValue: { login, refresh, logout } },
+      ],
     }).compile();
 
     controller = module.get(AuthController);
@@ -88,6 +92,42 @@ describe('AuthController', () => {
         ),
       ).rejects.toThrow('Invalid credentials');
 
+      expect(cookie).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('refresh', () => {
+    it('reads the refresh token cookie and sets new rotated cookies on success', async () => {
+      refresh.mockResolvedValue(loginResult);
+      const { response, cookie } = mockResponse();
+      const request = {
+        cookies: { refresh_token: 'old-refresh-token' },
+      } as unknown as Request;
+
+      const body = await controller.refresh(request, response);
+
+      expect(body).toEqual({ status: 'ok' });
+      expect(refresh).toHaveBeenCalledWith('old-refresh-token');
+      expect(cookie).toHaveBeenCalledWith(
+        'access_token',
+        loginResult.accessToken,
+        expect.any(Object),
+      );
+      expect(cookie).toHaveBeenCalledWith(
+        'refresh_token',
+        loginResult.refreshToken,
+        expect.any(Object),
+      );
+    });
+
+    it('propagates the rejection from AuthService without setting cookies', async () => {
+      refresh.mockRejectedValue(new Error('Invalid refresh token'));
+      const { response, cookie } = mockResponse();
+      const request = { cookies: {} } as unknown as Request;
+
+      await expect(controller.refresh(request, response)).rejects.toThrow(
+        'Invalid refresh token',
+      );
       expect(cookie).not.toHaveBeenCalled();
     });
   });

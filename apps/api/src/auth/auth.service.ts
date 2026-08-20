@@ -52,39 +52,66 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const accessTokenMaxAgeMs = parseDuration(env.JWT_ACCESS_EXPIRATION);
-    const accessToken = this.jwt.sign(
-      { sub: user.id },
-      {
-        secret: env.JWT_ACCESS_SECRET,
-        expiresIn: env.JWT_ACCESS_EXPIRATION as ms.StringValue,
-      },
-    );
+    return this.issueTokenPair(user.id, randomUUID());
+  }
 
-    const refreshTokenMaxAgeMs = parseDuration(env.JWT_REFRESH_EXPIRATION);
-    const familyId = randomUUID();
-    const refreshToken = this.jwt.sign(
-      { sub: user.id, familyId },
-      {
-        secret: env.JWT_REFRESH_SECRET,
-        expiresIn: env.JWT_REFRESH_EXPIRATION as ms.StringValue,
-      },
-    );
+  /**
+   * Rotates a refresh token: the presented token must have a valid JWT
+   * signature and match a RefreshToken row that is neither expired nor
+   * already revoked. Any failure -- garbage token, unknown hash, expired,
+   * already-revoked -- rejects with the same generic 401.
+   *
+   * A row that is *already revoked* is the reuse case: this exact token was
+   * legitimately issued and already rotated away once, so its reappearance
+   * means it leaked and someone else is replaying it. The entire family is
+   * revoked, not just this attempt, since the legitimate owner's current
+   * token (and every other token in the chain) must be assumed compromised
+   * too.
+   */
+  async refresh(refreshToken: string | undefined): Promise<LoginResult> {
+    if (!refreshToken) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
 
-    await this.db.insert(refreshTokens).values({
-      userId: user.id,
-      tokenHash: hashToken(refreshToken),
-      familyId,
-      expiresAt: new Date(Date.now() + refreshTokenMaxAgeMs),
-    });
+    try {
+      this.jwt.verify(refreshToken, { secret: env.JWT_REFRESH_SECRET });
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
 
-    return {
-      userId: user.id,
-      accessToken,
-      accessTokenMaxAgeMs,
-      refreshToken,
-      refreshTokenMaxAgeMs,
-    };
+    const [row] = await this.db
+      .select()
+      .from(refreshTokens)
+      .where(eq(refreshTokens.tokenHash, hashToken(refreshToken)))
+      .limit(1);
+
+    if (!row) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    if (row.revokedAt) {
+      await this.db
+        .update(refreshTokens)
+        .set({ revokedAt: new Date() })
+        .where(
+          and(
+            eq(refreshTokens.familyId, row.familyId),
+            isNull(refreshTokens.revokedAt),
+          ),
+        );
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    if (row.expiresAt <= new Date()) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    await this.db
+      .update(refreshTokens)
+      .set({ revokedAt: new Date() })
+      .where(eq(refreshTokens.id, row.id));
+
+    return this.issueTokenPair(row.userId, row.familyId);
   }
 
   /**
@@ -106,6 +133,50 @@ export class AuthService {
           isNull(refreshTokens.revokedAt),
         ),
       );
+  }
+
+  /**
+   * Shared by login (new familyId) and refresh (same familyId carried
+   * forward) -- issuing a pair always means: sign both JWTs, persist the new
+   * RefreshToken row under its hash, hand back everything the controller
+   * needs to set both cookies.
+   */
+  private async issueTokenPair(
+    userId: string,
+    familyId: string,
+  ): Promise<LoginResult> {
+    const accessTokenMaxAgeMs = parseDuration(env.JWT_ACCESS_EXPIRATION);
+    const accessToken = this.jwt.sign(
+      { sub: userId },
+      {
+        secret: env.JWT_ACCESS_SECRET,
+        expiresIn: env.JWT_ACCESS_EXPIRATION as ms.StringValue,
+      },
+    );
+
+    const refreshTokenMaxAgeMs = parseDuration(env.JWT_REFRESH_EXPIRATION);
+    const refreshToken = this.jwt.sign(
+      { sub: userId, familyId },
+      {
+        secret: env.JWT_REFRESH_SECRET,
+        expiresIn: env.JWT_REFRESH_EXPIRATION as ms.StringValue,
+      },
+    );
+
+    await this.db.insert(refreshTokens).values({
+      userId,
+      tokenHash: hashToken(refreshToken),
+      familyId,
+      expiresAt: new Date(Date.now() + refreshTokenMaxAgeMs),
+    });
+
+    return {
+      userId,
+      accessToken,
+      accessTokenMaxAgeMs,
+      refreshToken,
+      refreshTokenMaxAgeMs,
+    };
   }
 }
 
