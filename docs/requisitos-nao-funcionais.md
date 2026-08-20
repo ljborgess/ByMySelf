@@ -29,7 +29,7 @@
 ## Infraestrutura e operação
 
 - **RNF-INF1** — Deploy containerizado (Docker) via Dokploy em VPS próprio.
-- **RNF-INF2** — Migration de schema via MikroORM, seguindo padrão expand-contract para mudança sem downtime.
+- **RNF-INF2** — Migration de schema via Drizzle Kit, seguindo padrão expand-contract para mudança sem downtime.
 - **RNF-INF3** — Variáveis de ambiente validadas no startup (fail fast) — aplicação não sobe com config inválida/faltante.
 - **RNF-INF4** — Logging estruturado (JSON), sem dado sensível (senha, token) em log algum.
 - **RNF-INF5** — Erros não tratados em produção capturados via Sentry (free tier), com contexto de request.

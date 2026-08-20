@@ -24,7 +24,7 @@ portfolio/
 Segue convenção controller → service → repository:
 - `Controller`: recebe request, valida via Zod (`nestjs-zod`), delega pro service. Não tem lógica de negócio.
 - `Service`: lógica de negócio, orquestra repository.
-- `Repository` (MikroORM `EntityRepository`): acesso a dado, sem lógica de negócio.
+- `Repository`: acesso a dado via Drizzle ORM, sem lógica de negócio.
 
 ## Estrutura de `apps/api/src`
 
