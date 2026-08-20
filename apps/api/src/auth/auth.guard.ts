@@ -61,8 +61,17 @@ export class AuthGuard implements CanActivate {
   }
 }
 
+/**
+ * Lowercased before comparing because Express routes case-insensitively by
+ * default: a controller registered at /admin/projects also answers
+ * /ADMIN/projects. A case-sensitive check here would let those variants
+ * through unauthenticated while Express still served the handler -- the
+ * exact "protected by default" guarantee this guard exists to provide.
+ */
 function isAdminRoute(path: string): boolean {
+  const normalized = path.toLowerCase();
   return (
-    path === ADMIN_ROUTE_PREFIX || path.startsWith(`${ADMIN_ROUTE_PREFIX}/`)
+    normalized === ADMIN_ROUTE_PREFIX ||
+    normalized.startsWith(`${ADMIN_ROUTE_PREFIX}/`)
   );
 }

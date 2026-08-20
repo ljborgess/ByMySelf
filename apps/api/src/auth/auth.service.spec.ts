@@ -29,6 +29,7 @@ describe('AuthService', () => {
   let insertValues: jest.Mock;
   let updateWhere: jest.Mock;
   let updateReturning: jest.Mock;
+  let deleteWhere: jest.Mock;
   let jwtSign: jest.Mock;
   let jwtVerify: jest.Mock;
 
@@ -48,6 +49,7 @@ describe('AuthService', () => {
     // plain object, which resolves to itself -- same as the real query
     // builder when nothing consumes its result.
     updateWhere = jest.fn().mockReturnValue({ returning: updateReturning });
+    deleteWhere = jest.fn().mockResolvedValue(undefined);
     jwtSign = jest.fn((_payload: unknown, options: { secret: string }) =>
       options.secret === env.JWT_ACCESS_SECRET
         ? 'signed.access.token'
@@ -65,6 +67,7 @@ describe('AuthService', () => {
       update: jest.fn().mockReturnValue({
         set: jest.fn().mockReturnValue({ where: updateWhere }),
       }),
+      delete: jest.fn().mockReturnValue({ where: deleteWhere }),
     };
     db.transaction = jest.fn((callback: (tx: unknown) => unknown) =>
       callback(db),
@@ -229,6 +232,24 @@ describe('AuthService', () => {
       // old row revoked, new row inserted -- exactly one of each
       expect(updateWhere).toHaveBeenCalledTimes(1);
       expect(insertValues).toHaveBeenCalledTimes(1);
+    });
+
+    it('prunes the account expired rows on rotation so the table stays bounded', async () => {
+      selectLimit.mockResolvedValue([validRow]);
+
+      await service.refresh('valid-refresh-token');
+
+      expect(deleteWhere).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not prune when rotation is rejected', async () => {
+      selectLimit.mockResolvedValue([]);
+
+      await expect(service.refresh('never-issued-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
+
+      expect(deleteWhere).not.toHaveBeenCalled();
     });
 
     it('loses a concurrent rotation race for the same token: revokes the family instead of issuing a second pair', async () => {

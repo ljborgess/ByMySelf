@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, lt } from 'drizzle-orm';
 import ms from 'ms';
 import { createHash, randomUUID } from 'node:crypto';
 import { env } from '../config/env';
@@ -162,6 +162,21 @@ export class AuthService {
           );
         throw new UnauthorizedException('Invalid refresh token');
       }
+
+      // Every rotation inserts a row and nothing ever removed one, so the
+      // table grew without bound. Safe to prune here: an expired row's token
+      // fails jwt.verify() above before any lookup happens, so it can no
+      // longer participate in reuse detection either way. Revoked-but-unexpired
+      // rows are deliberately kept -- those are exactly what reuse detection
+      // matches on.
+      await tx
+        .delete(refreshTokens)
+        .where(
+          and(
+            eq(refreshTokens.userId, row.userId),
+            lt(refreshTokens.expiresAt, new Date()),
+          ),
+        );
 
       return this.issueTokenPair(row.userId, row.familyId, tx);
     });

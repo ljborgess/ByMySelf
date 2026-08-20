@@ -3,6 +3,7 @@ import { envSchema } from './env.schema';
 const validEnv = {
   NODE_ENV: 'development',
   PORT: '3000',
+  TRUST_PROXY_HOPS: '0',
   DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/portfolio',
   JWT_ACCESS_SECRET: 'a'.repeat(32),
   JWT_REFRESH_SECRET: 'r'.repeat(32),
@@ -56,6 +57,59 @@ describe('envSchema', () => {
         ...validEnv,
         JWT_ACCESS_EXPIRATION: 'fifteen minutes',
       }),
+    ).toThrow();
+  });
+
+  // RNF-SEG4: access 15 minutes, refresh 7-30 days. A value that merely
+  // parses is not enough -- "15d" for the access token is a plausible typo
+  // that would silently hand out fortnight-long credentials.
+  it('rejects an access token lifetime longer than 15 minutes', () => {
+    expect(() =>
+      envSchema.parse({ ...validEnv, JWT_ACCESS_EXPIRATION: '15d' }),
+    ).toThrow();
+    expect(() =>
+      envSchema.parse({ ...validEnv, JWT_ACCESS_EXPIRATION: '1h' }),
+    ).toThrow();
+  });
+
+  it('rejects a refresh token lifetime outside the 7-30 day range', () => {
+    expect(() =>
+      envSchema.parse({ ...validEnv, JWT_REFRESH_EXPIRATION: '1d' }),
+    ).toThrow();
+    expect(() =>
+      envSchema.parse({ ...validEnv, JWT_REFRESH_EXPIRATION: '365d' }),
+    ).toThrow();
+  });
+
+  it('accepts lifetimes inside the documented bounds', () => {
+    const result = envSchema.parse({
+      ...validEnv,
+      JWT_ACCESS_EXPIRATION: '5m',
+      JWT_REFRESH_EXPIRATION: '7d',
+    });
+
+    expect(result.JWT_ACCESS_EXPIRATION).toBe('5m');
+    expect(result.JWT_REFRESH_EXPIRATION).toBe('7d');
+  });
+
+  it('defaults TRUST_PROXY_HOPS to 0 so nothing is trusted without opting in', () => {
+    const { TRUST_PROXY_HOPS, ...withoutTrustProxy } = validEnv;
+    void TRUST_PROXY_HOPS;
+
+    expect(envSchema.parse(withoutTrustProxy).TRUST_PROXY_HOPS).toBe(0);
+  });
+
+  it('coerces TRUST_PROXY_HOPS from its string env value and rejects nonsense', () => {
+    expect(
+      envSchema.parse({ ...validEnv, TRUST_PROXY_HOPS: '1' }).TRUST_PROXY_HOPS,
+    ).toBe(1);
+    // `true` is the classic footgun: it would trust a client-supplied
+    // X-Forwarded-For and let anyone forge their way past the rate limit
+    expect(() =>
+      envSchema.parse({ ...validEnv, TRUST_PROXY_HOPS: 'true' }),
+    ).toThrow();
+    expect(() =>
+      envSchema.parse({ ...validEnv, TRUST_PROXY_HOPS: '-1' }),
     ).toThrow();
   });
 

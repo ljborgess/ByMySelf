@@ -1,15 +1,34 @@
-import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import {
+  Controller,
+  ExecutionContext,
+  Get,
+  INestApplication,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtModule, JwtService } from '@nestjs/jwt';
+import { Test } from '@nestjs/testing';
+import cookieParser from 'cookie-parser';
 import type { Request } from 'express';
+import request from 'supertest';
+import { App } from 'supertest/types';
 import { env } from '../config/env';
 import { AuthenticatedRequest, AuthGuard } from './auth.guard';
 
-function createContext(request: Partial<Request>): ExecutionContext {
+function createContext(req: Partial<Request>): ExecutionContext {
   return {
     switchToHttp: () => ({
-      getRequest: () => request,
+      getRequest: () => req,
     }),
   } as unknown as ExecutionContext;
+}
+
+@Controller('admin')
+class AdminProbeController {
+  @Get('projects')
+  projects(): { secret: string } {
+    return { secret: 'admin-only' };
+  }
 }
 
 describe('AuthGuard', () => {
@@ -73,6 +92,22 @@ describe('AuthGuard', () => {
         UnauthorizedException,
       );
     });
+
+    // Express routes case-insensitively by default, so a controller at
+    // /admin/projects also answers these -- the guard has to recognise them
+    // as admin routes or they reach the handler unauthenticated.
+    it.each([
+      '/ADMIN/projects',
+      '/Admin/Projects',
+      '/aDmIn/projects',
+      '/ADMIN',
+    ])('still gates %s despite the differing case', (path) => {
+      const request = { path, cookies: {} };
+
+      expect(() => guard.canActivate(createContext(request))).toThrow(
+        UnauthorizedException,
+      );
+    });
   });
 
   describe('on a non-/admin route', () => {
@@ -92,6 +127,55 @@ describe('AuthGuard', () => {
       const request = { path: '/projects', cookies: {} };
 
       expect(guard.canActivate(createContext(request))).toBe(true);
+    });
+  });
+
+  /**
+   * The checks above drive canActivate with a hand-built context, which
+   * cannot catch a mismatch between what the guard considers an admin path
+   * and what Express actually routes to the admin handler. These go through
+   * a real app so the guard and the router have to agree.
+   */
+  describe('against real Express routing', () => {
+    let app: INestApplication<App>;
+
+    beforeAll(async () => {
+      const moduleRef = await Test.createTestingModule({
+        imports: [JwtModule.register({})],
+        controllers: [AdminProbeController],
+        providers: [{ provide: APP_GUARD, useClass: AuthGuard }],
+      }).compile();
+
+      app = moduleRef.createNestApplication();
+      // the guard reads request.cookies, populated by this middleware in
+      // main.ts -- without it every request looks cookie-less here
+      app.use(cookieParser());
+      await app.init();
+    });
+
+    afterAll(async () => {
+      await app.close();
+    });
+
+    it.each([
+      '/admin/projects',
+      '/ADMIN/projects',
+      '/Admin/Projects',
+      '/admin/projects/',
+    ])('rejects %s with 401 rather than serving the handler', async (path) => {
+      const response = await request(app.getHttpServer()).get(path);
+
+      expect(response.status).toBe(401);
+      expect(response.body).not.toHaveProperty('secret');
+    });
+
+    it('serves the handler once a valid access token cookie is present', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/admin/projects')
+        .set('Cookie', `access_token=${signAccessToken(900)}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ secret: 'admin-only' });
     });
   });
 });
