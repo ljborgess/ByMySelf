@@ -1,4 +1,10 @@
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { and, eq, isNull } from 'drizzle-orm';
@@ -8,6 +14,7 @@ import { env } from '../config/env';
 import { DRIZZLE } from '../database/database.tokens';
 import type { DrizzleDatabase } from '../database/database.tokens';
 import { users } from '../users/users.schema';
+import { AccountBackoffService } from './account-backoff.service';
 import { refreshTokens } from './refresh-token.schema';
 
 /**
@@ -39,9 +46,12 @@ export class AuthService {
   constructor(
     @Inject(DRIZZLE) private readonly db: DrizzleDatabase,
     private readonly jwt: JwtService,
+    private readonly accountBackoff: AccountBackoffService,
   ) {}
 
   async login(email: string, password: string): Promise<LoginResult> {
+    rejectIfBackingOff(this.accountBackoff, email);
+
     const [user] = await this.db
       .select()
       .from(users)
@@ -54,9 +64,11 @@ export class AuthService {
     );
 
     if (!user || !passwordMatches) {
+      this.accountBackoff.recordFailure(email);
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    this.accountBackoff.recordSuccess(email);
     return this.issueTokenPair(user.id, randomUUID());
   }
 
@@ -94,7 +106,17 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
+    // Keyed by the resolved account (not available until here) rather than
+    // the presented token itself -- repeated reuse attempts against the
+    // same account share this backoff regardless of which token they
+    // present it with.
+    rejectIfBackingOff(this.accountBackoff, row.userId);
+
     if (row.revokedAt) {
+      // reuse of an already-rotated token is the one refresh failure mode
+      // that is actual evidence of compromise, not mere staleness -- see
+      // the account-wide family revoke just below.
+      this.accountBackoff.recordFailure(row.userId);
       await this.db
         .update(refreshTokens)
         .set({ revokedAt: new Date() })
@@ -108,10 +130,12 @@ export class AuthService {
     }
 
     if (row.expiresAt <= new Date()) {
+      // plain expiry is not an attack signal -- does not count against the
+      // account's backoff, unlike reuse of an already-revoked token above.
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    return this.db.transaction(async (tx) => {
+    const result = await this.db.transaction(async (tx) => {
       // Guarded by `isNull(revokedAt)` and read back via RETURNING so the
       // revoke is atomic: if a concurrent refresh call already won this
       // exact row between our SELECT above and this UPDATE, it comes back
@@ -126,6 +150,7 @@ export class AuthService {
         .returning({ id: refreshTokens.id });
 
       if (revoked.length === 0) {
+        this.accountBackoff.recordFailure(row.userId);
         await tx
           .update(refreshTokens)
           .set({ revokedAt: new Date() })
@@ -140,6 +165,11 @@ export class AuthService {
 
       return this.issueTokenPair(row.userId, row.familyId, tx);
     });
+
+    // outside the transaction: only reset the backoff once rotation has
+    // actually committed, not the moment the callback returns.
+    this.accountBackoff.recordSuccess(row.userId);
+    return result;
   }
 
   /**
@@ -211,6 +241,18 @@ export class AuthService {
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
+}
+
+function rejectIfBackingOff(
+  accountBackoff: AccountBackoffService,
+  key: string,
+): void {
+  if (accountBackoff.getRetryAfterMs(key) > 0) {
+    throw new HttpException(
+      'Too many attempts, try again later',
+      HttpStatus.TOO_MANY_REQUESTS,
+    );
+  }
 }
 
 // env.schema.ts validates JWT_*_EXPIRATION is a parseable `ms` duration
