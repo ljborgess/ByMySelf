@@ -1,5 +1,13 @@
+import { loadEnvConfig } from '@next/env';
 import createNextIntlPlugin from 'next-intl/plugin';
 import type { NextConfig } from 'next';
+import { resolve } from 'node:path';
+
+// Next only auto-loads .env files from this package's own directory, but the
+// project keeps a single .env at the repo root (see root README) shared with
+// the API. Loading it here is what makes API_URL (lib/projects.ts) reach
+// process.env before any page renders.
+loadEnvConfig(resolve(__dirname, '../..'));
 
 const nextConfig: NextConfig = {
   // next-intl and its use-intl core ship as untranspiled ESM. Listing them

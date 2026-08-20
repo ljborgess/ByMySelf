@@ -12,6 +12,7 @@
     "test:cov": "jest --coverage"
   },
   "dependencies": {
+    "@next/env": "16.3.1",
     "@portfolio/shared": "workspace:*",
     "next": "16.3.1",
     "next-intl": "^4.13.7",

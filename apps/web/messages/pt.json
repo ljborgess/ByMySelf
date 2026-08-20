@@ -42,6 +42,13 @@
     "ongoing": "Em andamento",
     "empty": "Nenhuma formação cadastrada ainda."
   },
+  "projects": {
+    "title": "Projetos",
+    "description": "Projetos de Luciano Borges, com stack e código.",
+    "empty": "Nenhum projeto publicado ainda.",
+    "error": "Não foi possível carregar os projetos agora. Tente novamente em instantes.",
+    "featured": "Destaque"
+  },
   "home": {
     "title": "Início",
     "sectionsHeading": "Seções do site",
