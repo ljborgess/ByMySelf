@@ -37,3 +37,14 @@ SENTRY_DSN=
 Portas: `apps/api` em **3000** (`PORT`), `apps/web` em **3001** — fixada via `next dev -p 3001`, já que o default do Next também é 3000 e colidiria com a API. É o que faz `FRONTEND_URL` bater com a realidade sem configuração extra.
 
 Os dois segredos JWT são validados com mínimo de 32 caracteres — HS256 depende inteiramente da entropia do segredo, e um valor curto é quebrável offline a partir de qualquer token capturado. Gere com `openssl rand -base64 48`.
+
+## Criando a conta admin
+
+Sem endpoint de cadastro (decisão deliberada — só existe uma conta). Depois de rodar as migrations (`pnpm --filter api db:migrate`), crie ou recupere a conta admin via CLI, de dentro de `apps/api`:
+
+```
+pnpm cli create-admin
+pnpm cli create-admin --email=voce@exemplo.com
+```
+
+A senha é sempre pedida interativamente (nunca como argumento — ficaria no histórico do shell). Rodar de novo com uma conta já existente atualiza a linha em vez de duplicar: é também o mecanismo de recuperação de acesso, já que não existe fluxo de "esqueci minha senha".
