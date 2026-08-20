@@ -113,9 +113,8 @@ function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
-// env.schema.ts only checks JWT_*_EXPIRATION is non-empty, not that it is a
-// valid `ms` duration string (e.g. "15m") -- the cast is safe because the
-// value is a trusted, operator-controlled env var, not user input.
+// env.schema.ts validates JWT_*_EXPIRATION is a parseable `ms` duration
+// string at startup, so this cast is guaranteed safe by the time env exists.
 function parseDuration(value: string): number {
   return ms(value as ms.StringValue);
 }

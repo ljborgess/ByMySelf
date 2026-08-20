@@ -50,6 +50,15 @@ describe('envSchema', () => {
     ).toThrow();
   });
 
+  it('rejects a JWT expiration that is not a valid duration string', () => {
+    expect(() =>
+      envSchema.parse({
+        ...validEnv,
+        JWT_ACCESS_EXPIRATION: 'fifteen minutes',
+      }),
+    ).toThrow();
+  });
+
   it('defaults NODE_ENV and PORT when omitted', () => {
     const { NODE_ENV, PORT, ...withoutDefaults } = validEnv;
     void NODE_ENV;
