@@ -4,7 +4,7 @@ const EXTERNAL_LINKS = [
   { messageKey: 'github', href: 'https://github.com/ljborgess' },
   {
     messageKey: 'linkedin',
-    href: 'https://www.linkedin.com/in/lucianoborgess/',
+    href: 'https://www.linkedin.com/in/lucianojunqueira/',
   },
 ] as const;
 
