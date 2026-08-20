@@ -6,3 +6,4 @@
  */
 export * from '../users/users.schema';
 export * from '../auth/refresh-token.schema';
+export * from '../projects/projects.schema';

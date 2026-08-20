@@ -16,6 +16,7 @@
     "type-check": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "ts-node -r tsconfig-paths/register src/database/migrate.ts",
+    "db:smoke": "ts-node -r tsconfig-paths/register test/projects-schema.smoke.ts",
     "cli": "ts-node -r tsconfig-paths/register src/cli/index.ts",
     "test": "jest",
     "test:watch": "jest --watch",
