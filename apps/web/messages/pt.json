@@ -49,6 +49,13 @@
     "error": "Não foi possível carregar os projetos agora. Tente novamente em instantes.",
     "featured": "Destaque"
   },
+  "projectDetail": {
+    "repo": "Ver repositório",
+    "demo": "Ver demonstração",
+    "notFoundTitle": "Projeto não encontrado",
+    "notFoundDescription": "O projeto que você está procurando não existe ou foi removido.",
+    "backToProjects": "Voltar para Projetos"
+  },
   "home": {
     "title": "Início",
     "sectionsHeading": "Seções do site",
