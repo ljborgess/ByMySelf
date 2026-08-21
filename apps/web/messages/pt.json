@@ -58,6 +58,7 @@
   },
   "home": {
     "title": "Início",
+    "description": "Portfólio de Luciano Borges, desenvolvedor full-stack com foco em NestJS, Next.js e TypeScript.",
     "sectionsHeading": "Seções do site",
     "cards": {
       "about": "Quem sou, no que trabalho e o que busco.",

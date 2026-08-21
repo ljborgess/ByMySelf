@@ -7,14 +7,12 @@ import {
   getPublishedProjects,
   type PublicProjectListItem,
 } from '../../../lib/projects';
+import { withOpenGraph } from '../../../lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('projects');
 
-  return {
-    title: `${t('title')} — ${profile.name}`,
-    description: t('description'),
-  };
+  return withOpenGraph(`${t('title')} — ${profile.name}`, t('description'));
 }
 
 /**
