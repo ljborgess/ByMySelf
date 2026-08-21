@@ -52,16 +52,38 @@ export const projectSlugSchema = z
  * leapfrogs, the existing manual ordering. Changing it is the reorder
  * endpoint's job.
  */
+/**
+ * `z.url()` alone is a WHATWG URL parse with no scheme constraint, so it
+ * accepts `javascript:`, `data:`, `vbscript:` and `file:` just as readily as
+ * https. Every one of these fields is rendered straight into an `href` or an
+ * `img src` on the public site, so the scheme is pinned here.
+ *
+ * React currently refuses to render a `javascript:` href and browsers block
+ * top-level `data:` navigation, which is why this was never exploitable --
+ * but that is a framework default this project never chose. Validating at
+ * the edge makes it the app's own guarantee instead of a borrowed one.
+ *
+ * The `refine` is not redundant with the `protocol` option: `https:evil`
+ * parses with protocol `https:` and would pass the option alone, so the
+ * authority-slashes are checked separately.
+ */
+const publicHttpUrlSchema = z
+  .url({ protocol: /^https?$/ })
+  .max(2048)
+  .refine((value) => /^https?:\/\//i.test(value), {
+    message: 'Use uma URL http(s)',
+  });
+
 const projectFields = {
   title: localizedTextSchema,
   description: localizedTextSchema,
   content: localizedTextSchema,
   slug: projectSlugSchema,
   techStack: z.array(z.string().trim().min(1)),
-  repoUrl: z.url().max(2048).optional(),
-  demoUrl: z.url().max(2048).optional(),
+  repoUrl: publicHttpUrlSchema.optional(),
+  demoUrl: publicHttpUrlSchema.optional(),
   // external URL only -- there is no upload in this project (backlog.md)
-  coverImageUrl: z.url().max(2048).optional(),
+  coverImageUrl: publicHttpUrlSchema.optional(),
   status: projectStatusSchema,
   featured: z.boolean(),
   completedAt: z.iso.date().optional(),

@@ -1,5 +1,7 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { SkipThrottle, ThrottlerGuard } from '@nestjs/throttler';
 import type { PublicProject, PublicProjectSummary } from '@portfolio/shared';
+import { AUTH_IP_THROTTLE_NAME } from '../auth/auth.constants';
 import { LocaleQueryDto } from './dto/project.dto';
 import { ProjectsService } from './projects.service';
 
@@ -11,7 +13,15 @@ import { ProjectsService } from './projects.service';
  *
  * No pagination, per the route contract: a personal portfolio's project
  * count does not justify it.
+ *
+ * Throttled on the `public-read` bucket. Unauthenticated and uncached, these
+ * two are the SSR data path for every public page -- and sitemap.xml hits
+ * the listing on every crawler fetch, so an unbounded loop here is a
+ * straight line into Postgres. The strict `auth-ip` bucket is skipped: at 10
+ * requests per 15 minutes it would break the site for real visitors.
  */
+@SkipThrottle({ [AUTH_IP_THROTTLE_NAME]: true })
+@UseGuards(ThrottlerGuard)
 @Controller('projects')
 export class PublicProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}

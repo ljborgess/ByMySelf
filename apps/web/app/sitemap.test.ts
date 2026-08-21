@@ -10,7 +10,10 @@ const mockGetPublishedProjects = getPublishedProjects as jest.MockedFunction<
   typeof getPublishedProjects
 >;
 
-function project(slug: string): PublicProjectListItem {
+function project(
+  slug: string,
+  updatedAt = '2026-01-01T00:00:00.000Z',
+): PublicProjectListItem {
   return {
     id: slug,
     slug,
@@ -23,6 +26,7 @@ function project(slug: string): PublicProjectListItem {
     status: 'completed',
     featured: false,
     completedAt: null,
+    updatedAt,
   };
 }
 
@@ -91,5 +95,45 @@ describe('sitemap', () => {
     expect(entries.some((entry) => entry.url.includes('/projetos/'))).toBe(
       false,
     );
+  });
+
+  describe('lastModified', () => {
+    it("reports the project's own last edit, not the request time", async () => {
+      // a lastmod that always says "just now" is one search engines learn
+      // to discount, which costs the exact signal RF-SEO3 wants to send
+      mockGetPublishedProjects.mockResolvedValue([
+        project('projeto-a', '2026-03-14T10:00:00.000Z'),
+      ]);
+
+      const entry = (await sitemap()).find((candidate) =>
+        candidate.url.endsWith('/projeto-a'),
+      );
+
+      expect(entry?.lastModified).toEqual(new Date('2026-03-14T10:00:00.000Z'));
+    });
+
+    it('falls back to a valid date when the API sends an unparseable one', async () => {
+      mockGetPublishedProjects.mockResolvedValue([
+        project('projeto-a', 'não é uma data'),
+      ]);
+
+      const entry = (await sitemap()).find((candidate) =>
+        candidate.url.endsWith('/projeto-a'),
+      );
+
+      // an invalid Date serializes to null and would emit a broken <lastmod>
+      expect(entry?.lastModified).toBeInstanceOf(Date);
+      expect(Number.isNaN((entry?.lastModified as Date).getTime())).toBe(false);
+    });
+
+    it('does not restamp the static routes on every request', async () => {
+      mockGetPublishedProjects.mockResolvedValue([]);
+
+      const first = await sitemap();
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      const second = await sitemap();
+
+      expect(second[0].lastModified).toEqual(first[0].lastModified);
+    });
   });
 });

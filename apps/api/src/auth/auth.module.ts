@@ -7,6 +7,9 @@ import {
   AUTH_IP_THROTTLE_LIMIT,
   AUTH_IP_THROTTLE_NAME,
   AUTH_IP_THROTTLE_TTL_MS,
+  PUBLIC_READ_THROTTLE_LIMIT,
+  PUBLIC_READ_THROTTLE_NAME,
+  PUBLIC_READ_THROTTLE_TTL_MS,
 } from './auth.constants';
 import { AuthController } from './auth.controller';
 import { AuthGuard } from './auth.guard';
@@ -18,14 +21,20 @@ import { AuthService } from './auth.service';
     // explicit secret+expiresIn per call, since access and refresh tokens
     // use independent secrets (RNF-SEG10).
     JwtModule.register({}),
-    // Per-IP fixed-window limiter, applied only to login/refresh via
-    // @UseGuards(ThrottlerGuard) on those two handlers -- not global, so it
-    // never touches /health or the future public /projects*.
+    // Two named per-IP fixed-window buckets, both applied per handler via
+    // @UseGuards(ThrottlerGuard) + @Throttle rather than globally, so /health
+    // stays unlimited: a tight one for login/refresh, and a much looser one
+    // for the public reads. A handler opts into exactly one by name.
     ThrottlerModule.forRoot([
       {
         name: AUTH_IP_THROTTLE_NAME,
         ttl: AUTH_IP_THROTTLE_TTL_MS,
         limit: AUTH_IP_THROTTLE_LIMIT,
+      },
+      {
+        name: PUBLIC_READ_THROTTLE_NAME,
+        ttl: PUBLIC_READ_THROTTLE_TTL_MS,
+        limit: PUBLIC_READ_THROTTLE_LIMIT,
       },
     ]),
   ],

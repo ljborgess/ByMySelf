@@ -17,6 +17,20 @@ export const routing = defineRouting({
   locales: ['pt'],
   defaultLocale: 'pt',
   localePrefix: 'always',
+
+  /**
+   * next-intl sets NEXT_LOCALE to remember the visitor's choice. It holds
+   * nothing sensitive, so `httpOnly` would buy nothing -- but `secure` keeps
+   * it off any plain-http hop once this is behind a real domain, and it is
+   * the only cookie the public site emits.
+   *
+   * Conditional on the environment because a `secure` cookie is dropped
+   * outright over http, which would break locale persistence in local dev.
+   */
+  localeCookie: {
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+  },
 });
 
 export type Locale = (typeof routing.locales)[number];
