@@ -19,6 +19,7 @@ function project(
     status: overrides.status ?? 'completed',
     featured: overrides.featured ?? false,
     completedAt: overrides.completedAt ?? null,
+    updatedAt: overrides.updatedAt ?? '2026-01-01T00:00:00.000Z',
   };
 }
 

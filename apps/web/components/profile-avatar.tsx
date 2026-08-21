@@ -1,5 +1,3 @@
-import Image from 'next/image';
-
 function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) {
@@ -41,14 +39,19 @@ export function ProfileAvatar({
   }
 
   return (
-    <Image
+    // plain <img>, not next/image, for the same reason the project cards use
+    // one: photoUrl is an arbitrary external URL the owner pastes in, and the
+    // optimizer would need `remotePatterns` wide enough to cover any host --
+    // which turns /_next/image into an open proxy for whatever a request's
+    // `url` param names. Without that config next/image also throws outright
+    // on any remote host, so this is what keeps setting photoUrl from
+    // breaking the pages that render the avatar.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
       src={photoUrl}
       alt={name}
       width={112}
       height={112}
-      // photos are external URLs, so Next cannot know the intrinsic size at
-      // build time; priority because this is above the fold
-      priority
       className={`${size} ${className} shrink-0 rounded-full object-cover`}
     />
   );

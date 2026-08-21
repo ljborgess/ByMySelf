@@ -7,13 +7,24 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { SkipThrottle, ThrottlerGuard } from '@nestjs/throttler';
 import type { CookieOptions, Request, Response } from 'express';
 import { env } from '../config/env';
-import { ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } from './auth.constants';
+import {
+  ACCESS_TOKEN_COOKIE,
+  PUBLIC_READ_THROTTLE_NAME,
+  REFRESH_TOKEN_COOKIE,
+} from './auth.constants';
 import { AuthService, LoginResult } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 
+/**
+ * `public-read` is skipped for the whole controller: ThrottlerGuard applies
+ * every configured bucket unless told otherwise, so without this the loose
+ * public-site limit would also be evaluated on login/refresh. Each handler
+ * is meant to answer to exactly one bucket.
+ */
+@SkipThrottle({ [PUBLIC_READ_THROTTLE_NAME]: true })
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}

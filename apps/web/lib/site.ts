@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 
+const DEFAULT_SITE_URL = 'http://localhost:3101';
+
 /**
  * This app's own canonical public URL. Reuses `FRONTEND_URL` -- the same env
  * var the API already reads for CORS (apps/api/src/main.ts) -- rather than
@@ -9,9 +11,39 @@ import type { Metadata } from 'next';
  * robots, Open Graph) needs to emit. A function rather than a module-level
  * constant, same as `API_URL` in lib/projects.ts, so it reads `process.env`
  * at call time instead of freezing whatever it was during module init.
+ *
+ * Validated here rather than trusted, because the one caller that cannot
+ * survive a bad value is `metadataBase` in the *root* layout, evaluated at
+ * module scope -- a malformed URL there throws while the layout is being
+ * loaded, which fails every route on the site rather than one. The API
+ * already validates this same variable as `z.url()` at boot; this is the
+ * equivalent guard on the web side, and it names the variable so the cause
+ * is obvious instead of surfacing as a bare `Invalid URL`.
  */
 export function getSiteUrl(): string {
-  return process.env.FRONTEND_URL ?? 'http://localhost:3101';
+  const configured = process.env.FRONTEND_URL;
+  if (!configured) {
+    return DEFAULT_SITE_URL;
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(configured);
+  } catch {
+    throw new Error(
+      `FRONTEND_URL is not a valid URL: ${JSON.stringify(configured)}`,
+    );
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error(
+      `FRONTEND_URL must be http(s), got ${JSON.stringify(configured)}`,
+    );
+  }
+
+  // trailing slash stripped so callers can concatenate `/pt/...` without
+  // producing `//pt/...`
+  return configured.replace(/\/+$/, '');
 }
 
 /**

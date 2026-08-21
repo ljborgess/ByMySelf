@@ -1,34 +1,46 @@
 import type { PublicProject, PublicProjectSummary } from '@portfolio/shared';
 
 /**
- * What a card actually needs. Narrower than `PublicProjectSummary` on
- * purpose: that type declares `createdAt`/`updatedAt` as `Date`, but this
- * function hands back `response.json()` verbatim, where every date is still
- * the ISO string it was serialized as -- typing them as `Date` here would
- * be a lie the compiler couldn't catch, since neither field is read.
+ * What the site actually consumes. `PublicProjectSummary` declares
+ * `createdAt`/`updatedAt` as `Date`, but this function hands back
+ * `response.json()` verbatim, where every date is still the ISO string it
+ * was serialized as -- so they are restated here as strings rather than
+ * inherited as a `Date` the compiler could not catch being wrong.
+ *
+ * `createdAt` stays omitted (nothing reads it). `updatedAt` is kept because
+ * sitemap.ts needs a real `lastmod` per project.
  */
 export type PublicProjectListItem = Omit<
   PublicProjectSummary,
   'createdAt' | 'updatedAt'
->;
+> & {
+  updatedAt: string;
+};
 
 /**
  * RF-PUB1: live and not archived, owner's manual order, `featured` included.
  * The frontend does not reimplement locale fallback or ordering -- it
  * renders exactly what the API already resolved for `locale`.
  *
- * Never cached (`no-store`): the list changes whenever the owner edits it
- * through the admin panel, and a stale build-time snapshot would show
- * projects that no longer exist or hide ones just published.
+ * Uncached by default (`no-store`): the visitor-facing listing changes
+ * whenever the owner edits it through the admin panel, and a stale snapshot
+ * would show projects that no longer exist or hide ones just published.
+ *
+ * `revalidate` opts a caller out of that. It exists for sitemap.xml, which
+ * is fetched by crawlers on a schedule nobody controls: leaving it uncached
+ * meant every one of those hits reached the database, with no ceiling. A
+ * sitemap that is a few minutes stale costs nothing; an unthrottled path
+ * into Postgres does.
  */
 export async function getPublishedProjects(
   locale: string,
+  { revalidate }: { revalidate?: number } = {},
 ): Promise<PublicProjectListItem[]> {
   const apiUrl = process.env.API_URL ?? 'http://localhost:3100';
 
   const response = await fetch(
     `${apiUrl}/projects?locale=${encodeURIComponent(locale)}`,
-    { cache: 'no-store' },
+    revalidate === undefined ? { cache: 'no-store' } : { next: { revalidate } },
   );
 
   if (!response.ok) {

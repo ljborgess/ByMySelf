@@ -32,7 +32,68 @@ if (!process.env.API_URL || !process.env.FRONTEND_URL) {
   }
 }
 
+/**
+ * The API is hardened with Helmet (issue #18); the public site had no
+ * equivalent, so it was serving HTML with no CSP, no sniffing protection and
+ * no framing policy at all.
+ *
+ * The CSP is written for what this site actually is: server-rendered pages
+ * with no third-party scripts.
+ *
+ * `'unsafe-inline'` appears twice, both times deliberately. On `style-src`
+ * it is required by next/font and Tailwind's injected styles. On
+ * `script-src` it is what Next needs to stream the RSC payload through
+ * inline script tags -- the alternative is per-request nonces, which have to
+ * be generated in the proxy and force every page into dynamic rendering,
+ * giving up the static prerendering i18n/request.ts went out of its way to
+ * preserve. Not worth it for a site that runs no third-party JavaScript.
+ *
+ * `img-src` stays open to https because cover images and the profile photo
+ * are arbitrary owner-pasted URLs (see profile-avatar.tsx).
+ *
+ * HSTS is absent on purpose: it belongs at the TLS terminator, which epic #5
+ * sets up. Sending it from here while the app also answers on plain http in
+ * dev would be the wrong layer.
+ */
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+  "object-src 'none'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline'",
+  // next/font/google self-hosts at build time -- the rendered page makes no
+  // request to fonts.googleapis.com or fonts.gstatic.com, so allowing them
+  // would widen the policy for traffic that does not exist
+  "font-src 'self'",
+  "img-src 'self' https: data: blob:",
+  "connect-src 'self'",
+  'upgrade-insecure-requests',
+].join('; ');
+
+const securityHeaders = [
+  { key: 'Content-Security-Policy', value: contentSecurityPolicy },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  // redundant with frame-ancestors above, kept for crawlers and proxies that
+  // still only understand this one
+  { key: 'X-Frame-Options', value: 'DENY' },
+  {
+    key: 'Permissions-Policy',
+    value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+  },
+];
+
 const nextConfig: NextConfig = {
+  // `X-Powered-By: Next.js` names the framework on every response and buys
+  // nothing in return
+  poweredByHeader: false,
+
+  async headers() {
+    return [{ source: '/:path*', headers: securityHeaders }];
+  },
+
   // next-intl and its use-intl core ship as untranspiled ESM. Listing them
   // here is also what makes them testable: next/jest derives
   // transformIgnorePatterns from this field, and a custom Jest config can only
