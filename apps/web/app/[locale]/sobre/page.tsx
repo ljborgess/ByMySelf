@@ -4,16 +4,17 @@ import { getTranslations } from 'next-intl/server';
 import { CvDownloadButton } from '../../../components/cv-download-button';
 import { ProfileAvatar } from '../../../components/profile-avatar';
 import { profile } from '../../../content/profile';
+import { withOpenGraph } from '../../../lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('about');
 
-  return {
-    title: `${t('title')} — ${profile.name}`,
+  return withOpenGraph(
+    `${t('title')} — ${profile.name}`,
     // falls back to the headline while the bio is unset, so the page never
     // ships an empty description
-    description: profile.bio ?? profile.headline,
-  };
+    profile.bio ?? profile.headline,
+  );
 }
 
 /**

@@ -5,7 +5,9 @@ import { notFound } from 'next/navigation';
 import { locale as localeParam } from 'next/root-params';
 import { SiteFooter } from '../../components/site-footer';
 import { SiteHeader } from '../../components/site-header';
+import { profile } from '../../content/profile';
 import { routing } from '../../i18n/routing';
+import { getSiteUrl } from '../../lib/site';
 import '../globals.css';
 
 const geistSans = Geist({
@@ -18,10 +20,13 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
+// Site-wide fallback (RF-SEO1): only reached by a route that defines no
+// metadata of its own, since every real page below sets its own title,
+// description and openGraph fields.
 export const metadata: Metadata = {
-  title: 'Luciano Borges — Desenvolvedor Backend',
-  description:
-    'Portfólio de Luciano Borges, desenvolvedor backend Node.js/NestJS.',
+  metadataBase: new URL(getSiteUrl()),
+  title: `${profile.name} — ${profile.headline}`,
+  description: profile.headline,
 };
 
 /**

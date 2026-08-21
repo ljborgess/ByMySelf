@@ -4,6 +4,7 @@ import { locale } from 'next/root-params';
 import { ProjectDetail } from '../../../../components/project-detail';
 import { profile } from '../../../../content/profile';
 import { getProjectBySlug } from '../../../../lib/projects';
+import { withOpenGraph } from '../../../../lib/site';
 
 export async function generateMetadata({
   params,
@@ -16,10 +17,13 @@ export async function generateMetadata({
     return {};
   }
 
-  return {
-    title: `${project.title} — ${profile.name}`,
-    description: project.description,
-  };
+  return withOpenGraph(
+    `${project.title} — ${profile.name}`,
+    project.description,
+    // the project's own cover art beats the generic default -- it is the
+    // one page where a "natural" image (RF-SEO2) actually exists
+    project.coverImageUrl ?? undefined,
+  );
 }
 
 /**

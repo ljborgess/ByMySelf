@@ -3,14 +3,12 @@ import { useTranslations } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
 import { profile } from '../../../content/profile';
 import { formatPeriod, sortEducation } from '../../../lib/education';
+import { withOpenGraph } from '../../../lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('education');
 
-  return {
-    title: `${t('title')} — ${profile.name}`,
-    description: t('description'),
-  };
+  return withOpenGraph(`${t('title')} — ${profile.name}`, t('description'));
 }
 
 /**

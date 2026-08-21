@@ -6,21 +6,28 @@ import { resolve } from 'node:path';
 
 // Next only auto-loads .env files from this package's own directory, but the
 // project keeps a single .env at the repo root (see root README) shared with
-// the API. This reads just API_URL out of it -- not @next/env's
-// loadEnvConfig, which would load the whole file into process.env. That
-// file also holds JWT_ACCESS_SECRET, JWT_REFRESH_SECRET and DATABASE_URL,
-// which the public web server never uses and has no reason to be able to
-// leak if this process is ever compromised.
+// the API. This reads just API_URL and FRONTEND_URL out of it -- not
+// @next/env's loadEnvConfig, which would load the whole file into
+// process.env. That file also holds JWT_ACCESS_SECRET, JWT_REFRESH_SECRET
+// and DATABASE_URL, which the public web server never uses and has no reason
+// to be able to leak if this process is ever compromised.
+//
+// FRONTEND_URL is this app's own canonical public URL (the API already uses
+// it for CORS, see apps/api/src/main.ts) -- reused here as the SEO metadata
+// base rather than adding a second env var for the same URL.
 //
 // A real environment variable still wins over the file (checked first),
-// matching Next's own env precedence and letting production set API_URL
+// matching Next's own env precedence and letting production set these
 // directly without touching this repo-relative path at all.
-if (!process.env.API_URL) {
+if (!process.env.API_URL || !process.env.FRONTEND_URL) {
   const rootEnvPath = resolve(__dirname, '../../.env');
   if (existsSync(rootEnvPath)) {
-    const { API_URL } = parse(readFileSync(rootEnvPath, 'utf-8'));
-    if (API_URL) {
+    const { API_URL, FRONTEND_URL } = parse(readFileSync(rootEnvPath, 'utf-8'));
+    if (!process.env.API_URL && API_URL) {
       process.env.API_URL = API_URL;
+    }
+    if (!process.env.FRONTEND_URL && FRONTEND_URL) {
+      process.env.FRONTEND_URL = FRONTEND_URL;
     }
   }
 }
