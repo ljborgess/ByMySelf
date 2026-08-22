@@ -1,13 +1,13 @@
 import type { Metadata } from 'next';
 import { locale } from 'next/root-params';
 import { getTranslations } from 'next-intl/server';
-import { ProjectsList } from '../../../components/projects-list';
-import { profile } from '../../../content/profile';
+import { ProjectsList } from '../../../../components/projects-list';
+import { profile } from '../../../../content/profile';
 import {
   getPublishedProjects,
   type PublicProjectListItem,
-} from '../../../lib/projects';
-import { withOpenGraph } from '../../../lib/site';
+} from '../../../../lib/projects';
+import { withOpenGraph } from '../../../../lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('projects');

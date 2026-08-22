@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { makeProfile } from '../../../content/profile.fixture';
-import messages from '../../../messages/pt.json';
+import { makeProfile } from '../../../../content/profile.fixture';
+import messages from '../../../../messages/pt.json';
 
 /** Fully populated: individual tests blank out what they are checking. */
 const mockProfile = makeProfile({
@@ -15,7 +15,7 @@ const mockProfile = makeProfile({
   ],
 });
 
-jest.mock('../../../content/profile', () => ({
+jest.mock('../../../../content/profile', () => ({
   get profile() {
     return mockProfile;
   },

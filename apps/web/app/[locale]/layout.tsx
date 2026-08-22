@@ -3,8 +3,6 @@ import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import { locale as localeParam } from 'next/root-params';
-import { SiteFooter } from '../../components/site-footer';
-import { SiteHeader } from '../../components/site-header';
 import { profile } from '../../content/profile';
 import { routing } from '../../i18n/routing';
 import { getSiteUrl } from '../../lib/site';
@@ -41,6 +39,11 @@ export function generateStaticParams() {
  * The root layout lives under `[locale]` rather than at `app/layout.tsx`, so
  * `<html lang>` can carry the actual locale. A layout above the locale
  * segment would have to hardcode one language for every page.
+ *
+ * Carries only the shell: html/body, fonts and the intl provider. The public
+ * site's header and footer moved down into `(site)/layout.tsx` when the admin
+ * area landed (#23) — the admin panel shares the locale and the providers,
+ * but rendering the public nav above a login form would be wrong.
  */
 export default async function LocaleLayout({
   children,
@@ -61,14 +64,7 @@ export default async function LocaleLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <NextIntlClientProvider>
-          <SiteHeader />
-          {/* flex-1 so a short page still pushes the footer to the bottom */}
-          <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6">
-            {children}
-          </main>
-          <SiteFooter />
-        </NextIntlClientProvider>
+        <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </body>
     </html>
   );
