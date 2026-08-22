@@ -52,6 +52,20 @@ COPY apps/api apps/api
 
 RUN pnpm --filter api build
 
+# Issue #35 pede uma imagem que não carregue "dev dependencies or source maps
+# unnecessarily", e o build emitia 37 `.js.map` mais os `.d.ts` (~312K).
+#
+# São peso morto literal: `source-map-support` é devDependency, não é
+# importado em nenhum lugar do src, e nem existe no runtime — então nada
+# consegue consumir esses mapas. Os `.d.ts` só servem a quem compila contra o
+# pacote, o que ninguém faz aqui dentro.
+#
+# Removido no builder e não desligado no tsconfig porque em desenvolvimento
+# source map é útil; o que não se justifica é embarcá-lo onde não há como usar.
+RUN find /repo/apps/api/dist \
+      \( -name '*.js.map' -o -name '*.d.ts' -o -name '*.d.ts.map' \) \
+      -delete
+
 # `pnpm deploy` resolves the workspace link to packages/shared into a real
 # directory and drops every devDependency, giving a node_modules that can be
 # copied into a clean image as-is. --legacy is required: without it pnpm 10
