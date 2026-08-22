@@ -1,4 +1,4 @@
-import { envSchema } from './env.schema';
+import { envSchema, envSchemaWithCrossChecks } from './env.schema';
 
 const validEnv = {
   NODE_ENV: 'development',
@@ -122,5 +122,135 @@ describe('envSchema', () => {
 
     expect(result.NODE_ENV).toBe('development');
     expect(result.PORT).toBe(3100);
+  });
+});
+
+/**
+ * Fechamento da Fase 1 (#39). Estas regras existem porque cada uma delas, se
+ * violada, produz uma falha *silenciosa* em produção: o app sobe, responde
+ * 200, e a coisa que deveria proteger não protege.
+ */
+describe('envSchemaWithCrossChecks', () => {
+  const prodEnv = {
+    ...validEnv,
+    NODE_ENV: 'production',
+    COOKIE_DOMAIN: 'bymyself.com.br',
+    FRONTEND_URL: 'https://bymyself.com.br',
+    JWT_ACCESS_SECRET: 'A'.repeat(48),
+    JWT_REFRESH_SECRET: 'B'.repeat(48),
+  };
+
+  function parse(patch: Record<string, unknown> = {}) {
+    return envSchemaWithCrossChecks.safeParse({ ...prodEnv, ...patch });
+  }
+
+  it('accepts a well-formed production configuration', () => {
+    expect(parse().success).toBe(true);
+  });
+
+  it('still accepts the local development shape', () => {
+    expect(envSchemaWithCrossChecks.safeParse(validEnv).success).toBe(true);
+  });
+
+  describe('JWT secrets (user story 2)', () => {
+    it('rejects identical access and refresh secrets', () => {
+      // Cada um passa no min(32) sozinho, então só a checagem cruzada pega.
+      // Iguais, um access token capturado serve para forjar um refresh e a
+      // separação entre os dois vira decorativa.
+      const result = parse({ JWT_REFRESH_SECRET: 'A'.repeat(48) });
+
+      expect(result.success).toBe(false);
+      expect(JSON.stringify(result)).toMatch(/must differ from/i);
+    });
+
+    it('rejects a leftover placeholder secret in production', () => {
+      const result = parse({ JWT_ACCESS_SECRET: `changeme-${'x'.repeat(40)}` });
+
+      expect(result.success).toBe(false);
+      expect(JSON.stringify(result)).toMatch(/placeholder|development value/i);
+    });
+  });
+
+  describe('CORS origin (user story 3)', () => {
+    it('rejects a trailing slash', () => {
+      // O header Origin do browser nunca traz barra final, e o CORS compara
+      // literalmente — com a barra, TODO request cross-origin é rejeitado, e
+      // o sintoma é "o login não funciona".
+      const result = parse({ FRONTEND_URL: 'https://bymyself.com.br/' });
+
+      expect(result.success).toBe(false);
+      // a mensagem mostra a forma correta, que é o que a pessoa precisa
+      expect(JSON.stringify(result)).toMatch(/exactly the origin/i);
+      expect(JSON.stringify(result)).toContain('https://bymyself.com.br');
+    });
+
+    it('rejects a path', () => {
+      expect(
+        parse({ FRONTEND_URL: 'https://bymyself.com.br/app' }).success,
+      ).toBe(false);
+    });
+
+    /**
+     * Cada um destes é uma URL perfeitamente válida que **não** é igual ao
+     * header `Origin` do browser — e a comparação do CORS é literal. Uma
+     * checagem só de caminho deixaria todos passarem, e o resultado seria
+     * todo request cross-origin rejeitado em produção.
+     */
+    it.each([
+      ['porta default explícita', 'https://bymyself.com.br:443'],
+      ['query string', 'https://bymyself.com.br?a=1'],
+      ['fragmento', 'https://bymyself.com.br#x'],
+      ['userinfo', 'https://user@bymyself.com.br'],
+    ])('rejects %s', (_label, url) => {
+      expect(parse({ FRONTEND_URL: url }).success).toBe(false);
+    });
+
+    it('accepts a non-default port, which the Origin header does carry', () => {
+      expect(
+        parse({ FRONTEND_URL: 'https://bymyself.com.br:8443' }).success,
+      ).toBe(true);
+    });
+
+    it('rejects http in production, since the auth cookie is Secure', () => {
+      const result = parse({ FRONTEND_URL: 'http://bymyself.com.br' });
+
+      expect(result.success).toBe(false);
+      expect(JSON.stringify(result)).toMatch(/https in production/i);
+    });
+
+    it('rejects an uppercased scheme, but says why in a way that shows the fix', () => {
+      // O browser manda o esquema sempre em minúsculas no header `Origin`,
+      // então `HTTPS://` de fato quebraria o CORS — rejeitar é o correto.
+      // O que não pode é rejeitar com "use https", que contradiria o que a
+      // pessoa digitou; a mensagem de origem mostra a forma certa.
+      const result = parse({ FRONTEND_URL: 'HTTPS://bymyself.com.br' });
+
+      expect(result.success).toBe(false);
+      expect(JSON.stringify(result)).toMatch(/exactly the origin/i);
+      expect(JSON.stringify(result)).not.toMatch(/must use https/i);
+    });
+  });
+
+  describe('cookie domain (user story 4)', () => {
+    it('rejects a scheme, which browsers silently drop the cookie for', () => {
+      const result = parse({ COOKIE_DOMAIN: 'https://bymyself.com.br' });
+
+      expect(result.success).toBe(false);
+      expect(JSON.stringify(result)).toMatch(/scheme/i);
+    });
+
+    it('rejects a port', () => {
+      expect(parse({ COOKIE_DOMAIN: 'bymyself.com.br:443' }).success).toBe(
+        false,
+      );
+    });
+
+    // Mesmo engano, outra grafia — a checagem não pode ser um `=== 'localhost'`
+    it.each(['localhost', 'LOCALHOST', '127.0.0.1'])(
+      'rejects the local development value %s in production',
+      (domain) => {
+        expect(parse({ COOKIE_DOMAIN: domain }).success).toBe(false);
+      },
+    );
   });
 });
