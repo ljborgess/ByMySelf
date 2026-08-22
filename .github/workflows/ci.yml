@@ -13,6 +13,16 @@ on:
   push:
     branches: [main]
 
+# Least privilege por default. Sem isto o token de cada job herda a permissão
+# configurada no repositório, que costuma ser mais ampla do que o necessário —
+# e o job `quality` roda `pnpm install` mais lint e testes sobre código de pull
+# request, ou seja, executa código de terceiros com o token da vez.
+#
+# O job de release sobrescreve com o `packages: write` que ele realmente
+# precisa.
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   # A new push to the same PR makes the in-flight run obsolete. A run on main
