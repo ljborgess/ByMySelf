@@ -82,6 +82,15 @@ COPY --from=builder --chown=node:node /prod-api/package.json ./package.json
 # `nest build` does not copy non-TS assets into dist.
 COPY --from=builder --chown=node:node /repo/apps/api/drizzle ./drizzle
 
+# Applies pending migrations before starting the server, so a fresh
+# production database cannot leave the API serving against missing tables
+# (issue #36). See the script for why this lives here rather than in a
+# Dokploy pre-deploy field.
+# Left owned by root, not the `node` user that runs it: a process should not
+# be able to rewrite the script that starts it.
+COPY apps/api/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod 555 /usr/local/bin/docker-entrypoint.sh
+
 USER node
 
 EXPOSE 3100
@@ -93,7 +102,11 @@ EXPOSE 3100
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3100)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
+# The entrypoint migrates, then `exec`s this CMD -- so the server still ends
+# up as PID 1 and SIGTERM from Dokploy reaches Node itself, letting the
+# graceful shutdown in main.ts run.
+#
 # `node dist/main` directly, not `pnpm start:prod`: one less process in the
-# tree, so SIGTERM from Dokploy reaches Node itself and the graceful shutdown
-# in main.ts actually runs instead of being swallowed by a package manager.
+# tree, and a package manager in between would swallow the signal.
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["node", "dist/main"]
