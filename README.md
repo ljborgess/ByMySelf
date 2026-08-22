@@ -58,6 +58,21 @@ A senha é sempre pedida interativamente e mascarada, nunca aceita como argument
 
 Documentação OpenAPI em `/docs` fora de produção.
 
+## Deploy
+
+As duas apps têm Dockerfile multi-stage, buildado **a partir da raiz do
+repositório** (é um workspace pnpm — o build precisa do lockfile da raiz e de
+`packages/shared`):
+
+```bash
+docker build -f apps/api/Dockerfile -t bymyself-api .
+docker build -f apps/web/Dockerfile --build-arg FRONTEND_URL=https://seu-dominio.com -t bymyself-web .
+```
+
+`FRONTEND_URL` é build-arg no web porque as páginas são pré-renderizadas e o
+Next grava as URLs de metadata durante o build. Configuração completa das
+aplicações no Dokploy em [`deploy/dokploy.md`](deploy/dokploy.md).
+
 ## Qualidade
 
 ```bash

@@ -55,13 +55,30 @@ if (!process.env.API_URL || !process.env.FRONTEND_URL) {
  * sets up. Sending it from here while the app also answers on plain http in
  * dev would be the wrong layer.
  */
+const isDev = process.env.NODE_ENV === 'development';
+
+/**
+ * `'unsafe-eval'`, in development only. React's dev build calls `eval()` to
+ * rebuild callstacks across the server/client boundary; blocking it does not
+ * fail the page but it silently breaks error overlays and stack traces, which
+ * is exactly the tooling a developer is relying on when something is already
+ * wrong. React never uses `eval()` in a production build, so the production
+ * policy stays closed.
+ *
+ * Found by running the app: the dev overlay reports it as an issue and the
+ * server log carries React's own warning about it.
+ */
+const scriptSrc = isDev
+  ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+  : "script-src 'self' 'unsafe-inline'";
+
 const contentSecurityPolicy = [
   "default-src 'self'",
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  "script-src 'self' 'unsafe-inline'",
+  scriptSrc,
   "style-src 'self' 'unsafe-inline'",
   // next/font/google self-hosts at build time -- the rendered page makes no
   // request to fonts.googleapis.com or fonts.gstatic.com, so allowing them
@@ -86,6 +103,20 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  /**
+   * Emits `.next/standalone`, a self-contained server with only the traced
+   * dependencies, so the runtime image does not need node_modules at all
+   * (RNF-INF1 -- see apps/web/Dockerfile).
+   *
+   * `outputFileTracingRoot` is required here and not optional: tracing
+   * defaults to this package's directory, which in a pnpm workspace would
+   * miss `packages/shared` and every symlinked dependency hoisted to the
+   * repo root, producing an image that builds and then crashes on a missing
+   * module at first request.
+   */
+  output: 'standalone',
+  outputFileTracingRoot: resolve(__dirname, '../..'),
+
   // `X-Powered-By: Next.js` names the framework on every response and buys
   // nothing in return
   poweredByHeader: false,

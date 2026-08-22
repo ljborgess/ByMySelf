@@ -1,0 +1,45 @@
+# Both images build from the repo root (the pnpm workspace is the build
+# context), so this one file covers them. Keeping it lean matters twice over:
+# it shrinks what Docker uploads as context, and it keeps host-only artefacts
+# from shadowing what the build produces inside the image.
+
+# Never ship dependency trees from the host -- they are platform-specific
+# (argon2 is a native module) and would silently override the ones installed
+# inside the image for the target architecture.
+node_modules
+**/node_modules
+
+# Build output, regenerated inside the image
+.next
+**/.next
+dist
+**/dist
+coverage
+**/coverage
+
+# Secrets. The real .env lives on the host and is injected at runtime by
+# Dokploy; .env.example stays because it documents the contract.
+.env
+.env.*
+!.env.example
+
+.git
+.github
+.husky
+.claude
+
+# Editor/OS noise
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Local-only tooling that has no bearing on a production image
+docker-compose.yml
+**/*.md
+
+# Tests never run inside the production image -- CI already gates them
+**/*.spec.ts
+**/*.test.ts
+**/*.test.tsx
+apps/api/test
