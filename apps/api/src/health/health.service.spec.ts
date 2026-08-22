@@ -7,6 +7,14 @@ import {
 } from '../database/database.tokens';
 import { HealthService } from './health.service';
 
+/**
+ * O sha do build é capturado quando o módulo carrega, então aqui vale o que
+ * o ambiente de teste tem — `unknown`, já que ninguém passa `GIT_SHA` fora do
+ * pipeline. Escrito como a mesma expressão do código, e não como literal,
+ * para o teste não passar a mentir se alguém definir a variável no CI.
+ */
+const EXPECTED_VERSION = process.env.GIT_SHA ?? 'unknown';
+
 describe('HealthService', () => {
   let service: HealthService;
   let execute: jest.Mock;
@@ -35,6 +43,7 @@ describe('HealthService', () => {
     await expect(service.check()).resolves.toEqual({
       status: 'ok',
       db: 'ok',
+      version: EXPECTED_VERSION,
     });
     expect(execute).toHaveBeenCalledTimes(1);
   });
@@ -45,6 +54,21 @@ describe('HealthService', () => {
     await expect(service.check()).resolves.toEqual({
       status: 'error',
       db: 'error',
+      version: EXPECTED_VERSION,
+    });
+  });
+
+  /**
+   * O pipeline usa este campo para saber que está falando com o container que
+   * ele acabou de publicar, e não com a versão anterior — que continua
+   * respondendo `ok` durante todo o rollout. Se ele sumir do payload, o
+   * portão de deploy passa a aceitar qualquer coisa de pé.
+   */
+  it('carries the build sha, which the deploy gate matches on', async () => {
+    execute.mockResolvedValue(undefined);
+
+    await expect(service.check()).resolves.toMatchObject({
+      version: EXPECTED_VERSION,
     });
   });
 
@@ -57,7 +81,11 @@ describe('HealthService', () => {
       DB_CONNECTION_TIMEOUT_MS + DB_STATEMENT_TIMEOUT_MS + 1000,
     );
 
-    await expect(result).resolves.toEqual({ status: 'error', db: 'error' });
+    await expect(result).resolves.toEqual({
+      status: 'error',
+      db: 'error',
+      version: EXPECTED_VERSION,
+    });
   });
 
   it('does not fire its backstop before the driver has had its full budget', async () => {

@@ -10,7 +10,20 @@ import type { DrizzleDatabase } from '../database/database.tokens';
 export interface HealthStatus {
   status: 'ok' | 'error';
   db: 'ok' | 'error';
+  /**
+   * Commit que originou esta imagem, gravado no build (`GIT_SHA`).
+   *
+   * Existe para o pipeline: depois de disparar o deploy, o CI faz polling
+   * nesta rota e precisa distinguir o container novo do que ainda está
+   * rodando. Sem isso o probe responde `ok` de imediato — vindo da versão
+   * *anterior* — e um rollout que nunca começou passaria como sucesso.
+   *
+   * `unknown` em build local, onde ninguém passa o arg.
+   */
+  version: string;
 }
+
+const BUILD_SHA = process.env.GIT_SHA ?? 'unknown';
 
 /**
  * Last-resort ceiling so a wedged driver cannot hang the probe — the
@@ -33,10 +46,10 @@ export class HealthService {
   async check(): Promise<HealthStatus> {
     try {
       await this.withTimeout(this.db.execute(sql`select 1`));
-      return { status: 'ok', db: 'ok' };
+      return { status: 'ok', db: 'ok', version: BUILD_SHA };
     } catch (error) {
       this.logger.error('Database health check failed', error);
-      return { status: 'error', db: 'error' };
+      return { status: 'error', db: 'error', version: BUILD_SHA };
     }
   }
 

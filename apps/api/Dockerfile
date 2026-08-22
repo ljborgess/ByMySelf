@@ -71,6 +71,14 @@ ENV NODE_ENV=production
 # main.ts so the same image can be run on another port without a rebuild.
 ENV PORT=3100
 
+# Commit que originou a imagem, exposto em GET /health.
+#
+# É o que permite ao pipeline saber que está falando com o container *novo*:
+# logo após o webhook, a versão anterior ainda responde `ok`, e sem identidade
+# de build um rollout que nunca começou passaria como deploy bem-sucedido.
+ARG GIT_SHA=unknown
+ENV GIT_SHA=$GIT_SHA
+
 # node:22-alpine already ships an unprivileged `node` user (uid 1000). Reusing
 # it beats creating another: it owns nothing outside /app, and the app never
 # needs to write to the image.
