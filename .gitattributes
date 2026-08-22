@@ -1,0 +1,16 @@
+# Shell scripts sempre com LF, mesmo em checkout no Windows.
+#
+# `core.autocrlf=true` (default de várias instalações Git no Windows, e o que
+# está configurado nesta máquina) converteria estes arquivos para CRLF ao
+# clonar. Um script com CRLF copiado para dentro de uma imagem Linux falha no
+# shebang com `bad interpreter: /bin/sh^M` — o container morre no boot, e o
+# erro não aponta para a causa.
+#
+# Vale para apps/api/docker-entrypoint.sh, que roda como ENTRYPOINT da imagem
+# de produção.
+*.sh text eol=lf
+
+# Mesmo motivo para o que é lido dentro de container ou por ferramenta que
+# não tolera CR.
+Dockerfile text eol=lf
+*.Dockerfile text eol=lf

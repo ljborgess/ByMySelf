@@ -24,20 +24,28 @@ docker build -f apps/web/Dockerfile \
   -t bymyself-web .
 ```
 
-No Dokploy, para cada aplicação:
+## Como criar no Dokploy
 
-| Campo | API | Web |
-| --- | --- | --- |
-| Build Type | Dockerfile | Dockerfile |
-| Dockerfile Path | `apps/api/Dockerfile` | `apps/web/Dockerfile` |
-| Build Context | `.` (raiz) | `.` (raiz) |
-| Build Args | — | `FRONTEND_URL=https://seu-dominio.com` |
-| Porta exposta | `3100` | `3101` |
+**Um único projeto do tipo Docker Compose**, apontando para
+`deploy/docker-compose.prod.yml`. Ele já declara os três serviços (postgres,
+api, web), o volume persistente e as dependências entre eles — criar api e web
+como duas aplicações Dockerfile separadas deixaria o Postgres e o volume de
+fora, que é justamente o que #36 resolve.
+
+| Campo | Valor |
+| --- | --- |
+| Deployment Type | Docker Compose |
+| Compose Path | `deploy/docker-compose.prod.yml` |
+| Build Context | raiz do repositório |
+
+O compose já resolve `build.context: ..` e os `dockerfile:` de cada app, então
+não há caminho de Dockerfile para preencher à mão.
 
 O build do web **falha** se `FRONTEND_URL` não for passado — de propósito. Um
 default de localhost deixaria o build passar e a imagem serviria metadata
 apontando para `http://localhost:3101`, errado de um jeito que só aparece
-quando um crawler lê.
+quando um crawler lê. O compose repassa a variável como build arg
+automaticamente.
 
 ## Por que `FRONTEND_URL` é build-arg no web (e só nele)
 
@@ -63,6 +71,16 @@ resolve a variável por request.
 
 Nenhuma é embutida na imagem. Ambas as apps validam a configuração no boot e
 **recusam subir** com valores inválidos, em vez de falhar no primeiro request.
+O compose usa a forma `${VAR:?...}` nas obrigatórias, então um deploy sem elas
+também falha em vez de subir com valor em branco.
+
+### Postgres
+
+| Variável | Observação |
+| --- | --- |
+| `POSTGRES_USER` | obrigatória |
+| `POSTGRES_PASSWORD` | obrigatória |
+| `POSTGRES_DB` | default `portfolio` |
 
 ### API
 
@@ -70,7 +88,7 @@ Nenhuma é embutida na imagem. Ambas as apps validam a configuração no boot e
 | --- | --- |
 | `NODE_ENV` | `production` |
 | `PORT` | `3100` (já é default na imagem) |
-| `DATABASE_URL` | aponta para o Postgres de #36 |
+| `DATABASE_URL` | URL completa, ex. `postgresql://user:senha@postgres:5432/portfolio`. **Percent-encode a senha**: ela fica na userinfo da URL, então um `/`, `@`, `:` ou `#` cru faz o parser ler host e database errados — e o erro aparece como "banco não existe", que joga a investigação para o lado errado |
 | `JWT_ACCESS_SECRET` | mínimo 32 chars, independente do refresh |
 | `JWT_REFRESH_SECRET` | mínimo 32 chars, independente do access |
 | `JWT_ACCESS_EXPIRATION` | `15m` — limite do RNF-SEG4 |
@@ -79,6 +97,8 @@ Nenhuma é embutida na imagem. Ambas as apps validam a configuração no boot e
 | `FRONTEND_URL` | usado no CORS — finalizado em #38 |
 | `TRUST_PROXY_HOPS` | **contagem de saltos, não booleano.** `1` atrás do proxy do Dokploy. Ver README: com `trust proxy: true` o `X-Forwarded-For` seria trivialmente forjável e o rate limit por IP viraria um balde único |
 | `SENTRY_DSN` | opcional |
+| `RUN_MIGRATIONS_ON_START` | default `true`. Ver Migrations abaixo |
+| `MIGRATION_MAX_ATTEMPTS` | default `10`. Inteiro positivo — valor inválido faz o container recusar subir, em vez de tentar para sempre |
 
 ### Web
 
@@ -102,22 +122,58 @@ prontidão em vez de "o processo está vivo".
   continua sendo sinal do próprio site e **não fica vermelha quando a API
   cai** — o site tem estado de erro próprio para isso.
 
+## Postgres e volume persistente
+
+`deploy/docker-compose.prod.yml` define a stack inteira — Postgres, api e web.
+No Dokploy, criar como **Docker Compose**, apontando para esse arquivo.
+
+Pontos que não são detalhe:
+
+- **Volume nomeado (`pgdata`), não bind mount.** O ciclo de vida dele é
+  independente dos containers de aplicação: `docker compose down` seguido de
+  `up` recria tudo e o dado continua lá. Verificado (ver MR) — só `down -v`
+  apaga, e isso é deliberado.
+- **O Postgres não publica porta no host.** É alcançado pela rede interna do
+  compose. Expor 5432 colocaria o banco de produção na internet, e nada fora
+  dessa rede precisa dele. Para inspecionar, `docker compose exec postgres
+  psql`.
+- **Nenhum segredo no arquivo.** Toda variável sensível usa a forma
+  `${VAR:?...}`, então um deploy sem ela **falha** em vez de subir com senha em
+  branco. Os valores vêm dos secrets do Dokploy (#38).
+- **`depends_on: condition: service_healthy`** faz a api esperar o Postgres
+  estar de fato aceitando conexão, não só o container existir.
+
 ## Migrations
 
-O runtime da API não tem `ts-node` (é devDependency), então `pnpm db:migrate`
-não roda na imagem de produção. O `nest build` compila o script junto, e a
-pasta `drizzle/` é copiada para a imagem, então o comando é:
+Rodam sozinhas. O entrypoint da imagem da api
+(`apps/api/docker-entrypoint.sh`) aplica as migrations pendentes e só então
+executa o servidor — então um banco novo nunca deixa a API respondendo contra
+tabelas que não existem (#36, user story 3). São idempotentes: no segundo
+boot não fazem nada.
+
+Fica no entrypoint, e não num campo de pre-deploy do painel, de propósito: um
+passo que mora numa caixinha de configuração é um passo que dá para esquecer
+de preencher.
+
+Para o caso que a issue deixa em aberto — se um dia isto rodar com mais de uma
+réplica, migrators concorrentes no mesmo banco são piores que um passo único
+deliberado — dá para desligar com `RUN_MIGRATIONS_ON_START=false` e rodar
+manualmente:
 
 ```bash
-node dist/database/migrate
+docker compose exec api node dist/database/migrate
 ```
 
-Rodar isso como pre-deploy command no Dokploy, ou manualmente antes do primeiro
-deploy. Fica finalizado em #36, junto com o Postgres de produção.
+> A issue #36 menciona `mikro-orm migration:up`. Este projeto usa **Drizzle**,
+> não MikroORM — o comando acima é o correto.
 
 ## O que ainda depende de acesso ao VPS
 
-As duas aplicações **não** foram registradas no painel do Dokploy — isso exige
-acesso ao VPS, que não faz parte do que dá para entregar pelo repositório. Os
-Dockerfiles estão verificados (build + execução dos containers, ver o MR), e
-esta página é o que resta preencher no painel.
+Nada disto foi provisionado no VPS: as aplicações **não** estão registradas no
+painel do Dokploy e o Postgres de produção **não** existe. Isso exige acesso ao
+servidor, fora do que dá para entregar pelo repositório.
+
+O que está entregue e verificado localmente é o artefato que define essa
+infraestrutura — os Dockerfiles e o compose de produção, com as migrations
+automáticas e a persistência do volume comprovadas por execução real (ver os
+MRs #73 e o de #36).

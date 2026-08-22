@@ -1,0 +1,113 @@
+# Stack de produção para o Dokploy (deployment type: Docker Compose).
+#
+# Nada de segredo aqui: todo valor sensível vem do ambiente, e o deploy falha
+# se faltar. Os defaults `?err` abaixo são intencionais — um compose que sobe
+# com senha em branco é pior do que um que recusa subir.
+#
+# Build a partir da raiz do repositório: é um workspace pnpm, e as imagens
+# precisam do lockfile da raiz e de packages/shared (ver apps/*/Dockerfile).
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-portfolio}
+    # Volume nomeado, e não bind mount: o ciclo de vida dele é independente
+    # dos containers de aplicação, então redeploy/restart da api não encosta
+    # no dado (user story 1). Um container recriado reencontra o mesmo volume.
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Sem `ports`. O Postgres é alcançado pela rede interna do compose; expor
+    # 5432 no host colocaria o banco de produção na internet, e nada fora
+    # desta rede precisa dele.
+    healthcheck:
+      # `-d` explícito: sem ele o pg_isready checa o banco de mesmo nome do
+      # usuário, que pode não existir, e o healthcheck passaria a reportar
+      # saudável um Postgres que a aplicação não consegue usar.
+      #
+      # `-h 127.0.0.1` força o teste pela porta TCP, que é como a api conecta.
+      # Sem isso o pg_isready usa o socket unix — e durante o initdb existe um
+      # servidor temporário atendendo só nesse socket, então o healthcheck
+      # pode ficar verde antes de o Postgres aceitar TCP.
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -h 127.0.0.1 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        # Espera o healthcheck, não só o container existir. O entrypoint da
+        # api também tem retry próprio, então isto é a primeira das duas
+        # defesas contra ordem de boot infeliz.
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3100
+      # Montada a partir de DATABASE_URL inteira, e não concatenando usuário e
+      # senha: a senha vai dentro da *userinfo* de uma URL, então um `/`, `@`,
+      # `:` ou `#` nela faz o parser ler host e database errados. O erro sai
+      # como "banco não existe", que manda quem investiga para o lado errado.
+      # Gere a URL já percent-encoded em #38 e passe pronta.
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required (percent-encode a senha)}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
+      JWT_ACCESS_EXPIRATION: ${JWT_ACCESS_EXPIRATION:-15m}
+      JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-30d}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:?COOKIE_DOMAIN is required}
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      # Contagem de saltos, não booleano — ver README. Atrás do proxy do
+      # Dokploy é 1.
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      # Escape hatch documentada em deploy/dokploy.md — precisa chegar no
+      # container para existir de fato.
+      RUN_MIGRATIONS_ON_START: ${RUN_MIGRATIONS_ON_START:-true}
+      MIGRATION_MAX_ATTEMPTS: ${MIGRATION_MAX_ATTEMPTS:-10}
+
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+      args:
+        # Build arg, não só env: as páginas são pré-renderizadas e o Next
+        # grava metadataBase (canonical, og:image, <loc> do sitemap) durante
+        # o build. Ver apps/web/Dockerfile.
+        FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+      PORT: 3101
+      HOSTNAME: 0.0.0.0
+      API_URL: http://api:3100
+      # Também em runtime: sitemap.xml é ISR de 1h e regenera lendo isto.
+      FRONTEND_URL: ${FRONTEND_URL}
+
+volumes:
+  pgdata:
+
+# Como o tráfego externo entra
+# ----------------------------
+# Nenhum serviço publica porta no host de propósito. Quem termina TLS e
+# roteia por domínio é o Traefik do próprio Dokploy, e isso é configurado em
+# #37 (HTTPS & Domain Configuration) — é lá que o serviço `web` ganha a rede
+# externa do Dokploy e as labels de router/certificado.
+#
+# Até #37 esta stack sobe saudável e é alcançável de dentro da rede do
+# compose, mas **não** pela internet. Isso é o estado esperado desta
+# sub-issue, não um esquecimento: publicar porta aqui e depois trocar por
+# Traefik deixaria a porta aberta no host sem necessidade.
