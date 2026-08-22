@@ -1,0 +1,35 @@
+# Override que devolve a capacidade de buildar as imagens localmente.
+#
+# O docker-compose.prod.yml declara só `image`, de propósito: com um bloco
+# `build` presente, `docker compose up` constrói da origem sempre que a tag
+# não está no cache local — e produção passaria a rodar um build diferente do
+# que o CI validou, que é o problema que a #38 resolve.
+#
+# Separar em dois arquivos torna isso estrutural em vez de depender de alguém
+# lembrar de passar a flag certa no painel.
+#
+# Uso:
+#   docker compose -f docker-compose.prod.yml -f docker-compose.build.yml build
+#   docker compose -f docker-compose.prod.yml -f docker-compose.build.yml up -d
+#
+# Em produção este arquivo simplesmente não entra na linha de comando.
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+      args:
+        # Fora do CI ninguém passa um SHA; `unknown` deixa claro em
+        # GET /health que a imagem não veio do pipeline.
+        GIT_SHA: ${GIT_SHA:-unknown}
+
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+      args:
+        # Build arg, não só env: as páginas são pré-renderizadas e o Next
+        # grava metadataBase (canonical, og:image, <loc> do sitemap) durante
+        # o build. Ver apps/web/Dockerfile.
+        FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}

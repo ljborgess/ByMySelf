@@ -43,9 +43,13 @@ services:
       start_period: 10s
 
   api:
-    build:
-      context: ..
-      dockerfile: apps/api/Dockerfile
+    # Só `image`, sem `build`. Com `build` presente, um `docker compose up`
+    # constrói da origem quando a tag não está no cache local — e produção
+    # voltaria a rodar um build diferente do que o CI validou, que é
+    # exatamente o que a #38 existe para impedir.
+    #
+    # Para buildar localmente, sobreponha com docker-compose.build.yml.
+    image: ${API_IMAGE:-bymyself-api}:${IMAGE_TAG:-local}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -106,14 +110,8 @@ services:
       - traefik.http.middlewares.bymyself-hsts.headers.stsIncludeSubdomains=${HSTS_INCLUDE_SUBDOMAINS:-false}
 
   web:
-    build:
-      context: ..
-      dockerfile: apps/web/Dockerfile
-      args:
-        # Build arg, não só env: as páginas são pré-renderizadas e o Next
-        # grava metadataBase (canonical, og:image, <loc> do sitemap) durante
-        # o build. Ver apps/web/Dockerfile.
-        FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+    # Mesmo raciocínio da api — ver o comentário lá.
+    image: ${WEB_IMAGE:-bymyself-web}:${IMAGE_TAG:-local}
     restart: unless-stopped
     depends_on:
       - api

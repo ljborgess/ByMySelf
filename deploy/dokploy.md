@@ -265,6 +265,78 @@ docker compose exec api node dist/database/migrate
 > A issue #36 menciona `mikro-orm migration:up`. Este projeto usa **Drizzle**,
 > não MikroORM — o comando acima é o correto.
 
+## Deploy automático (CI)
+
+Um merge em `main` dispara `.github/workflows/ci.yml`: o job `quality` roda
+primeiro e, só se passar, o `build-and-deploy` publica as imagens e chama o
+Dokploy.
+
+### Por que registry, e não rebuild no Dokploy
+
+O CI publica as duas imagens no GHCR com a tag do SHA do commit, e o Dokploy
+puxa exatamente essa tag. A alternativa — Dokploy buildar da origem — deixaria
+produção rodando um build *diferente* do que o CI validou, que é justamente o
+problema que a #38 enuncia.
+
+O compose declara `image:` e `build:` juntos: com `IMAGE_TAG` apontando para
+uma tag publicada, `docker compose pull` traz o artefato do CI; sem ela,
+`docker compose build` continua funcionando localmente.
+
+### Secrets e variables no GitHub
+
+Secrets são para credencial; variables para o que é público. Guardar o domínio
+como secret só esconderia de quem precisa conferir se está certo.
+
+| Nome | Tipo | Observação |
+| --- | --- | --- |
+| `DOKPLOY_DEPLOY_WEBHOOK` | secret | URL de deploy da aplicação no Dokploy |
+| `FRONTEND_URL` | variable | `https://<WEB_DOMAIN>` — build arg do web |
+| `API_DOMAIN` | variable | usado para conferir `/health` após o deploy |
+
+O `GITHUB_TOKEN` cobre o login no GHCR (`permissions: packages: write`), então
+não há credencial de registry para guardar.
+
+### No Dokploy
+
+Definir no ambiente da stack:
+
+```
+API_IMAGE=ghcr.io/<owner>/<repo>-api
+WEB_IMAGE=ghcr.io/<owner>/<repo>-web
+IMAGE_TAG=latest
+```
+
+`latest` e não um SHA fixo: o webhook do Dokploy não carrega payload, então o
+CI não tem como injetar a tag do commit. Um SHA aqui ficaria congelado e cada
+merge publicaria imagens novas enquanto produção redeploya a versão antiga.
+Com `latest`, o CI acabou de apontar essa tag para as imagens deste commit.
+
+O deploy precisa **puxar** antes de subir (`docker compose pull`, ou
+`--pull always`): sem isso o Docker reusa a `latest` que já está em cache no
+host, que é justamente a versão anterior.
+
+As tags de SHA continuam publicadas e servem para rollback — fixar
+`IMAGE_TAG=<sha>` volta para uma versão específica.
+
+Se o pacote no GHCR for privado, o VPS precisa de `docker login ghcr.io` com um
+token de leitura; sem isso o `pull` falha.
+
+### Verificação pós-deploy
+
+O webhook responde assim que aceita o pedido, não quando o rollout termina.
+Por isso o job faz polling em `https://<API_DOMAIN>/health` por até 5 minutos
+(user story 4).
+
+Ele exige `"status":"ok"` **e** `"version"` igual ao SHA do commit. Só o
+status não bastaria: a versão anterior continua respondendo `ok` durante todo
+o rollout, então o job passaria de imediato mesmo que o deploy nunca tivesse
+começado. É a diferença entre "a API está de pé" e "a API que este pipeline
+construiu está de pé".
+
+Isso também é a rede de segurança do arranjo de tags acima: se o Dokploy
+subir uma imagem que não é a deste commit — cache velho, `pull` faltando,
+`IMAGE_TAG` errado — o pipeline **falha** em vez de reportar sucesso.
+
 ## O que ainda depende de acesso ao VPS
 
 Nada disto foi provisionado no VPS: as aplicações **não** estão registradas no
