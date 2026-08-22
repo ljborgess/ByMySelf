@@ -56,6 +56,28 @@
     "notFoundDescription": "O projeto que você está procurando não existe ou foi removido.",
     "backToProjects": "Voltar para Projetos"
   },
+  "adminProjects": {
+    "title": "Projetos",
+    "create": "Novo projeto",
+    "loading": "Carregando projetos…",
+    "empty": "Nenhum projeto cadastrado ainda.",
+    "emptyAction": "Criar o primeiro",
+    "error": "Não foi possível carregar os projetos. Tente novamente em instantes.",
+    "featured": "Destaque",
+    "edit": "Editar",
+    "editNamed": "Editar {title}",
+    "columns": {
+      "title": "Título",
+      "status": "Status",
+      "slug": "Slug",
+      "actions": "Ações"
+    },
+    "status": {
+      "in_progress": "Em andamento",
+      "completed": "Concluído",
+      "archived": "Arquivado"
+    }
+  },
   "adminLogin": {
     "title": "Entrar",
     "description": "Acesso ao painel administrativo.",

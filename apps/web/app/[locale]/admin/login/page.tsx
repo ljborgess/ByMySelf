@@ -36,11 +36,11 @@ export default async function AdminLoginPage() {
 
       {/*
         O destino pós-login é passado de fora para que o formulário não
-        precise conhecer a estrutura de rotas. O painel em si é a #24; até
-        lá este caminho responde 404, e é a única parte desta tela que
-        depende da próxima sub-issue.
+        precise conhecer a estrutura de rotas. Passou a apontar para a lista
+        de projetos quando ela nasceu (#24) — antes ia para `/admin`, que não
+        existia.
       */}
-      <LoginForm dashboardPath="/admin" />
+      <LoginForm dashboardPath="/admin/projects" />
     </main>
   );
 }
