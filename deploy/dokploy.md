@@ -47,6 +47,95 @@ apontando para `http://localhost:3101`, errado de um jeito que só aparece
 quando um crawler lê. O compose repassa a variável como build arg
 automaticamente.
 
+## Domínios, DNS e HTTPS
+
+Dois subdomínios, um por serviço. Separar a API do site é o que permite ao
+`SameSite=Strict` do cookie de auth continuar valendo e ao CORS ter uma origem
+única e explícita.
+
+| Serviço | Variável | Exemplo |
+| --- | --- | --- |
+| Site | `WEB_DOMAIN` | `bymyself.com.br` |
+| API | `API_DOMAIN` | `api.bymyself.com.br` |
+
+### 1. DNS (antes de subir a stack)
+
+Um registro `A` por domínio, apontando para o IP do VPS:
+
+```
+bymyself.com.br.       A    <IP-do-VPS>
+api.bymyself.com.br.   A    <IP-do-VPS>
+```
+
+Faça isso **antes** do primeiro deploy. O Let's Encrypt valida por HTTP-01:
+ele resolve o domínio e busca um arquivo no seu servidor. Se o DNS ainda não
+propagou, a emissão falha — e falhas repetidas batem no limite de *validações
+com falha* (5 por conta, por hostname, por hora). Não é catastrófico: o balde
+reseta de hora em hora. Ainda assim, subir com o DNS pronto evita uma primeira
+hora de tentativas inúteis.
+
+#### www
+
+O compose roteia o apex (`bymyself.com.br`), não `www`. Isso é uma decisão, e
+tem uma pegadinha:
+
+- **Não criar registro DNS para `www`** — é o default. O nome não resolve,
+  nunca chega no proxy, e não existe caminho quebrado.
+- **Criar o registro `www` sem configurar o router** é o pior dos mundos: o
+  nome resolve, bate no Traefik, e o visitante recebe 404 **mais** um erro de
+  certificado, porque o cert não cobre esse hostname.
+
+Se quiser suportar `www`, crie o registro A **e** adicione estas labels ao
+serviço `web`, redirecionando para o apex:
+
+```yaml
+- traefik.http.routers.bymyself-www.rule=Host(`www.SEU-DOMINIO`)
+- traefik.http.routers.bymyself-www.entrypoints=websecure
+- traefik.http.routers.bymyself-www.tls=true
+- traefik.http.routers.bymyself-www.tls.certresolver=letsencrypt
+- traefik.http.routers.bymyself-www.middlewares=bymyself-www-redirect
+- traefik.http.middlewares.bymyself-www-redirect.redirectregex.regex=^https://[^/]+/(.*)
+- traefik.http.middlewares.bymyself-www-redirect.redirectregex.replacement=https://SEU-DOMINIO/$${1}
+- traefik.http.middlewares.bymyself-www-redirect.redirectregex.permanent=true
+```
+
+Redirecionar para o apex, e não servir o site nos dois, evita conteúdo
+duplicado — o mesmo motivo pelo qual `localePrefix: 'always'` mantém uma única
+URL canônica por página (RNF-SEO1).
+
+### 2. Dokploy
+
+Nada além das variáveis. As labels de Traefik já estão no compose — router
+HTTP, router HTTPS, redirect e HSTS, para os dois serviços. O Dokploy só
+precisa que `WEB_DOMAIN`, `API_DOMAIN` e, se o resolver dele tiver outro nome,
+`CERT_RESOLVER` estejam definidas.
+
+O compose **recusa subir** sem `WEB_DOMAIN` e `API_DOMAIN`.
+
+### 3. Variáveis que dependem do domínio final
+
+Estas existem desde o Scaffold, mas só agora têm valor real. Ficam finalizadas
+em #38:
+
+| Variável | Valor |
+| --- | --- |
+| `FRONTEND_URL` | `https://<WEB_DOMAIN>` — **com https**, e é build arg do web |
+| `COOKIE_DOMAIN` | o domínio do cookie de auth |
+
+`FRONTEND_URL` errado aqui é caro: o site é pré-renderizado, então a URL entra
+no HTML no build. Trocar depois exige rebuild, não só restart.
+
+### O que é automático e o que não é
+
+- **Certificado e renovação** — automáticos (Let's Encrypt via Dokploy). Sem
+  cron, sem passo manual.
+- **Redirect HTTP → HTTPS** — automático, `301` permanente, nos dois domínios.
+- **HSTS** — `max-age=31536000`, sem `preload`. Entrar na lista de preload dos
+  browsers é praticamente irreversível e trava o domínio em HTTPS por anos:
+  é decisão do dono do domínio, não default de config. `stsIncludeSubdomains`
+  também é opt-in, via `HSTS_INCLUDE_SUBDOMAINS=true`.
+- **Compra do domínio e criação dos registros DNS** — manual, seu.
+
 ## Por que `FRONTEND_URL` é build-arg no web (e só nele)
 
 A maioria das páginas do site é pré-renderizada no build — isso é deliberado
@@ -73,6 +162,15 @@ Nenhuma é embutida na imagem. Ambas as apps validam a configuração no boot e
 **recusam subir** com valores inválidos, em vez de falhar no primeiro request.
 O compose usa a forma `${VAR:?...}` nas obrigatórias, então um deploy sem elas
 também falha em vez de subir com valor em branco.
+
+### Roteamento e TLS
+
+| Variável | Observação |
+| --- | --- |
+| `WEB_DOMAIN` | obrigatória. Domínio do site, sem esquema |
+| `API_DOMAIN` | obrigatória. Domínio da API, sem esquema |
+| `CERT_RESOLVER` | default `letsencrypt` — nome do resolver no Traefik do Dokploy |
+| `HSTS_INCLUDE_SUBDOMAINS` | default `false`. `true` só se **todo** subdomínio já servir HTTPS |
 
 ### Postgres
 
@@ -170,10 +268,23 @@ docker compose exec api node dist/database/migrate
 ## O que ainda depende de acesso ao VPS
 
 Nada disto foi provisionado no VPS: as aplicações **não** estão registradas no
-painel do Dokploy e o Postgres de produção **não** existe. Isso exige acesso ao
-servidor, fora do que dá para entregar pelo repositório.
+painel do Dokploy, o Postgres de produção **não** existe, e não há domínio,
+DNS nem certificado emitido. Isso exige acesso ao servidor e a um domínio
+comprado — fora do que dá para entregar pelo repositório.
 
-O que está entregue e verificado localmente é o artefato que define essa
-infraestrutura — os Dockerfiles e o compose de produção, com as migrations
-automáticas e a persistência do volume comprovadas por execução real (ver os
-MRs #73 e o de #36).
+O que está entregue é o artefato que define essa infraestrutura — Dockerfiles,
+compose de produção e as labels de roteamento/TLS — verificado por execução
+real onde isso é possível:
+
+| Verificado localmente | Só verificável em produção |
+| --- | --- |
+| Redirect HTTP → HTTPS (`301`) nos dois domínios | Emissão do certificado pelo Let's Encrypt |
+| Roteamento por `Host()` chegando no serviço certo | Renovação automática |
+| HSTS na resposta HTTPS | Validação HTTP-01 contra DNS real |
+| Postgres inalcançável pelo proxy | |
+| Host desconhecido responde 404 | |
+| Migrations automáticas e persistência do volume | |
+
+O TLS local usou o certificado self-signed default do Traefik: o que não dá
+para testar sem domínio público é a **emissão**, não o roteamento — e o
+roteamento é onde mora o erro de configuração.
