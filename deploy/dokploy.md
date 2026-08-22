@@ -205,7 +205,8 @@ também falha em vez de subir com valor em branco.
 | `NODE_ENV` | `production` |
 | `PORT` | `3101` (já é default na imagem) |
 | `HOSTNAME` | `0.0.0.0` — já default na imagem. Sem isso o servidor standalone escuta em `127.0.0.1` e fica inalcançável de fora do container, e a falha parece app morta em vez de problema de binding |
-| `API_URL` | endereço interno da API, ex. `http://bymyself-api:3100` |
+| `API_URL` | endereço interno da API, ex. `http://bymyself-api:3100`. Só para SSR — o browser não resolve esse nome |
+| `NEXT_PUBLIC_API_URL` | **build arg, não runtime.** Endereço *público* da API, para as chamadas que saem do browser (login do painel). O Next inlina toda variável `NEXT_PUBLIC_` no bundle do cliente durante o build, então definir em runtime não tem efeito. O build **falha** se faltar |
 | `FRONTEND_URL` | **também em runtime.** A imagem já vem com o valor do build-arg, então normalmente não precisa mexer — mas se for sobrescrito, tem que ser o mesmo valor do build. O `sitemap.xml` é ISR de 1h: uma hora depois do boot ele regenera lendo essa variável, e com ela errada todo `<loc>` sai errado. O `robots.txt` é estático (gravado no build) e não depende do runtime |
 
 ## Healthchecks
@@ -291,6 +292,7 @@ como secret só esconderia de quem precisa conferir se está certo.
 | --- | --- | --- |
 | `DOKPLOY_DEPLOY_WEBHOOK` | secret | URL de deploy da aplicação no Dokploy |
 | `FRONTEND_URL` | variable | `https://<WEB_DOMAIN>` — build arg do web |
+| `NEXT_PUBLIC_API_URL` | variable | `https://<API_DOMAIN>` — build arg do web; inlinado no bundle do cliente |
 | `API_DOMAIN` | variable | usado para conferir `/health` após o deploy |
 
 O `GITHUB_TOKEN` cobre o login no GHCR (`permissions: packages: write`), então

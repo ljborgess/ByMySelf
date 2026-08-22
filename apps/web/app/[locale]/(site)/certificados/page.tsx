@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { useTranslations } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
-import { profile } from '../../../content/profile';
-import { formatIssuedAt, sortCertificates } from '../../../lib/certificates';
-import { withOpenGraph } from '../../../lib/site';
+import { profile } from '../../../../content/profile';
+import { formatIssuedAt, sortCertificates } from '../../../../lib/certificates';
+import { withOpenGraph } from '../../../../lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('certificates');

@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { locale } from 'next/root-params';
-import { ProjectDetail } from '../../../../components/project-detail';
-import { profile } from '../../../../content/profile';
-import { getProjectBySlug } from '../../../../lib/projects';
-import { withOpenGraph } from '../../../../lib/site';
+import { ProjectDetail } from '../../../../../components/project-detail';
+import { profile } from '../../../../../content/profile';
+import { getProjectBySlug } from '../../../../../lib/projects';
+import { withOpenGraph } from '../../../../../lib/site';
 
 export async function generateMetadata({
   params,

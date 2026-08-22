@@ -1,12 +1,12 @@
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import type { Certificate } from '../../../content/profile';
-import { makeProfile } from '../../../content/profile.fixture';
-import messages from '../../../messages/pt.json';
+import type { Certificate } from '../../../../content/profile';
+import { makeProfile } from '../../../../content/profile.fixture';
+import messages from '../../../../messages/pt.json';
 
 const mockProfile = makeProfile();
 
-jest.mock('../../../content/profile', () => ({
+jest.mock('../../../../content/profile', () => ({
   get profile() {
     return mockProfile;
   },

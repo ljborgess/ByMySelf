@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import messages from '../../../../messages/pt.json';
+import messages from '../../../../../messages/pt.json';
 import ProjectNotFound from './not-found';
 
 function renderNotFound() {

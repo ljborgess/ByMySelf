@@ -19,15 +19,20 @@ import { resolve } from 'node:path';
 // A real environment variable still wins over the file (checked first),
 // matching Next's own env precedence and letting production set these
 // directly without touching this repo-relative path at all.
-if (!process.env.API_URL || !process.env.FRONTEND_URL) {
+// NEXT_PUBLIC_API_URL entra na mesma lista: é o endereço público da API, usado
+// pelo login do painel a partir do browser. Sem repassar aqui, o `.env` da
+// raiz que o .env.example manda preencher seria ignorado, e o fallback de
+// localhost em lib/auth.ts esconderia a configuração faltando.
+const FORWARDED_ENV = ['API_URL', 'FRONTEND_URL', 'NEXT_PUBLIC_API_URL'];
+
+if (FORWARDED_ENV.some((key) => !process.env[key])) {
   const rootEnvPath = resolve(__dirname, '../../.env');
   if (existsSync(rootEnvPath)) {
-    const { API_URL, FRONTEND_URL } = parse(readFileSync(rootEnvPath, 'utf-8'));
-    if (!process.env.API_URL && API_URL) {
-      process.env.API_URL = API_URL;
-    }
-    if (!process.env.FRONTEND_URL && FRONTEND_URL) {
-      process.env.FRONTEND_URL = FRONTEND_URL;
+    const fromFile = parse(readFileSync(rootEnvPath, 'utf-8'));
+    for (const key of FORWARDED_ENV) {
+      if (!process.env[key] && fromFile[key]) {
+        process.env[key] = fromFile[key];
+      }
     }
   }
 }
@@ -72,6 +77,35 @@ const scriptSrc = isDev
   ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
   : "script-src 'self' 'unsafe-inline'";
 
+/**
+ * `connect-src` precisa da origem da API, não só de `'self'`.
+ *
+ * O login do painel (#23) é o primeiro fetch que sai do browser, e a API
+ * mora em outra origem: outro subdomínio em produção, outra porta em
+ * desenvolvimento. Com `'self'` sozinho o browser recusa a requisição, o
+ * `login()` cai no `catch` e o formulário responde "não foi possível entrar"
+ * para toda credencial correta.
+ *
+ * Só a *origem* entra na diretiva — `connect-src` ignora caminho, e mandar a
+ * URL inteira alargaria a política sem precisão. Se a variável não estiver
+ * definida no build, fica só `'self'`: o Dockerfile já falha nesse caso, e em
+ * dev o desenvolvedor vê o erro de CSP no console em vez de uma política
+ * inventada.
+ */
+function apiOrigin(): string | undefined {
+  const raw = process.env.NEXT_PUBLIC_API_URL;
+  if (!raw) {
+    return undefined;
+  }
+  try {
+    return new URL(raw).origin;
+  } catch {
+    return undefined;
+  }
+}
+
+const connectSrc = ["'self'", apiOrigin()].filter(Boolean).join(' ');
+
 const contentSecurityPolicy = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -85,7 +119,7 @@ const contentSecurityPolicy = [
   // would widen the policy for traffic that does not exist
   "font-src 'self'",
   "img-src 'self' https: data: blob:",
-  "connect-src 'self'",
+  `connect-src ${connectSrc}`,
   'upgrade-insecure-requests',
 ].join('; ');
 

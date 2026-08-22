@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 import { useTranslations } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
-import { CvDownloadButton } from '../../../components/cv-download-button';
-import { ProfileAvatar } from '../../../components/profile-avatar';
-import { profile } from '../../../content/profile';
-import { withOpenGraph } from '../../../lib/site';
+import { CvDownloadButton } from '../../../../components/cv-download-button';
+import { ProfileAvatar } from '../../../../components/profile-avatar';
+import { profile } from '../../../../content/profile';
+import { withOpenGraph } from '../../../../lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('about');

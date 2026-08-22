@@ -1,5 +1,5 @@
 import { useTranslations } from 'next-intl';
-import { Link } from '../../../../i18n/navigation';
+import { Link } from '../../../../../i18n/navigation';
 
 /** RF-PUB2, user story 4: an unknown slug gets a real page, not a blank one. */
 export default function ProjectNotFound() {

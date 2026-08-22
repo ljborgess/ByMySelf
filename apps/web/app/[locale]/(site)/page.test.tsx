@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { makeProfile } from '../../content/profile.fixture';
-import { NAVIGATION_SECTIONS } from '../../lib/navigation-sections';
-import messages from '../../messages/pt.json';
+import { makeProfile } from '../../../content/profile.fixture';
+import { NAVIGATION_SECTIONS } from '../../../lib/navigation-sections';
+import messages from '../../../messages/pt.json';
 
 const mockProfile = makeProfile({
   name: 'Nome Sobrenome',
@@ -11,7 +11,7 @@ const mockProfile = makeProfile({
 
 // mocked so the page's own rendering is under test, not the real content --
 // otherwise every edit to profile.ts would break these assertions
-jest.mock('../../content/profile', () => ({
+jest.mock('../../../content/profile', () => ({
   get profile() {
     return mockProfile;
   },

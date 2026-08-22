@@ -56,6 +56,19 @@
     "notFoundDescription": "O projeto que você está procurando não existe ou foi removido.",
     "backToProjects": "Voltar para Projetos"
   },
+  "adminLogin": {
+    "title": "Entrar",
+    "description": "Acesso ao painel administrativo.",
+    "email": "E-mail",
+    "password": "Senha",
+    "submit": "Entrar",
+    "submitting": "Entrando…",
+    "errors": {
+      "invalid": "E-mail ou senha incorretos.",
+      "rateLimited": "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.",
+      "unavailable": "Não foi possível entrar agora. Verifique sua conexão e tente novamente."
+    }
+  },
   "home": {
     "title": "Início",
     "description": "Portfólio de Luciano Borges, desenvolvedor full-stack com foco em NestJS, Next.js e TypeScript.",
