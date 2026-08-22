@@ -1,7 +1,7 @@
 import { config as loadDotenv } from 'dotenv';
 import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { envSchema } from './env.schema';
+import { envSchemaWithCrossChecks } from './env.schema';
 
 /**
  * Walks up from this file until it finds the monorepo root (the directory
@@ -30,7 +30,7 @@ function parseEnv() {
     loadDotenv({ path: resolve(repoRoot, '.env'), quiet: true });
   }
 
-  const result = envSchema.safeParse(process.env);
+  const result = envSchemaWithCrossChecks.safeParse(process.env);
 
   if (!result.success) {
     console.error('Invalid environment configuration:');

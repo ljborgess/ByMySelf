@@ -337,6 +337,53 @@ Isso também é a rede de segurança do arranjo de tags acima: se o Dokploy
 subir uma imagem que não é a deste commit — cache velho, `pull` faltando,
 `IMAGE_TAG` errado — o pipeline **falha** em vez de reportar sucesso.
 
+## Segredos de produção (#39)
+
+Todo segredo mora no gerenciamento de ambiente do Dokploy. Nenhum vai para o
+repositório nem para um `.env` solto no disco do VPS.
+
+### Gerando
+
+```bash
+openssl rand -base64 48   # JWT_ACCESS_SECRET
+openssl rand -base64 48   # JWT_REFRESH_SECRET  (rode de novo — tem que ser outro)
+```
+
+Valores **novos** para produção, distintos dos de desenvolvimento e dos usados
+em CI. Se um dia o `.env` local vazar, produção não vai junto.
+
+### O que a API recusa no boot
+
+Estas não são recomendações — o app não sobe se forem violadas, porque cada
+uma falha *silenciosamente* em produção se passar:
+
+| Regra | O que acontece se passasse |
+| --- | --- |
+| `JWT_ACCESS_SECRET` ≠ `JWT_REFRESH_SECRET` | um access token capturado serve para forjar um refresh; a separação vira decorativa |
+| Segredo não pode parecer placeholder | produção rodando com o valor do `.env.example` |
+| `FRONTEND_URL` sem barra final nem caminho | o CORS compara literal com o header `Origin`, que nunca traz barra — **todo** request cross-origin passa a ser rejeitado, e o sintoma é "o login não funciona" |
+| `FRONTEND_URL` https em produção | o cookie de auth é `Secure`; sobre http ele nunca chega e a sessão nunca existe |
+| `COOKIE_DOMAIN` host puro | com esquema, porta ou caminho o browser descarta o cookie sem erro: login responde 200 e a sessão não persiste |
+| `COOKIE_DOMAIN` ≠ `localhost` em produção | cookie escopado para um domínio que não é o do site |
+
+### Checklist de fechamento da Fase 1
+
+Auditoria do repositório e do histórico, feita nesta issue:
+
+- `.env` está no `.gitignore` e **nunca** foi commitado (`git log --all -- .env` vazio)
+- Nenhum arquivo `.env*` no histórico além do `.env.example`
+- Nenhum valor de segredo real no histórico completo (busca por `-S` com regex)
+- Nenhum segredo hardcoded em arquivo versionado
+- `.env.example` só tem placeholder e valores locais
+
+Para repetir a qualquer momento:
+
+```bash
+git check-ignore -v .env
+git log --all --oneline -- .env
+git grep -nIE "(secret|password|token)\s*[:=]\s*['\"][A-Za-z0-9+/_-]{16,}"
+```
+
 ## O que ainda depende de acesso ao VPS
 
 Nada disto foi provisionado no VPS: as aplicações **não** estão registradas no
