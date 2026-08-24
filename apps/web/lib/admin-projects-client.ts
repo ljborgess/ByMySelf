@@ -1,12 +1,14 @@
 import type { CreateProjectInput, UpdateProjectInput } from '@portfolio/shared';
-import { JSON_MUTATION_HEADERS, publicApiUrl } from './api-client';
+import { CSRF_HEADER, JSON_MUTATION_HEADERS, publicApiUrl } from './api-client';
+import type { AdminProject } from './admin-projects';
 
 /**
  * As escritas do painel, feitas **pelo browser**.
  *
  * Arquivo separado de lib/admin-projects.ts de propósito: aquele importa
  * `next/headers`, que só existe no servidor, então um client component que o
- * importasse quebraria o build.
+ * importasse quebraria o build. O `import type` acima não conta — tipo é
+ * apagado na compilação e nada de `next/headers` entra no bundle.
  *
  * Por que browser e não Server Action: os cookies de sessão são `HttpOnly` e
  * `SameSite=Strict`, emitidos pela API. `credentials: 'include'` é o que faz
@@ -66,6 +68,124 @@ export async function updateProject(
   input: UpdateProjectInput,
 ): Promise<SaveProjectResult> {
   return send('PATCH', `/admin/projects/${encodeURIComponent(id)}`, input);
+}
+
+/**
+ * RF-PROJ3. `DELETE /admin/projects/:id`.
+ *
+ * Soft delete do lado da API: a linha sobrevive e continua recuperável. Para
+ * quem está no painel, porém, o projeto some da listagem — que é o que faz
+ * remover parecer remover.
+ */
+export async function deleteProject(id: string): Promise<DeleteProjectResult> {
+  let response: Response;
+
+  try {
+    response = await fetch(
+      `${publicApiUrl()}/admin/projects/${encodeURIComponent(id)}`,
+      {
+        method: 'DELETE',
+        credentials: 'include',
+        // Sem corpo, então sem `Content-Type` — só o header que o CsrfGuard
+        // exige de todo método mutante.
+        headers: CSRF_HEADER,
+      },
+    );
+  } catch {
+    return { ok: false, reason: 'unavailable' };
+  }
+
+  // 204 sem corpo. Nada a interpretar, e por isso nada que possa falhar
+  // *depois* de a exclusão já ter acontecido.
+  if (response.ok) {
+    return { ok: true };
+  }
+
+  return { ok: false, reason: reasonFor(response.status) };
+}
+
+export type DeleteProjectResult =
+  | { ok: true }
+  /**
+   * `notFound` é desfecho próprio: significa que a listagem estava velha e o
+   * projeto já não existe. O resultado que a pessoa queria já vale, então a
+   * linha sai da tela em vez de virar erro.
+   */
+  | { ok: false; reason: 'unauthenticated' | 'notFound' | 'unavailable' };
+
+export type ReorderProjectResult =
+  | {
+      ok: true;
+      /**
+       * A listagem inteira já reordenada, como a API devolve — mover um
+       * projeto desloca os outros, e a posição nova de um só não diz onde os
+       * demais foram parar.
+       *
+       * Ausente quando o 200 vem com corpo inaproveitável. A escrita
+       * aconteceu de qualquer forma, então isso não é falha: quem chama fica
+       * com a ordem que já aplicou na tela.
+       */
+      projects?: AdminProject[];
+    }
+  | { ok: false; reason: 'unauthenticated' | 'notFound' | 'unavailable' };
+
+/**
+ * RF-PROJ5. `PATCH /admin/projects/:id/order`.
+ *
+ * `position` é o índice de destino na listagem ativa, zero-based — não um
+ * valor da coluna `order`. A API reindexa tudo para 0..n-1 a cada movimento,
+ * então mandar um valor de coluna não significaria nada. Passar do fim é
+ * tratado como "último", e não como erro.
+ */
+export async function reorderProject(
+  id: string,
+  position: number,
+): Promise<ReorderProjectResult> {
+  let response: Response;
+
+  try {
+    response = await fetch(
+      `${publicApiUrl()}/admin/projects/${encodeURIComponent(id)}/order`,
+      {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: JSON_MUTATION_HEADERS,
+        body: JSON.stringify({ order: position }),
+      },
+    );
+  } catch {
+    return { ok: false, reason: 'unavailable' };
+  }
+
+  if (response.ok) {
+    try {
+      const body: unknown = await response.json();
+      return Array.isArray(body)
+        ? { ok: true, projects: body as AdminProject[] }
+        : { ok: true };
+    } catch {
+      // Corpo ilegível num 200: a escrita aconteceu. Chamar de falha faria a
+      // pessoa clicar de novo e mover o projeto duas casas.
+      return { ok: true };
+    }
+  }
+
+  return { ok: false, reason: reasonFor(response.status) };
+}
+
+/**
+ * Status HTTP traduzido nos desfechos que a tabela sabe tratar.
+ *
+ * 400 entra em `notFound` junto com 404: a rota valida o id com
+ * ParseUUIDPipe, então um id malformado nunca correspondeu a projeto nenhum —
+ * a mesma leitura que lib/admin-projects.ts faz.
+ */
+function reasonFor(
+  status: number,
+): 'unauthenticated' | 'notFound' | 'unavailable' {
+  if (status === 401) return 'unauthenticated';
+  if (status === 404 || status === 400) return 'notFound';
+  return 'unavailable';
 }
 
 async function send(
