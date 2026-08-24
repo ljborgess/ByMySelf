@@ -78,6 +78,71 @@
       "archived": "Arquivado"
     }
   },
+  "adminProjectForm": {
+    "createTitle": "Novo projeto",
+    "createDescription": "Cadastre um projeto. Português é obrigatório; inglês pode ficar para depois.",
+    "editTitle": "Editar projeto",
+    "editDescription": "Altere o que precisar. O projeto fica exatamente como estiver nesta tela.",
+    "loading": "Carregando projeto…",
+    "notFound": "Projeto não encontrado.",
+    "loadError": "Não foi possível carregar este projeto. Tente novamente em instantes.",
+    "backToList": "Voltar para a lista",
+    "optional": "(opcional)",
+    "translationPending": "Tradução em inglês pendente: {fields}.",
+    "addTech": "Adicionar",
+    "removeTech": "Remover {tech}",
+    "cancel": "Cancelar",
+    "submitting": "Salvando…",
+    "submit": {
+      "create": "Criar projeto",
+      "edit": "Salvar alterações"
+    },
+    "sections": {
+      "identification": "Identificação",
+      "content": "Conteúdo",
+      "techStack": "Tecnologias",
+      "links": "Links",
+      "publication": "Publicação"
+    },
+    "fields": {
+      "slug": "Slug",
+      "title": "Título",
+      "description": "Descrição",
+      "content": "Conteúdo",
+      "techStack": "Tecnologia",
+      "repoUrl": "Repositório",
+      "demoUrl": "Demonstração",
+      "coverImageUrl": "Imagem de capa",
+      "status": "Status",
+      "featured": "Destacar na home",
+      "completedAt": "Concluído em"
+    },
+    "fieldsEn": {
+      "title": "Título (inglês)",
+      "description": "Descrição (inglês)",
+      "content": "Conteúdo (inglês)"
+    },
+    "hints": {
+      "slug": "Minúsculas, números e hífens simples. Faz parte da URL pública do projeto.",
+      "techStack": "Uma por vez. Enter ou \"Adicionar\" para incluir.",
+      "coverImageUrl": "Endereço de uma imagem já hospedada — não há upload.",
+      "completedAt": "Só se aplica a um projeto com status \"Concluído\"."
+    },
+    "errors": {
+      "requiredPt": "Obrigatório em português.",
+      "requiredSlug": "Obrigatório.",
+      "invalidSlug": "Use apenas minúsculas, números e hífens simples (ex: meu-projeto).",
+      "slugTooLong": "Longo demais: no máximo 255 caracteres.",
+      "invalidUrl": "Informe uma URL completa, começando com http:// ou https://.",
+      "urlTooLong": "Longa demais: no máximo 2048 caracteres.",
+      "invalidDate": "Data inválida.",
+      "invalidTech": "Tecnologia inválida.",
+      "completedAtNeedsCompleted": "Uma data de conclusão só se aplica com status \"Concluído\".",
+      "invalid": "Valor inválido.",
+      "rejected": "A API recusou os dados enviados. Revise os campos e tente novamente.",
+      "unavailable": "Não foi possível salvar agora. Verifique sua conexão e tente novamente."
+    }
+  },
   "adminLogin": {
     "title": "Entrar",
     "description": "Acesso ao painel administrativo.",

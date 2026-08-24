@@ -99,6 +99,23 @@ export const createProjectSchema = z.object({
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;
 
 /**
+ * The nullable columns restated for update, so a PATCH can actually empty
+ * one. `optional()` alone cannot: on a partial update an absent key means
+ * "leave this alone", so without an explicit `null` there is no way to say
+ * "remove the demo link" -- clearing the field in the admin panel would look
+ * like it worked and change nothing.
+ *
+ * Create needs no equivalent: there is nothing to leave alone yet, so an
+ * omitted key there already means "no value".
+ */
+const nullableOnUpdate = {
+  repoUrl: projectFields.repoUrl.nullable(),
+  demoUrl: projectFields.demoUrl.nullable(),
+  coverImageUrl: projectFields.coverImageUrl.nullable(),
+  completedAt: projectFields.completedAt.nullable(),
+};
+
+/**
  * Every field optional and nothing defaulted, so a PATCH touches exactly
  * the fields it names.
  *
@@ -108,9 +125,34 @@ export type CreateProjectInput = z.infer<typeof createProjectSchema>;
  * partial merge would leave no way to express "remove the English text"
  * versus "leave it alone".
  */
-export const updateProjectSchema = z.object(projectFields).partial();
+export const updateProjectSchema = z
+  .object({ ...projectFields, ...nullableOnUpdate })
+  .partial();
 
 export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
+
+/**
+ * docs/dominio.md describes `completedAt` as "preenchido quando status =
+ * completed". A completion date on a project that is not completed is
+ * nonsense, so it is refused -- but a `completed` project without a date is
+ * allowed, since marking something done and filling the date in later is a
+ * reasonable flow and forcing it would block the more common action.
+ *
+ * A rule rather than a schema refinement because a PATCH can only be judged
+ * against the *merged* state: a body that changes `status` alone still has
+ * to be weighed against the `completedAt` already stored, which no schema
+ * validating the body in isolation can see.
+ *
+ * Lives here so the admin form warns about exactly the rule the API
+ * enforces, rather than a hand-kept copy that drifts (RF-PROJ1, user
+ * story 5).
+ */
+export function isCompletionConsistent(
+  status: ProjectStatus,
+  completedAt: string | null | undefined,
+): boolean {
+  return status === 'completed' || !completedAt;
+}
 
 /**
  * Target *position* in the active listing, zero-based -- not an arbitrary

@@ -16,6 +16,9 @@ export interface AdminProject {
   slug: string;
   title: LocalizedText;
   description: LocalizedText;
+  // O markdown da página de detalhe. Já vinha na resposta (estas são as
+  // linhas cruas), e o formulário de edição precisa dele para pré-preencher.
+  content: LocalizedText;
   techStack: string[];
   repoUrl: string | null;
   demoUrl: string | null;
@@ -51,6 +54,80 @@ export type AdminProjectsResult =
  * Restaurar um projeto é a #26.
  */
 export async function getAdminProjects(): Promise<AdminProjectsResult> {
+  const result = await fetchAdmin('/admin/projects');
+
+  if (!result.ok) {
+    // `notFound` não é alcançável numa listagem; dobrá-lo em `failed` evita
+    // acrescentar ao tipo público um caso que nunca acontece.
+    return {
+      ok: false,
+      reason:
+        result.reason === 'unauthenticated' ? 'unauthenticated' : 'failed',
+    };
+  }
+
+  // Um 200 cujo corpo não é array chegaria em `projects.map` e quebraria a
+  // renderização dentro de um async Server Component, onde não há error.tsx
+  // para pegar.
+  if (!Array.isArray(result.body)) {
+    return { ok: false, reason: 'failed' };
+  }
+
+  return { ok: true, projects: result.body as AdminProject[] };
+}
+
+export type AdminProjectResult =
+  | { ok: true; project: AdminProject }
+  /**
+   * `notFound` é separado de `failed` pelo mesmo motivo que
+   * `unauthenticated`: um id que não existe é um 404 da rota de edição, e
+   * a API fora é um estado de erro na tela. Tratá-los igual mostraria
+   * "projeto não encontrado" toda vez que o backend piscasse.
+   */
+  | { ok: false; reason: 'unauthenticated' | 'notFound' | 'failed' };
+
+/**
+ * RF-PROJ2. Um projeto pelo id, para o formulário de edição chegar
+ * pré-preenchido em vez de exigir redigitar o que já existe.
+ *
+ * Server-side pelo mesmo motivo da listagem: o cookie de sessão é
+ * `HttpOnly`, então quem o tem é a requisição que chegou no Next.
+ */
+export async function getAdminProject(id: string): Promise<AdminProjectResult> {
+  const result = await fetchAdmin(`/admin/projects/${encodeURIComponent(id)}`);
+
+  if (!result.ok) {
+    return { ok: false, reason: result.reason };
+  }
+
+  // Mesmo cuidado da listagem, invertido: aqui o esperado é um objeto, e um
+  // array ou `null` num 200 chegaria no formulário como projeto sem campos.
+  if (
+    typeof result.body !== 'object' ||
+    result.body === null ||
+    Array.isArray(result.body)
+  ) {
+    return { ok: false, reason: 'failed' };
+  }
+
+  return { ok: true, project: result.body as AdminProject };
+}
+
+type AdminFetchResult =
+  | { ok: true; body: unknown }
+  | { ok: false; reason: 'unauthenticated' | 'notFound' | 'failed' };
+
+/**
+ * A parte que as duas leituras do painel têm em comum: repassar o cookie,
+ * não cachear, e traduzir status HTTP em desfechos que a tela sabe tratar.
+ *
+ * O parse do JSON fica aqui dentro e o resultado é conferido por quem chama.
+ * Um 200 com corpo que não é JSON faria o `json()` rejeitar *fora* deste
+ * módulo, direto de um async Server Component — e não existe error.tsx em
+ * nenhum ponto da app, então a pessoa veria a tela de erro genérica do Next
+ * em vez do estado de erro que a página sabe renderizar.
+ */
+async function fetchAdmin(path: string): Promise<AdminFetchResult> {
   const apiUrl = process.env.API_URL ?? 'http://localhost:3100';
   const token = (await cookies()).get(ACCESS_TOKEN_COOKIE);
 
@@ -63,7 +140,7 @@ export async function getAdminProjects(): Promise<AdminProjectsResult> {
 
   let response: Response;
   try {
-    response = await fetch(`${apiUrl}/admin/projects`, {
+    response = await fetch(`${apiUrl}${path}`, {
       // Nunca cacheado: é a tela de trabalho do dono, e ver uma versão de
       // trinta segundos atrás depois de editar seria pior que esperar.
       cache: 'no-store',
@@ -77,24 +154,19 @@ export async function getAdminProjects(): Promise<AdminProjectsResult> {
     return { ok: false, reason: 'unauthenticated' };
   }
 
+  // 404 e 400 são o mesmo desfecho numa busca por id: a rota da API valida o
+  // id com ParseUUIDPipe, então um segmento que não é UUID vira 400 — e para
+  // quem digitou a URL isso é indistinguível de um projeto que não existe.
+  if (response.status === 404 || response.status === 400) {
+    return { ok: false, reason: 'notFound' };
+  }
+
   if (!response.ok) {
     return { ok: false, reason: 'failed' };
   }
 
-  // O parse fica dentro do try, e o resultado é conferido. Um 200 com corpo
-  // que não é JSON faria o `json()` rejeitar *fora* deste módulo, direto de um
-  // async Server Component — e não existe error.tsx em nenhum ponto da app,
-  // então a pessoa veria a tela de erro genérica do Next em vez do estado de
-  // erro que a tabela sabe renderizar. Um 200 com corpo que não é array
-  // chegaria em `projects.map` e quebraria do mesmo jeito.
   try {
-    const body: unknown = await response.json();
-
-    if (!Array.isArray(body)) {
-      return { ok: false, reason: 'failed' };
-    }
-
-    return { ok: true, projects: body as AdminProject[] };
+    return { ok: true, body: await response.json() };
   } catch {
     return { ok: false, reason: 'failed' };
   }

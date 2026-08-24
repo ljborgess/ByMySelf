@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { getAdminProjects } from './admin-projects';
+import { getAdminProject, getAdminProjects } from './admin-projects';
 
 jest.mock('next/headers', () => ({ cookies: jest.fn() }));
 
@@ -185,6 +185,155 @@ describe('getAdminProjects — corpo inesperado num 200', () => {
     }) as unknown as typeof fetch;
 
     await expect(getAdminProjects()).resolves.toEqual({
+      ok: false,
+      reason: 'failed',
+    });
+  });
+});
+
+describe('getAdminProject', () => {
+  const originalFetch = global.fetch;
+  const originalApiUrl = process.env.API_URL;
+
+  const id = '11111111-1111-4111-8111-111111111111';
+
+  beforeEach(() => {
+    process.env.API_URL = 'https://api.exemplo.com';
+    withCookie('token-de-sessao');
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    if (originalApiUrl === undefined) {
+      delete process.env.API_URL;
+    } else {
+      process.env.API_URL = originalApiUrl;
+    }
+    jest.resetAllMocks();
+  });
+
+  function mockFetch(init: {
+    ok?: boolean;
+    status: number;
+    json?: () => Promise<unknown>;
+  }) {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: init.ok ?? init.status < 400,
+      json: () => Promise.resolve({}),
+      ...init,
+    }) as unknown as typeof fetch;
+  }
+
+  it('reads the project by id, forwarding the session cookie', async () => {
+    mockFetch({ status: 200, json: async () => ({ id }) });
+
+    await getAdminProject(id);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      `https://api.exemplo.com/admin/projects/${id}`,
+      expect.objectContaining({
+        cache: 'no-store',
+        headers: { Cookie: 'access_token=token-de-sessao' },
+      }),
+    );
+  });
+
+  it('returns the project on success', async () => {
+    const project = { id, slug: 'projeto' };
+    mockFetch({ status: 200, json: async () => project });
+
+    await expect(getAdminProject(id)).resolves.toEqual({ ok: true, project });
+  });
+
+  it('reports unauthenticated without spending a call when there is no cookie', async () => {
+    withCookie(undefined);
+    mockFetch({ status: 200 });
+
+    await expect(getAdminProject(id)).resolves.toEqual({
+      ok: false,
+      reason: 'unauthenticated',
+    });
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('reports unauthenticated on 401, which sends the page to the login', async () => {
+    mockFetch({ status: 401 });
+
+    await expect(getAdminProject(id)).resolves.toEqual({
+      ok: false,
+      reason: 'unauthenticated',
+    });
+  });
+
+  it('reports notFound on 404, which is a 404 page and not an error state', async () => {
+    mockFetch({ status: 404 });
+
+    await expect(getAdminProject(id)).resolves.toEqual({
+      ok: false,
+      reason: 'notFound',
+    });
+  });
+
+  /**
+   * A rota valida o id com ParseUUIDPipe, então um segmento que não é UUID
+   * volta 400 — e para quem digitou a URL isso é indistinguível de um projeto
+   * que não existe.
+   */
+  it('treats a malformed id the same as one that does not exist', async () => {
+    mockFetch({ status: 400 });
+
+    await expect(getAdminProject('nao-e-uuid')).resolves.toEqual({
+      ok: false,
+      reason: 'notFound',
+    });
+  });
+
+  /**
+   * Um 500 não é projeto inexistente. Tratar os dois igual mostraria "projeto
+   * não encontrado" toda vez que o backend piscasse.
+   */
+  it('reports failed on a server error, not notFound', async () => {
+    mockFetch({ status: 500 });
+
+    await expect(getAdminProject(id)).resolves.toEqual({
+      ok: false,
+      reason: 'failed',
+    });
+  });
+
+  it('reports failed when the API is unreachable', async () => {
+    global.fetch = jest
+      .fn()
+      .mockRejectedValue(
+        new TypeError('fetch failed'),
+      ) as unknown as typeof fetch;
+
+    await expect(getAdminProject(id)).resolves.toEqual({
+      ok: false,
+      reason: 'failed',
+    });
+  });
+
+  it('treats a 200 whose body is not JSON as a failure', async () => {
+    mockFetch({
+      status: 200,
+      json: () => Promise.reject(new SyntaxError('Unexpected token <')),
+    });
+
+    await expect(getAdminProject(id)).resolves.toEqual({
+      ok: false,
+      reason: 'failed',
+    });
+  });
+
+  /**
+   * Um array ou `null` num 200 chegaria no formulário como projeto sem campos
+   * — e salvar por cima apagaria o que existe.
+   */
+  it('treats a 200 whose body is not an object as a failure', async () => {
+    mockFetch({ status: 200, json: async () => [] });
+
+    await expect(getAdminProject(id)).resolves.toEqual({
       ok: false,
       reason: 'failed',
     });
