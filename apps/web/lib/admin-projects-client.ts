@@ -1,0 +1,185 @@
+import type { CreateProjectInput, UpdateProjectInput } from '@portfolio/shared';
+import { JSON_MUTATION_HEADERS, publicApiUrl } from './api-client';
+
+/**
+ * As escritas do painel, feitas **pelo browser**.
+ *
+ * Arquivo separado de lib/admin-projects.ts de propósito: aquele importa
+ * `next/headers`, que só existe no servidor, então um client component que o
+ * importasse quebraria o build.
+ *
+ * Por que browser e não Server Action: os cookies de sessão são `HttpOnly` e
+ * `SameSite=Strict`, emitidos pela API. `credentials: 'include'` é o que faz
+ * o browser reenviá-los; do servidor seria preciso repassar o cookie à mão a
+ * cada chamada, e o token de acesso passaria por mais um processo sem
+ * necessidade. É também o caminho que a tela de login já usa (lib/auth.ts).
+ */
+
+export type SaveProjectResult =
+  /**
+   * Sem o projeto salvo: quem chama redireciona para a listagem, que relê da
+   * API. Devolver a linha daqui seria um segundo retrato do mesmo dado, com
+   * um caminho a mais para ficar desatualizado.
+   */
+  | { ok: true }
+  /**
+   * Cada motivo leva a um lugar diferente, e é por isso que são quatro e não
+   * um "deu erro":
+   *
+   * - `unauthenticated`: sessão expirou, vai para o login.
+   * - `conflict`: slug em uso — erro de um campo, e a API diz qual projeto o
+   *   está segurando, então a mensagem dela vale mais que qualquer texto fixo.
+   * - `invalid`: a API recusou o corpo. Não deveria acontecer (o formulário
+   *   valida contra o mesmo schema Zod), mas se acontecer a pessoa precisa
+   *   ver o motivo em vez de um "falhou" mudo.
+   * - `unavailable`: rede, CORS, 5xx. Não é nada que a pessoa possa corrigir
+   *   no formulário.
+   */
+  | { ok: false; reason: 'unauthenticated' }
+  | { ok: false; reason: 'conflict'; message: string }
+  | {
+      ok: false;
+      reason: 'invalid';
+      message?: string;
+      /** Por campo, no formato de caminho do Zod (`title.pt`). */
+      fieldErrors?: Record<string, string>;
+    }
+  | { ok: false; reason: 'unavailable' };
+
+/** RF-PROJ1. `POST /admin/projects`. */
+export async function createProject(
+  input: CreateProjectInput,
+): Promise<SaveProjectResult> {
+  return send('POST', '/admin/projects', input);
+}
+
+/**
+ * RF-PROJ2. `PATCH /admin/projects/:id`.
+ *
+ * O formulário manda o estado inteiro, não só o que mudou: os campos
+ * bilíngues são colunas jsonb e só podem ser substituídas por inteiro, e
+ * mandar tudo é o que faz "o projeto fica exatamente como está na tela" ser
+ * verdade — inclusive para um campo esvaziado, que vai como `null`.
+ */
+export async function updateProject(
+  id: string,
+  input: UpdateProjectInput,
+): Promise<SaveProjectResult> {
+  return send('PATCH', `/admin/projects/${encodeURIComponent(id)}`, input);
+}
+
+async function send(
+  method: 'POST' | 'PATCH',
+  path: string,
+  input: CreateProjectInput | UpdateProjectInput,
+): Promise<SaveProjectResult> {
+  let response: Response;
+
+  try {
+    response = await fetch(`${publicApiUrl()}${path}`, {
+      method,
+      // sem isto o browser não manda os cookies de sessão, e toda escrita
+      // responderia 401 mesmo logado
+      credentials: 'include',
+      headers: JSON_MUTATION_HEADERS,
+      body: JSON.stringify(input),
+    });
+  } catch {
+    return { ok: false, reason: 'unavailable' };
+  }
+
+  // O corpo do sucesso não é lido de propósito. Ele traz a linha salva, e
+  // ninguém a consome — enquanto tentar interpretá-lo criaria uma falha nova:
+  // um 201 com corpo ilegível viraria "não deu para salvar" depois de a
+  // escrita já ter acontecido, e a segunda tentativa esbarraria no slug que a
+  // primeira acabou de usar.
+  if (response.ok) {
+    return { ok: true };
+  }
+
+  if (response.status === 401) {
+    return { ok: false, reason: 'unauthenticated' };
+  }
+
+  if (response.status === 409) {
+    const body = await readErrorBody(response);
+    return { ok: false, reason: 'conflict', message: body.message ?? '' };
+  }
+
+  if (response.status === 400 || response.status === 422) {
+    const body = await readErrorBody(response);
+    return {
+      ok: false,
+      reason: 'invalid',
+      message: body.message,
+      fieldErrors: body.fieldErrors,
+    };
+  }
+
+  // Um 5xx ou um status inesperado não tem nada que a pessoa possa corrigir
+  // no formulário, então o corpo não é nem lido.
+  return { ok: false, reason: 'unavailable' };
+}
+
+/**
+ * Extrai o que a API tem a dizer sobre a recusa.
+ *
+ * Dois formatos, porque a API produz dois: o ZodValidationPipe responde
+ * `{ message: 'Validation failed', errors: [...] }` com as issues do Zod, e
+ * uma exceção lançada no service responde `{ message: '<texto>' }`. Ignorar
+ * o primeiro perderia justamente a informação por campo.
+ */
+async function readErrorBody(
+  response: Response,
+): Promise<{ message?: string; fieldErrors?: Record<string, string> }> {
+  let body: unknown;
+
+  try {
+    body = await response.json();
+  } catch {
+    return {};
+  }
+
+  if (typeof body !== 'object' || body === null) {
+    return {};
+  }
+
+  const { message, errors } = body as {
+    message?: unknown;
+    errors?: unknown;
+  };
+
+  const fieldErrors: Record<string, string> = {};
+
+  if (Array.isArray(errors)) {
+    for (const issue of errors) {
+      if (typeof issue !== 'object' || issue === null) {
+        continue;
+      }
+      const { path, message: issueMessage } = issue as {
+        path?: unknown;
+        message?: unknown;
+      };
+      if (!Array.isArray(path) || typeof issueMessage !== 'string') {
+        continue;
+      }
+      const key = path.join('.');
+      // Primeira issue por campo. As seguintes são refinamentos da mesma
+      // causa, e empilhá-las daria três mensagens embaixo de um input.
+      if (key && fieldErrors[key] === undefined) {
+        fieldErrors[key] = issueMessage;
+      }
+    }
+  }
+
+  return {
+    // `'Validation failed'` é o texto fixo do pipe, não diagnóstico nenhum:
+    // deixá-lo passar mostraria inglês genérico onde o formulário já tem a
+    // mensagem por campo.
+    message:
+      typeof message === 'string' && message !== 'Validation failed'
+        ? message
+        : undefined,
+    fieldErrors: Object.keys(fieldErrors).length > 0 ? fieldErrors : undefined,
+  };
+}

@@ -189,6 +189,53 @@ describe('AdminProjectsController', () => {
       });
     });
 
+    /**
+     * An absent key means "leave this alone" on a patch, so emptying a
+     * nullable column needs a value that says so. Without accepting null the
+     * admin form could set a demo link but never remove one -- clearing the
+     * field would look like it worked and change nothing.
+     */
+    it('accepts an explicit null to empty a nullable field', async () => {
+      await request(app.getHttpServer())
+        .patch(`/admin/projects/${PROJECT_ID}`)
+        .set('Cookie', authCookie())
+        .set('X-Requested-With', 'XMLHttpRequest')
+        .send({ demoUrl: null, completedAt: null })
+        .expect(200);
+
+      expect(service.update).toHaveBeenCalledWith(PROJECT_ID, {
+        demoUrl: null,
+        completedAt: null,
+      });
+    });
+
+    /** Null clears; a malformed value is still refused. */
+    it('still rejects a link that is not a URL', async () => {
+      await request(app.getHttpServer())
+        .patch(`/admin/projects/${PROJECT_ID}`)
+        .set('Cookie', authCookie())
+        .set('X-Requested-With', 'XMLHttpRequest')
+        .send({ demoUrl: 'exemplo.com' })
+        .expect(400);
+
+      expect(service.update).not.toHaveBeenCalled();
+    });
+
+    /**
+     * Create has nothing to leave alone, so an omitted key already means "no
+     * value" -- null there would be a second way to say the same thing.
+     */
+    it('does not accept null on create', async () => {
+      await request(app.getHttpServer())
+        .post('/admin/projects')
+        .set('Cookie', authCookie())
+        .set('X-Requested-With', 'XMLHttpRequest')
+        .send({ ...validBody, demoUrl: null })
+        .expect(400);
+
+      expect(service.create).not.toHaveBeenCalled();
+    });
+
     it('soft-deletes and answers 204 with no body', async () => {
       const response = await request(app.getHttpServer())
         .delete(`/admin/projects/${PROJECT_ID}`)

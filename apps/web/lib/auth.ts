@@ -1,24 +1,4 @@
-/**
- * Endereço público da API, para chamadas feitas **pelo browser**.
- *
- * Não é o `API_URL` que lib/projects.ts usa: aquele é o endereço interno da
- * rede do compose (`http://api:3100`), que o navegador de um visitante não
- * tem como resolver. Chamada de browser precisa do domínio público.
- *
- * `NEXT_PUBLIC_` porque o Next só expõe ao bundle do cliente variáveis com
- * esse prefixo, e o valor entra no JavaScript entregue — então não é lugar
- * para segredo. Aqui é o endereço de um servidor público, o que é adequado.
- */
-function publicApiUrl(): string {
-  return process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3100';
-}
-
-/**
- * Exigido pelo CsrfGuard da API em todo método mutante, junto do
- * `SameSite=Strict` dos cookies (ver README). Sem o header a resposta é 403,
- * e o sintoma seria "login sempre falha" com credencial correta.
- */
-const CSRF_HEADER = { 'X-Requested-With': 'XMLHttpRequest' } as const;
+import { JSON_MUTATION_HEADERS, publicApiUrl } from './api-client';
 
 export type LoginResult =
   | { ok: true }
@@ -48,7 +28,9 @@ export async function login(
     response = await fetch(`${publicApiUrl()}/auth/login`, {
       method: 'POST',
       credentials: 'include',
-      headers: { 'Content-Type': 'application/json', ...CSRF_HEADER },
+      // Sem o header de CSRF a resposta é 403, e o sintoma seria "login
+      // sempre falha" com credencial correta.
+      headers: JSON_MUTATION_HEADERS,
       body: JSON.stringify({ email, password }),
     });
   } catch {

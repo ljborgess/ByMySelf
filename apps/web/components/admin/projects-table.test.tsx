@@ -1,27 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import messages from '../../messages/pt.json';
+import { makeAdminProject as project } from '../../lib/admin-project.fixture';
 import type { AdminProject } from '../../lib/admin-projects';
 import { AdminProjectsTable } from './projects-table';
-
-function project(overrides: Partial<AdminProject> = {}): AdminProject {
-  return {
-    id: overrides.id ?? '11111111-1111-4111-8111-111111111111',
-    slug: overrides.slug ?? 'projeto',
-    title: overrides.title ?? { pt: 'Projeto' },
-    description: overrides.description ?? { pt: 'Descrição.' },
-    techStack: overrides.techStack ?? [],
-    repoUrl: overrides.repoUrl ?? null,
-    demoUrl: overrides.demoUrl ?? null,
-    coverImageUrl: overrides.coverImageUrl ?? null,
-    status: overrides.status ?? 'completed',
-    featured: overrides.featured ?? false,
-    order: overrides.order ?? 0,
-    completedAt: overrides.completedAt ?? null,
-    createdAt: overrides.createdAt ?? '2026-01-01T00:00:00.000Z',
-    updatedAt: overrides.updatedAt ?? '2026-01-01T00:00:00.000Z',
-  };
-}
 
 function renderTable(projects: AdminProject[], failed = false) {
   return render(

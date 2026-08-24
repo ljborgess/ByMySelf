@@ -238,17 +238,34 @@ describe('ProjectsService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('accepts moving back to in_progress when the date is cleared in the same patch', async () => {
+    it('does not read an absent completedAt as a cleared one', async () => {
       repository.findById.mockResolvedValue(
         projectRow({ status: 'completed', completedAt: '2026-03-01' }),
       );
 
+      // `undefined` means "leave this alone", so the stored date survives the
+      // patch and the merged state is still inconsistent
       await expect(
         service.update('some-id', {
           status: 'in_progress',
           completedAt: undefined,
         }),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it('accepts moving back to in_progress when the date is cleared in the same patch', async () => {
+      repository.findById.mockResolvedValue(
+        projectRow({ status: 'completed', completedAt: '2026-03-01' }),
+      );
+
+      // `null` is the one way to say "empty this column", and it is what
+      // makes the combination coherent again
+      await expect(
+        service.update('some-id', {
+          status: 'in_progress',
+          completedAt: null,
+        }),
+      ).resolves.toBeDefined();
     });
   });
 

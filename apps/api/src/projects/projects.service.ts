@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { projectSlugSchema } from '@portfolio/shared';
+import { isCompletionConsistent, projectSlugSchema } from '@portfolio/shared';
 import type {
   CreateProjectInput,
   Locale,
@@ -200,17 +200,15 @@ export class ProjectsService {
 }
 
 /**
- * docs/dominio.md: completedAt is "preenchido quando status = completed".
- * A completion date on a project that is not completed is nonsense, so it is
- * refused -- but a `completed` project without a date is allowed, since
- * marking something done and filling the date later is a reasonable flow and
- * forcing it would block the more common action.
+ * The rule itself lives in packages/shared, so the admin form warns about
+ * exactly what this refuses. Only the refusal is local, since only the API
+ * has an HTTP status to answer with.
  */
 function assertCompletionConsistent(
   status: ProjectStatus,
   completedAt: string | null | undefined,
 ): void {
-  if (status !== 'completed' && completedAt) {
+  if (!isCompletionConsistent(status, completedAt)) {
     throw new BadRequestException(
       'completedAt só se aplica a um projeto com status "completed"',
     );
