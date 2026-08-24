@@ -61,11 +61,17 @@ export default async function AdminProjectsPage() {
     // página — a tabela tem quatro colunas e apertá-la em 5xl forçaria rolagem
     // lateral onde ela cabe.
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
+      {/*
+        Caminhos como string, não como função: desde a #26 a tabela é client
+        component, e função não atravessa a fronteira de serialização entre
+        Server e Client Component.
+      */}
       <AdminProjectsTable
         projects={projects}
         failed={!result.ok}
         newProjectPath="/admin/projects/novo"
-        editPathFor={(project) => `/admin/projects/${project.id}`}
+        editPathPrefix="/admin/projects"
+        loginPath="/admin/login"
       />
     </main>
   );

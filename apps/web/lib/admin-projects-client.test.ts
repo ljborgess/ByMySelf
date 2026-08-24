@@ -1,4 +1,9 @@
-import { createProject, updateProject } from './admin-projects-client';
+import {
+  createProject,
+  deleteProject,
+  reorderProject,
+  updateProject,
+} from './admin-projects-client';
 
 const input = {
   title: { pt: 'Meu projeto' },
@@ -218,6 +223,289 @@ describe('admin project writes', () => {
       ok: false,
       reason: 'conflict',
       message: '',
+    });
+  });
+});
+
+describe('deleteProject', () => {
+  const originalFetch = global.fetch;
+  const originalApiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+  const id = '11111111-1111-4111-8111-111111111111';
+
+  beforeEach(() => {
+    process.env.NEXT_PUBLIC_API_URL = 'https://api.exemplo.com';
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    if (originalApiUrl === undefined) {
+      delete process.env.NEXT_PUBLIC_API_URL;
+    } else {
+      process.env.NEXT_PUBLIC_API_URL = originalApiUrl;
+    }
+    jest.resetAllMocks();
+  });
+
+  function mockResponse(init: {
+    ok?: boolean;
+    status: number;
+    json?: () => Promise<unknown>;
+  }) {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: init.ok ?? init.status < 400,
+      json: () => Promise.resolve({}),
+      ...init,
+    }) as unknown as typeof fetch;
+  }
+
+  function callInit(): RequestInit {
+    const [, init] = (global.fetch as jest.Mock).mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+    return init;
+  }
+
+  it('deletes the project it was given', async () => {
+    mockResponse({ status: 204 });
+
+    await deleteProject(id);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      `https://api.exemplo.com/admin/projects/${id}`,
+      expect.objectContaining({ method: 'DELETE' }),
+    );
+  });
+
+  /**
+   * O CsrfGuard da API recusa todo método mutante sem este header, DELETE
+   * incluído. Sem ele a resposta é 403 e o sintoma seria "excluir nunca
+   * funciona".
+   */
+  it('sends the X-Requested-With header the CSRF guard requires', async () => {
+    mockResponse({ status: 204 });
+
+    await deleteProject(id);
+
+    expect(callInit().headers).toMatchObject({
+      'X-Requested-With': 'XMLHttpRequest',
+    });
+  });
+
+  /** Sem corpo, então sem `Content-Type` a declarar. */
+  it('sends no content type, because it sends no body', async () => {
+    mockResponse({ status: 204 });
+
+    await deleteProject(id);
+
+    expect(callInit().body).toBeUndefined();
+    expect(callInit().headers).not.toHaveProperty('Content-Type');
+  });
+
+  it('sends the session cookies', async () => {
+    mockResponse({ status: 204 });
+
+    await deleteProject(id);
+
+    expect(callInit().credentials).toBe('include');
+  });
+
+  it('reports success on the 204 the endpoint answers with', async () => {
+    mockResponse({ status: 204 });
+
+    await expect(deleteProject(id)).resolves.toEqual({ ok: true });
+  });
+
+  it('reports an expired session separately, so the caller can go to the login', async () => {
+    mockResponse({ status: 401 });
+
+    await expect(deleteProject(id)).resolves.toEqual({
+      ok: false,
+      reason: 'unauthenticated',
+    });
+  });
+
+  /**
+   * Desfecho próprio porque a tabela o trata como sucesso: significa que a
+   * listagem estava velha e o projeto já não existe.
+   */
+  it('reports notFound on 404', async () => {
+    mockResponse({ status: 404 });
+
+    await expect(deleteProject(id)).resolves.toEqual({
+      ok: false,
+      reason: 'notFound',
+    });
+  });
+
+  it('treats a malformed id the same as one that does not exist', async () => {
+    // a rota valida o id com ParseUUIDPipe, então um id malformado nunca
+    // correspondeu a projeto nenhum
+    mockResponse({ status: 400 });
+
+    await expect(deleteProject('nao-e-uuid')).resolves.toEqual({
+      ok: false,
+      reason: 'notFound',
+    });
+  });
+
+  it('reports a server error as unavailable', async () => {
+    mockResponse({ status: 500 });
+
+    await expect(deleteProject(id)).resolves.toEqual({
+      ok: false,
+      reason: 'unavailable',
+    });
+  });
+
+  it('reports the API being unreachable as unavailable', async () => {
+    global.fetch = jest
+      .fn()
+      .mockRejectedValue(
+        new TypeError('fetch failed'),
+      ) as unknown as typeof fetch;
+
+    await expect(deleteProject(id)).resolves.toEqual({
+      ok: false,
+      reason: 'unavailable',
+    });
+  });
+});
+
+describe('reorderProject', () => {
+  const originalFetch = global.fetch;
+  const originalApiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+  const id = '11111111-1111-4111-8111-111111111111';
+
+  beforeEach(() => {
+    process.env.NEXT_PUBLIC_API_URL = 'https://api.exemplo.com';
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    if (originalApiUrl === undefined) {
+      delete process.env.NEXT_PUBLIC_API_URL;
+    } else {
+      process.env.NEXT_PUBLIC_API_URL = originalApiUrl;
+    }
+    jest.resetAllMocks();
+  });
+
+  function mockResponse(init: {
+    ok?: boolean;
+    status: number;
+    json?: () => Promise<unknown>;
+  }) {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: init.ok ?? init.status < 400,
+      json: () => Promise.resolve([]),
+      ...init,
+    }) as unknown as typeof fetch;
+  }
+
+  it('patches the order endpoint of the project being moved', async () => {
+    mockResponse({ status: 200 });
+
+    await reorderProject(id, 2);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      `https://api.exemplo.com/admin/projects/${id}/order`,
+      expect.objectContaining({
+        method: 'PATCH',
+        // `order` é a posição de destino na listagem, zero-based -- não um
+        // valor da coluna `order`
+        body: JSON.stringify({ order: 2 }),
+      }),
+    );
+  });
+
+  it('sends the CSRF header and the session cookies', async () => {
+    mockResponse({ status: 200 });
+
+    await reorderProject(id, 0);
+
+    const [, init] = (global.fetch as jest.Mock).mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+    expect(init.credentials).toBe('include');
+    expect(init.headers).toMatchObject({
+      'X-Requested-With': 'XMLHttpRequest',
+    });
+  });
+
+  /**
+   * Mover um projeto desloca os outros, então a resposta é a listagem
+   * inteira -- a posição nova de um só não diria onde os demais foram parar.
+   */
+  it('hands back the whole reordered listing the API answers with', async () => {
+    const listing = [{ id: 'b' }, { id: 'a' }];
+    mockResponse({ status: 200, json: async () => listing });
+
+    await expect(reorderProject(id, 0)).resolves.toEqual({
+      ok: true,
+      projects: listing,
+    });
+  });
+
+  /**
+   * A escrita aconteceu; chamar de falha faria a pessoa clicar de novo e
+   * mover o projeto duas casas.
+   */
+  it('still reports success when the 200 body is not JSON', async () => {
+    mockResponse({
+      status: 200,
+      json: () => Promise.reject(new SyntaxError('Unexpected token <')),
+    });
+
+    await expect(reorderProject(id, 0)).resolves.toEqual({ ok: true });
+  });
+
+  it('still reports success when the 200 body is not a listing', async () => {
+    mockResponse({ status: 200, json: async () => ({ erro: 'inesperado' }) });
+
+    await expect(reorderProject(id, 0)).resolves.toEqual({ ok: true });
+  });
+
+  it('reports an expired session separately', async () => {
+    mockResponse({ status: 401 });
+
+    await expect(reorderProject(id, 0)).resolves.toEqual({
+      ok: false,
+      reason: 'unauthenticated',
+    });
+  });
+
+  it('reports notFound on 404', async () => {
+    mockResponse({ status: 404 });
+
+    await expect(reorderProject(id, 0)).resolves.toEqual({
+      ok: false,
+      reason: 'notFound',
+    });
+  });
+
+  it('reports a server error as unavailable', async () => {
+    mockResponse({ status: 500 });
+
+    await expect(reorderProject(id, 0)).resolves.toEqual({
+      ok: false,
+      reason: 'unavailable',
+    });
+  });
+
+  it('reports the API being unreachable as unavailable', async () => {
+    global.fetch = jest
+      .fn()
+      .mockRejectedValue(
+        new TypeError('fetch failed'),
+      ) as unknown as typeof fetch;
+
+    await expect(reorderProject(id, 0)).resolves.toEqual({
+      ok: false,
+      reason: 'unavailable',
     });
   });
 });

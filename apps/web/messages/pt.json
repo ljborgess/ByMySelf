@@ -70,12 +70,26 @@
       "title": "Título",
       "status": "Status",
       "slug": "Slug",
-      "actions": "Ações"
+      "actions": "Ações",
+      "order": "Ordem"
     },
     "status": {
       "in_progress": "Em andamento",
       "completed": "Concluído",
       "archived": "Arquivado"
+    },
+    "delete": "Excluir",
+    "deleteNamed": "Excluir {title}",
+    "deleteConfirmTitle": "Excluir este projeto?",
+    "deleteConfirmDescription": "\"{title}\" sai da listagem e do site público. A exclusão é reversível pelo banco, mas não por esta tela.",
+    "deleteConfirm": "Excluir",
+    "deleting": "Excluindo…",
+    "cancel": "Cancelar",
+    "moveUpNamed": "Mover {title} para cima",
+    "moveDownNamed": "Mover {title} para baixo",
+    "errors": {
+      "actionFailed": "Não foi possível concluir a ação. Verifique sua conexão e tente novamente.",
+      "gone": "Este projeto já não existe. A listagem foi recarregada."
     }
   },
   "adminProjectForm": {
