@@ -147,7 +147,7 @@ export function ConfirmDialog({
             type="button"
             onClick={requestCancel}
             disabled={pending}
-            className="rounded-md border border-black/15 px-4 py-2 text-sm font-medium transition-colors hover:border-black/40 disabled:opacity-60 dark:border-white/20 dark:hover:border-white/50"
+            className="hover:border-accent rounded-md border border-black/15 px-4 py-2 text-sm font-medium transition-colors disabled:opacity-60 dark:border-white/20"
           >
             {cancelLabel}
           </button>

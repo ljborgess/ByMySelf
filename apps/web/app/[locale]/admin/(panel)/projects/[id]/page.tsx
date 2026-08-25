@@ -87,7 +87,7 @@ export default async function EditAdminProjectPage({
           </p>
           <Link
             href="/admin/projects"
-            className="text-sm underline underline-offset-4 hover:opacity-70"
+            className="hover:text-accent text-sm underline underline-offset-4"
           >
             {t('backToList')}
           </Link>

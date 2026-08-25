@@ -428,7 +428,7 @@ export function ProjectForm({
         */}
         <Link
           href={dashboardPath}
-          className="text-sm underline underline-offset-4 hover:opacity-70"
+          className="hover:text-accent text-sm underline underline-offset-4"
         >
           {t('cancel')}
         </Link>
@@ -438,10 +438,10 @@ export function ProjectForm({
 }
 
 const INPUT_CLASS =
-  'rounded-md border border-black/15 px-3 py-2 text-sm outline-none focus-visible:border-black/40 disabled:opacity-60 dark:border-white/20 dark:focus-visible:border-white/50';
+  'focus-visible:border-accent rounded-md border border-black/15 px-3 py-2 text-sm outline-none disabled:opacity-60 dark:border-white/20';
 
 const BUTTON_CLASS =
-  'rounded-md border border-black/15 px-4 py-2 text-sm font-medium transition-colors hover:border-black/40 disabled:opacity-60 dark:border-white/20 dark:hover:border-white/50';
+  'hover:border-accent rounded-md border border-black/15 px-4 py-2 text-sm font-medium transition-colors disabled:opacity-60 dark:border-white/20';
 
 interface ControlProps {
   id: string;

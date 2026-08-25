@@ -191,7 +191,7 @@ export function AdminProjectsTable({
         {/* Ponto de entrada para criar sem precisar decorar URL (user story 3) */}
         <Link
           href={newProjectPath}
-          className="rounded-md border border-black/15 px-4 py-2 text-sm font-medium transition-colors hover:border-black/40 dark:border-white/20 dark:hover:border-white/50"
+          className="hover:border-accent rounded-md border border-black/15 px-4 py-2 text-sm font-medium transition-colors dark:border-white/20"
         >
           {t('create')}
         </Link>
@@ -221,7 +221,7 @@ export function AdminProjectsTable({
           <p className="text-sm opacity-70">{t('empty')}</p>
           <Link
             href={newProjectPath}
-            className="mt-3 inline-block text-sm underline underline-offset-4"
+            className="hover:text-accent mt-3 inline-block text-sm underline underline-offset-4"
           >
             {t('emptyAction')}
           </Link>
@@ -279,7 +279,7 @@ export function AdminProjectsTable({
                   <td className="px-4 py-3">
                     <span className="font-medium">{project.title.pt}</span>
                     {project.featured && (
-                      <span className="ml-2 rounded-full border border-current px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase opacity-70">
+                      <span className="text-accent border-accent ml-2 rounded-full border px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase">
                         {t('featured')}
                       </span>
                     )}
@@ -308,7 +308,7 @@ export function AdminProjectsTable({
                       <Link
                         href={`${editPathPrefix}/${project.id}`}
                         aria-label={t('editNamed', { title: project.title.pt })}
-                        className="underline underline-offset-4 hover:opacity-70"
+                        className="hover:text-accent underline underline-offset-4"
                       >
                         {t('edit')}
                       </Link>
@@ -372,7 +372,7 @@ function MoveButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="rounded border border-black/15 px-2 py-0.5 text-xs leading-none transition-colors hover:border-black/40 disabled:opacity-30 dark:border-white/20 dark:hover:border-white/50"
+      className="hover:border-accent rounded border border-black/15 px-2 py-0.5 text-xs leading-none transition-colors disabled:opacity-30 dark:border-white/20"
     >
       {/*
         A seta é decoração: quem usa leitor de tela recebe a mesma informação
