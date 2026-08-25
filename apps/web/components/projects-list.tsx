@@ -38,14 +38,14 @@ export function ProjectsList({
                 // the whole card is the target, not just the title -- a card
                 // that looks clickable but only responds on its heading is a
                 // trap
-                className={`group flex h-full flex-col rounded-lg border p-5 transition-colors ${
+                className={`group hover:border-accent focus-visible:border-accent flex h-full flex-col rounded-lg border p-5 transition-colors ${
                   project.featured
-                    ? 'border-black/30 dark:border-white/40'
-                    : 'border-black/10 hover:border-black/30 dark:border-white/15 dark:hover:border-white/40'
+                    ? 'border-accent'
+                    : 'border-black/10 dark:border-white/15'
                 }`}
               >
                 {project.featured && (
-                  <span className="mb-2 self-start rounded-full border border-current px-2 py-0.5 text-xs font-medium tracking-wide uppercase opacity-70">
+                  <span className="text-accent border-accent mb-2 self-start rounded-full border px-2 py-0.5 text-xs font-medium tracking-wide uppercase">
                     {t('featured')}
                   </span>
                 )}

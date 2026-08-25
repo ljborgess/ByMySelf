@@ -58,7 +58,7 @@ export default function CertificatesPage() {
                     // noreferrer as well as noopener: without it the issuer's
                     // page still learns where the visitor came from
                     rel="noopener noreferrer"
-                    className="mt-3 inline-flex items-center gap-1 text-sm underline underline-offset-4 hover:opacity-70"
+                    className="hover:text-accent mt-3 inline-flex items-center gap-1 text-sm underline underline-offset-4"
                   >
                     {t('validate')}
                     <span aria-hidden="true">↗</span>

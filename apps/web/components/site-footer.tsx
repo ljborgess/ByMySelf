@@ -61,7 +61,7 @@ export function SiteFooter() {
                         rel: 'noopener noreferrer',
                       }
                     : {})}
-                  className="hover:opacity-70"
+                  className="hover:text-accent"
                 >
                   {t(`links.${link.messageKey}`)}
                 </a>

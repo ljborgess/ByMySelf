@@ -38,7 +38,7 @@ export function SiteHeader() {
                 <Link
                   href={section.href}
                   aria-current={pathname === section.href ? 'page' : undefined}
-                  className="hover:opacity-70 aria-[current=page]:font-semibold"
+                  className="hover:text-accent aria-[current=page]:text-accent font-mono aria-[current=page]:font-semibold"
                 >
                   {tNav(section.messageKey)}
                 </Link>
@@ -75,7 +75,7 @@ export function SiteHeader() {
                   href={section.href}
                   onClick={() => setMenuOpen(false)}
                   aria-current={pathname === section.href ? 'page' : undefined}
-                  className="block py-2 text-sm hover:opacity-70 aria-[current=page]:font-semibold"
+                  className="hover:text-accent aria-[current=page]:text-accent block py-2 text-sm font-mono aria-[current=page]:font-semibold"
                 >
                   {tNav(section.messageKey)}
                 </Link>
