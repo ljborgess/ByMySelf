@@ -4,6 +4,9 @@ import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AccountBackoffService } from './account-backoff.service';
 import {
+  ADMIN_THROTTLE_LIMIT,
+  ADMIN_THROTTLE_NAME,
+  ADMIN_THROTTLE_TTL_MS,
   AUTH_IP_THROTTLE_LIMIT,
   AUTH_IP_THROTTLE_NAME,
   AUTH_IP_THROTTLE_TTL_MS,
@@ -21,10 +24,11 @@ import { AuthService } from './auth.service';
     // explicit secret+expiresIn per call, since access and refresh tokens
     // use independent secrets (RNF-SEG10).
     JwtModule.register({}),
-    // Two named per-IP fixed-window buckets, both applied per handler via
-    // @UseGuards(ThrottlerGuard) + @Throttle rather than globally, so /health
-    // stays unlimited: a tight one for login/refresh, and a much looser one
-    // for the public reads. A handler opts into exactly one by name.
+    // Three named per-IP fixed-window buckets, applied per handler via
+    // @UseGuards(ThrottlerGuard) rather than globally, so /health stays
+    // unlimited: a tight one for login/refresh, a loose one for the public
+    // reads, and a generous one for the authenticated admin routes. A
+    // controller opts into exactly one and skips the rest by name.
     ThrottlerModule.forRoot([
       {
         name: AUTH_IP_THROTTLE_NAME,
@@ -35,6 +39,11 @@ import { AuthService } from './auth.service';
         name: PUBLIC_READ_THROTTLE_NAME,
         ttl: PUBLIC_READ_THROTTLE_TTL_MS,
         limit: PUBLIC_READ_THROTTLE_LIMIT,
+      },
+      {
+        name: ADMIN_THROTTLE_NAME,
+        ttl: ADMIN_THROTTLE_TTL_MS,
+        limit: ADMIN_THROTTLE_LIMIT,
       },
     ]),
   ],

@@ -92,6 +92,12 @@
       "gone": "Este projeto já não existe. A listagem foi recarregada."
     }
   },
+  "adminSession": {
+    "panel": "Painel",
+    "logout": "Sair",
+    "leaving": "Saindo…",
+    "restoring": "Restaurando sessão…"
+  },
   "adminProjectForm": {
     "createTitle": "Novo projeto",
     "createDescription": "Cadastre um projeto. Português é obrigatório; inglês pode ficar para depois.",

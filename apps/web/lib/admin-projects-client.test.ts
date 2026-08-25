@@ -509,3 +509,138 @@ describe('reorderProject', () => {
     });
   });
 });
+
+describe('renovação de sessão no meio de uma escrita', () => {
+  const originalFetch = global.fetch;
+  const originalApiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+  const id = '11111111-1111-4111-8111-111111111111';
+
+  beforeEach(() => {
+    process.env.NEXT_PUBLIC_API_URL = 'https://api.exemplo.com';
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    if (originalApiUrl === undefined) {
+      delete process.env.NEXT_PUBLIC_API_URL;
+    } else {
+      process.env.NEXT_PUBLIC_API_URL = originalApiUrl;
+    }
+    jest.resetAllMocks();
+  });
+
+  function respond(init: {
+    ok?: boolean;
+    status: number;
+    json?: () => Promise<unknown>;
+  }) {
+    return {
+      ok: init.ok ?? init.status < 400,
+      json: () => Promise.resolve({}),
+      ...init,
+    };
+  }
+
+  /** Requisições em sequência, para encenar 401 → refresh → repetição. */
+  function mockSequence(...responses: ReturnType<typeof respond>[]) {
+    const fn = jest.fn();
+    for (const response of responses) {
+      fn.mockResolvedValueOnce(response);
+    }
+    global.fetch = fn as unknown as typeof fetch;
+    return fn;
+  }
+
+  function calledUrls(): string[] {
+    return (global.fetch as jest.Mock).mock.calls.map(
+      (call) => call[0] as string,
+    );
+  }
+
+  /**
+   * O access token dura 15 minutos e o refresh 30 dias, então expirar no meio
+   * do trabalho é o caso comum. Mandar a pessoa para o login aqui perderia o
+   * que ela estava salvando.
+   */
+  it('renews and retries a save that hit an expired access token', async () => {
+    mockSequence(
+      respond({ status: 401 }),
+      respond({ status: 200 }),
+      respond({ status: 201 }),
+    );
+
+    await expect(createProject(input)).resolves.toEqual({ ok: true });
+
+    expect(calledUrls()).toEqual([
+      'https://api.exemplo.com/admin/projects',
+      'https://api.exemplo.com/auth/refresh',
+      'https://api.exemplo.com/admin/projects',
+    ]);
+  });
+
+  it('renews and retries a delete', async () => {
+    mockSequence(
+      respond({ status: 401 }),
+      respond({ status: 200 }),
+      respond({ status: 204 }),
+    );
+
+    await expect(deleteProject(id)).resolves.toEqual({ ok: true });
+    expect(calledUrls()).toHaveLength(3);
+  });
+
+  it('renews and retries a reorder', async () => {
+    mockSequence(
+      respond({ status: 401 }),
+      respond({ status: 200 }),
+      respond({ status: 200, json: async () => [] }),
+    );
+
+    await expect(reorderProject(id, 1)).resolves.toEqual({
+      ok: true,
+      projects: [],
+    });
+    expect(calledUrls()).toHaveLength(3);
+  });
+
+  it('gives up after one retry instead of looping', async () => {
+    mockSequence(
+      respond({ status: 401 }),
+      respond({ status: 200 }),
+      respond({ status: 401 }),
+    );
+
+    await expect(createProject(input)).resolves.toEqual({
+      ok: false,
+      reason: 'unauthenticated',
+    });
+    // um segundo 401 depois de renovar significa que não há sessão a
+    // recuperar; insistir viraria laço
+    expect(calledUrls()).toHaveLength(3);
+  });
+
+  it('does not retry when there is no session left to renew', async () => {
+    mockSequence(respond({ status: 401 }), respond({ status: 401 }));
+
+    await expect(createProject(input)).resolves.toEqual({
+      ok: false,
+      reason: 'unauthenticated',
+    });
+    // a escrita, a renovação recusada, e nada mais
+    expect(calledUrls()).toEqual([
+      'https://api.exemplo.com/admin/projects',
+      'https://api.exemplo.com/auth/refresh',
+    ]);
+  });
+
+  it('does not renew for a refusal that is not about the session', async () => {
+    mockSequence(respond({ status: 409, json: async () => ({}) }));
+
+    await createProject(input);
+
+    // 409 é slug em uso: renovar não muda nada e gastaria uma rotação de
+    // token à toa
+    expect(calledUrls()).toEqual(['https://api.exemplo.com/admin/projects']);
+  });
+});

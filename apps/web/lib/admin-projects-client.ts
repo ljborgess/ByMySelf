@@ -1,5 +1,6 @@
 import type { CreateProjectInput, UpdateProjectInput } from '@portfolio/shared';
 import { CSRF_HEADER, JSON_MUTATION_HEADERS, publicApiUrl } from './api-client';
+import { refreshSession } from './auth';
 import type { AdminProject } from './admin-projects';
 
 /**
@@ -78,20 +79,17 @@ export async function updateProject(
  * remover parecer remover.
  */
 export async function deleteProject(id: string): Promise<DeleteProjectResult> {
-  let response: Response;
+  const response = await withSessionRetry(() =>
+    fetch(`${publicApiUrl()}/admin/projects/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      credentials: 'include',
+      // Sem corpo, então sem `Content-Type` — só o header que o CsrfGuard
+      // exige de todo método mutante.
+      headers: CSRF_HEADER,
+    }),
+  );
 
-  try {
-    response = await fetch(
-      `${publicApiUrl()}/admin/projects/${encodeURIComponent(id)}`,
-      {
-        method: 'DELETE',
-        credentials: 'include',
-        // Sem corpo, então sem `Content-Type` — só o header que o CsrfGuard
-        // exige de todo método mutante.
-        headers: CSRF_HEADER,
-      },
-    );
-  } catch {
+  if (!response) {
     return { ok: false, reason: 'unavailable' };
   }
 
@@ -141,19 +139,16 @@ export async function reorderProject(
   id: string,
   position: number,
 ): Promise<ReorderProjectResult> {
-  let response: Response;
+  const response = await withSessionRetry(() =>
+    fetch(`${publicApiUrl()}/admin/projects/${encodeURIComponent(id)}/order`, {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: JSON_MUTATION_HEADERS,
+      body: JSON.stringify({ order: position }),
+    }),
+  );
 
-  try {
-    response = await fetch(
-      `${publicApiUrl()}/admin/projects/${encodeURIComponent(id)}/order`,
-      {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: JSON_MUTATION_HEADERS,
-        body: JSON.stringify({ order: position }),
-      },
-    );
-  } catch {
+  if (!response) {
     return { ok: false, reason: 'unavailable' };
   }
 
@@ -171,6 +166,50 @@ export async function reorderProject(
   }
 
   return { ok: false, reason: reasonFor(response.status) };
+}
+
+/**
+ * Faz a chamada e, se a resposta for 401, renova a sessão e repete uma vez.
+ *
+ * O access token dura 15 minutos e o refresh 30 dias, então "expirou no meio
+ * do trabalho" é o caso comum, não a exceção — e mandar a pessoa para o login
+ * no meio de um salvamento perderia o que ela estava fazendo.
+ *
+ * Uma repetição só, e apenas depois de uma renovação bem-sucedida: se o
+ * segundo 401 vier mesmo assim, não há sessão a recuperar e insistir vira
+ * laço. `refreshSession` compartilha a renovação em voo, então várias
+ * chamadas esbarrando no 401 juntas não disparam rotações concorrentes — o
+ * que a API leria como reuso de token e derrubaria a família inteira.
+ *
+ * `send` é uma função e não uma `Request` pronta de propósito: um corpo de
+ * `Request` só pode ser consumido uma vez, então repetir exige montar a
+ * requisição de novo.
+ */
+async function withSessionRetry(
+  send: () => Promise<Response>,
+): Promise<Response | null> {
+  let response: Response;
+
+  try {
+    response = await send();
+  } catch {
+    return null;
+  }
+
+  if (response.status !== 401) {
+    return response;
+  }
+
+  const refreshed = await refreshSession();
+  if (!refreshed.ok) {
+    return response;
+  }
+
+  try {
+    return await send();
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -193,18 +232,18 @@ async function send(
   path: string,
   input: CreateProjectInput | UpdateProjectInput,
 ): Promise<SaveProjectResult> {
-  let response: Response;
-
-  try {
-    response = await fetch(`${publicApiUrl()}${path}`, {
+  const response = await withSessionRetry(() =>
+    fetch(`${publicApiUrl()}${path}`, {
       method,
       // sem isto o browser não manda os cookies de sessão, e toda escrita
       // responderia 401 mesmo logado
       credentials: 'include',
       headers: JSON_MUTATION_HEADERS,
       body: JSON.stringify(input),
-    });
-  } catch {
+    }),
+  );
+
+  if (!response) {
     return { ok: false, reason: 'unavailable' };
   }
 

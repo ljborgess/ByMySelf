@@ -5,11 +5,33 @@ jest.mock('next/headers', () => ({ cookies: jest.fn() }));
 
 const mockCookies = cookies as jest.MockedFunction<typeof cookies>;
 
-function withCookie(value: string | undefined) {
+/**
+ * Modela os dois cookies, não só o de acesso: a diferença entre "não há
+ * sessão" e "o access token venceu mas o refresh está aí" é exatamente o que
+ * decide entre mandar para o login e renovar em silêncio.
+ */
+function withCookies({
+  access,
+  refresh = false,
+}: {
+  access?: string;
+  refresh?: boolean;
+}) {
+  const jar: Record<string, string | undefined> = {
+    access_token: access,
+    refresh_token: refresh ? 'refresh-de-sessao' : undefined,
+  };
+
   mockCookies.mockResolvedValue({
-    get: () =>
-      value === undefined ? undefined : { name: 'access_token', value },
+    get: (name: string) =>
+      jar[name] === undefined ? undefined : { name, value: jar[name] },
+    has: (name: string) => jar[name] !== undefined,
   } as unknown as Awaited<ReturnType<typeof cookies>>);
+}
+
+/** Sessão completa, que é o caso da maioria dos testes. */
+function withCookie(value: string | undefined) {
+  withCookies({ access: value, refresh: value !== undefined });
 }
 
 describe('getAdminProjects', () => {
@@ -95,8 +117,8 @@ describe('getAdminProjects', () => {
     });
   });
 
-  it('reports unauthenticated when there is no session cookie, without calling the API', async () => {
-    withCookie(undefined);
+  it('reports unauthenticated when there is no cookie at all, without calling the API', async () => {
+    withCookies({});
     mockFetch({ ok: true, status: 200 });
 
     await expect(getAdminProjects()).resolves.toEqual({
@@ -107,7 +129,35 @@ describe('getAdminProjects', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  it('reports unauthenticated on 401, which is a different outcome from a failure', async () => {
+  /**
+   * O estado normal de quem volta ao painel depois de quinze minutos: access
+   * token vencido, refresh válido por mais trinta dias. Tratar isso como
+   * "sem sessão" era o painel expulsando sozinho.
+   */
+  it('reports recoverable when only the refresh cookie survives', async () => {
+    withCookies({ refresh: true });
+    mockFetch({ ok: true, status: 200 });
+
+    await expect(getAdminProjects()).resolves.toEqual({
+      ok: false,
+      reason: 'recoverable',
+    });
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('reports recoverable on 401 while a refresh cookie is there', async () => {
+    // um access token presente mas recusado é o mesmo caso de um vencido
+    withCookies({ access: 'token-velho', refresh: true });
+    mockFetch({ ok: false, status: 401 });
+
+    await expect(getAdminProjects()).resolves.toEqual({
+      ok: false,
+      reason: 'recoverable',
+    });
+  });
+
+  it('reports unauthenticated on 401 with nothing left to renew', async () => {
+    withCookies({ access: 'token-velho' });
     mockFetch({ ok: false, status: 401 });
 
     await expect(getAdminProjects()).resolves.toEqual({
@@ -246,7 +296,7 @@ describe('getAdminProject', () => {
   });
 
   it('reports unauthenticated without spending a call when there is no cookie', async () => {
-    withCookie(undefined);
+    withCookies({});
     mockFetch({ status: 200 });
 
     await expect(getAdminProject(id)).resolves.toEqual({
@@ -256,7 +306,29 @@ describe('getAdminProject', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  it('reports unauthenticated on 401, which sends the page to the login', async () => {
+  it('reports recoverable when only the refresh cookie survives', async () => {
+    withCookies({ refresh: true });
+    mockFetch({ status: 200 });
+
+    await expect(getAdminProject(id)).resolves.toEqual({
+      ok: false,
+      reason: 'recoverable',
+    });
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('reports recoverable on 401 while a refresh cookie is there', async () => {
+    withCookies({ access: 'token-velho', refresh: true });
+    mockFetch({ status: 401 });
+
+    await expect(getAdminProject(id)).resolves.toEqual({
+      ok: false,
+      reason: 'recoverable',
+    });
+  });
+
+  it('reports unauthenticated on 401 with nothing left to renew', async () => {
+    withCookies({ access: 'token-velho' });
     mockFetch({ status: 401 });
 
     await expect(getAdminProject(id)).resolves.toEqual({

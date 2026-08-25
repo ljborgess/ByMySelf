@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
-import { ProjectForm } from '../../../../../components/admin/project-form';
-import { profile } from '../../../../../content/profile';
+import { ProjectForm } from '../../../../../../components/admin/project-form';
+import { profile } from '../../../../../../content/profile';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('adminProjectForm');

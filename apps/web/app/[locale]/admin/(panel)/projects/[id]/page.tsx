@@ -3,11 +3,12 @@ import { notFound } from 'next/navigation';
 import { locale as localeParam } from 'next/root-params';
 import { getTranslations } from 'next-intl/server';
 import { hasLocale } from 'next-intl';
-import { ProjectForm } from '../../../../../components/admin/project-form';
-import { profile } from '../../../../../content/profile';
-import { Link, redirect } from '../../../../../i18n/navigation';
-import { routing } from '../../../../../i18n/routing';
-import { getAdminProject } from '../../../../../lib/admin-projects';
+import { ProjectForm } from '../../../../../../components/admin/project-form';
+import { profile } from '../../../../../../content/profile';
+import { Link, redirect } from '../../../../../../i18n/navigation';
+import { routing } from '../../../../../../i18n/routing';
+import { SessionRecovery } from '../../../../../../components/admin/session-recovery';
+import { getAdminProject } from '../../../../../../lib/admin-projects';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('adminProjectForm');
@@ -41,6 +42,10 @@ export default async function EditAdminProjectPage({
   const t = await getTranslations('adminProjectForm');
 
   const result = await getAdminProject(id);
+
+  if (!result.ok && result.reason === 'recoverable') {
+    return <SessionRecovery loginPath="/admin/login" />;
+  }
 
   if (!result.ok && result.reason === 'unauthenticated') {
     // Locale da requisição, não fixo: mandar quem está em `/en` para o login

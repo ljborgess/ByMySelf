@@ -2,14 +2,15 @@ import type { Metadata } from 'next';
 import { locale as localeParam } from 'next/root-params';
 import { getTranslations } from 'next-intl/server';
 import { hasLocale } from 'next-intl';
-import { routing } from '../../../../i18n/routing';
-import { AdminProjectsTable } from '../../../../components/admin/projects-table';
-import { profile } from '../../../../content/profile';
-import { redirect } from '../../../../i18n/navigation';
+import { routing } from '../../../../../i18n/routing';
+import { AdminProjectsTable } from '../../../../../components/admin/projects-table';
+import { SessionRecovery } from '../../../../../components/admin/session-recovery';
+import { profile } from '../../../../../content/profile';
+import { redirect } from '../../../../../i18n/navigation';
 import {
   getAdminProjects,
   type AdminProject,
-} from '../../../../lib/admin-projects';
+} from '../../../../../lib/admin-projects';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('adminProjects');
@@ -40,6 +41,13 @@ export async function generateMetadata(): Promise<Metadata> {
  */
 export default async function AdminProjectsPage() {
   const result = await getAdminProjects();
+
+  // Access token vencido com refresh ainda válido: renova em silêncio e
+  // recarrega, em vez de mandar para o login. Sem isto o painel expulsava a
+  // cada quinze minutos com uma sessão boa por trinta dias.
+  if (!result.ok && result.reason === 'recoverable') {
+    return <SessionRecovery loginPath="/admin/login" />;
+  }
 
   if (!result.ok && result.reason === 'unauthenticated') {
     // Locale da requisição, não fixo: mandar quem está em `/en` para o login

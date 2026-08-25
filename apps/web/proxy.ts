@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { routing } from './i18n/routing';
 import {
   ACCESS_TOKEN_COOKIE,
+  REFRESH_TOKEN_COOKIE,
   isProtectedAdminPath,
   loginPathForRequest,
 } from './lib/admin-routes';
@@ -37,9 +38,20 @@ const handleI18nRouting = createMiddleware(routing);
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Qualquer um dos dois cookies deixa passar, e não só o de acesso.
+  //
+  // O access token dura 15 minutos e o refresh 30 dias, então o estado normal
+  // de quem volta ao painel depois de um café é: sem access token, com
+  // refresh válido. Exigir o de acesso aqui mandava essa pessoa para o login
+  // sem nunca dar chance à renovação — era o "expulsa a cada 15 minutos".
+  //
+  // Não afrouxa a proteção: isto sempre foi presença, nunca validade (ver
+  // abaixo), e continua sendo a API quem decide. Um refresh token forjado
+  // passa por aqui, falha na renovação e cai no login do mesmo jeito.
   if (
     isProtectedAdminPath(pathname) &&
-    !request.cookies.has(ACCESS_TOKEN_COOKIE)
+    !request.cookies.has(ACCESS_TOKEN_COOKIE) &&
+    !request.cookies.has(REFRESH_TOKEN_COOKIE)
   ) {
     return NextResponse.redirect(
       new URL(loginPathForRequest(pathname), request.url),
