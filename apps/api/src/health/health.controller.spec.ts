@@ -2,6 +2,9 @@ import { INestApplication, ServiceUnavailableException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ThrottlerModule } from '@nestjs/throttler';
 import {
+  ADMIN_THROTTLE_LIMIT,
+  ADMIN_THROTTLE_NAME,
+  ADMIN_THROTTLE_TTL_MS,
   AUTH_IP_THROTTLE_LIMIT,
   AUTH_IP_THROTTLE_NAME,
   AUTH_IP_THROTTLE_TTL_MS,
@@ -38,6 +41,11 @@ describe('HealthController', () => {
             name: PUBLIC_READ_THROTTLE_NAME,
             ttl: PUBLIC_READ_THROTTLE_TTL_MS,
             limit: PUBLIC_READ_THROTTLE_LIMIT,
+          },
+          {
+            name: ADMIN_THROTTLE_NAME,
+            ttl: ADMIN_THROTTLE_TTL_MS,
+            limit: ADMIN_THROTTLE_LIMIT,
           },
         ]),
       ],
@@ -94,6 +102,11 @@ describe('HealthController rate limiting (HTTP)', () => {
             ttl: PUBLIC_READ_THROTTLE_TTL_MS,
             limit: PUBLIC_READ_THROTTLE_LIMIT,
           },
+          {
+            name: ADMIN_THROTTLE_NAME,
+            ttl: ADMIN_THROTTLE_TTL_MS,
+            limit: ADMIN_THROTTLE_LIMIT,
+          },
         ]),
       ],
       controllers: [HealthController],
@@ -133,5 +146,97 @@ describe('HealthController rate limiting (HTTP)', () => {
     }
 
     await request(app.getHttpServer()).get('/health').expect(429);
+  });
+});
+
+/**
+ * A escolha de bucket, verificada no metadado e não por HTTP.
+ *
+ * Motivo: com os limites atuais é **impossível** observar o bucket `admin`
+ * atuando aqui. O `public-read` corta em 120/min e o `admin` em 240, então o
+ * primeiro sempre dispara antes — uma tentativa de exceder o segundo bate no
+ * 429 do primeiro. Foi assim que a primeira versão deste teste falhou.
+ *
+ * Isso não torna o skip decorativo. O `ThrottlerGuard` avalia todo bucket
+ * configurado a menos que o handler dispense por nome, então o `admin` (#83)
+ * *estava* aplicado a esta rota até a #90 — e passaria a morder no dia em que
+ * alguém baixasse o limite dele ou subisse o do `public-read`. A regra que os
+ * outros dois controllers declaram é que um handler responde a exatamente um
+ * bucket; é ela que este teste fixa.
+ */
+/**
+ * O bucket `admin` não se aplica a esta rota — verificado por comportamento.
+ *
+ * Com os limites de produção isso é **impossível** de observar: `public-read`
+ * corta em 120/min e `admin` em 240, então o primeiro sempre dispara antes e
+ * uma tentativa de exceder o segundo bate no 429 do primeiro. Foi assim que a
+ * primeira versão deste teste falhou.
+ *
+ * Aqui o `admin` entra com limite deliberadamente baixo, abaixo do
+ * `public-read`, o que torna a diferença observável: se a rota estivesse
+ * sujeita a ele, o 429 viria na quarta chamada. Não é o limite de produção, e
+ * não deveria ser — o que está sob teste é *qual bucket se aplica*, não quanto
+ * ele permite.
+ *
+ * Ler o metadado do `@SkipThrottle` seria a alternativa, e foi descartada: a
+ * chave (`THROTTLER:SKIP<nome>`) é interna do @nestjs/throttler e não é
+ * exportada na raiz do pacote. Um teste amarrado a ela quebraria numa
+ * renomeação sem que nada de fato mudasse.
+ *
+ * Por que importa, se hoje é inobservável: o `ThrottlerGuard` avalia todo
+ * bucket configurado a menos que o handler dispense por nome, então o `admin`
+ * (#83) *estava* aplicado aqui até a #90 — e voltaria a morder no dia em que
+ * alguém baixasse o limite dele ou subisse o do `public-read`.
+ */
+describe('HealthController bucket selection', () => {
+  const ADMIN_LIMIT_UNDER_TEST = 3;
+  let app: INestApplication<App>;
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        ThrottlerModule.forRoot([
+          {
+            name: AUTH_IP_THROTTLE_NAME,
+            ttl: AUTH_IP_THROTTLE_TTL_MS,
+            limit: AUTH_IP_THROTTLE_LIMIT,
+          },
+          {
+            name: PUBLIC_READ_THROTTLE_NAME,
+            ttl: PUBLIC_READ_THROTTLE_TTL_MS,
+            limit: PUBLIC_READ_THROTTLE_LIMIT,
+          },
+          {
+            name: ADMIN_THROTTLE_NAME,
+            ttl: ADMIN_THROTTLE_TTL_MS,
+            limit: ADMIN_LIMIT_UNDER_TEST,
+          },
+        ]),
+      ],
+      controllers: [HealthController],
+      providers: [
+        {
+          provide: HealthService,
+          useValue: {
+            check: jest
+              .fn()
+              .mockResolvedValue({ status: 'ok', db: 'ok', version: 'test' }),
+          },
+        },
+      ],
+    }).compile();
+
+    app = moduleRef.createNestApplication();
+    await app.init();
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('is not subject to the admin bucket', async () => {
+    for (let i = 0; i < ADMIN_LIMIT_UNDER_TEST + 5; i++) {
+      await request(app.getHttpServer()).get('/health').expect(200);
+    }
   });
 });
