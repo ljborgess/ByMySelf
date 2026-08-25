@@ -23,7 +23,7 @@ export function SectionCards() {
             href={section.href}
             // the whole card is the target, not just the title -- a card that
             // looks clickable but only responds on its heading is a trap
-            className="group flex h-full flex-col rounded-lg border border-black/10 p-5 transition-colors hover:border-black/30 focus-visible:border-black/30 dark:border-white/15 dark:hover:border-white/40 dark:focus-visible:border-white/40"
+            className="group hover:border-accent focus-visible:border-accent flex h-full flex-col rounded-lg border border-black/10 p-5 transition-colors dark:border-white/15"
           >
             <span className="text-base font-semibold tracking-tight">
               {tNav(section.messageKey)}
@@ -33,7 +33,7 @@ export function SectionCards() {
             </span>
             <span
               aria-hidden="true"
-              className="mt-4 text-sm opacity-50 transition-opacity group-hover:opacity-100"
+              className="group-hover:text-accent mt-4 font-mono text-sm opacity-50 transition-[opacity,color] group-hover:opacity-100"
             >
               →
             </span>
