@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import createNextIntlPlugin from 'next-intl/plugin';
 import type { NextConfig } from 'next';
 import { resolve } from 'node:path';
+import { apiOrigin, assertApiUrlConfigured } from './lib/api-origin';
 
 // Next only auto-loads .env files from this package's own directory, but the
 // project keeps a single .env at the repo root (see root README) shared with
@@ -86,25 +87,15 @@ const scriptSrc = isDev
  * `login()` cai no `catch` e o formulário responde "não foi possível entrar"
  * para toda credencial correta.
  *
- * Só a *origem* entra na diretiva — `connect-src` ignora caminho, e mandar a
- * URL inteira alargaria a política sem precisão. Se a variável não estiver
- * definida no build, fica só `'self'`: o Dockerfile já falha nesse caso, e em
- * dev o desenvolvedor vê o erro de CSP no console em vez de uma política
- * inventada.
+ * Em desenvolvimento isso agora para o boot em vez de virar uma política
+ * inventada — ver lib/api-origin.ts. Produção continua coberta pelo
+ * Dockerfile, e o `next build` do CI roda sem a variável de propósito.
  */
-function apiOrigin(): string | undefined {
-  const raw = process.env.NEXT_PUBLIC_API_URL;
-  if (!raw) {
-    return undefined;
-  }
-  try {
-    return new URL(raw).origin;
-  } catch {
-    return undefined;
-  }
-}
+assertApiUrlConfigured(process.env.NEXT_PUBLIC_API_URL, process.env.NODE_ENV);
 
-const connectSrc = ["'self'", apiOrigin()].filter(Boolean).join(' ');
+const connectSrc = ["'self'", apiOrigin(process.env.NEXT_PUBLIC_API_URL)]
+  .filter(Boolean)
+  .join(' ');
 
 const contentSecurityPolicy = [
   "default-src 'self'",
