@@ -1,21 +1,36 @@
 @import 'tailwindcss';
 
+/*
+ * Dark-first (RNF-USA2, decisão de 2026-08-25 — ver
+ * docs/design-orb-ui-reference.md): a paleta escura é a referência de
+ * design, então vive em :root sem media query. A clara é a variante
+ * derivada, dentro de @media (prefers-color-scheme: light) -- inverso do
+ * que havia antes. O comportamento de seguir a preferência do SO não muda;
+ * só troca qual paleta é o fallback quando nenhuma preferência é detectada.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0a;
+  --foreground: #cccccc;
+  /* Acento (docs/design-orb-ui-reference.md): mesmo azul-claro do orb-ui,
+     alto contraste sobre #0a0a0a. */
+  --accent: #8bc7ff;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-accent: var(--accent);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #ffffff;
+    --foreground: #171717;
+    /* Azul mais escuro que o acento dark: #8bc7ff falha contraste AA sobre
+       branco. Cobalt do tema radial do orb-ui (docs/design-orb-ui-reference.md). */
+    --accent: #0457c2;
   }
 }
 
