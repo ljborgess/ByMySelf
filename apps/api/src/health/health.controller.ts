@@ -5,7 +5,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { SkipThrottle, ThrottlerGuard } from '@nestjs/throttler';
-import { AUTH_IP_THROTTLE_NAME } from '../auth/auth.constants';
+import {
+  ADMIN_THROTTLE_NAME,
+  AUTH_IP_THROTTLE_NAME,
+} from '../auth/auth.constants';
 import { HealthService, HealthStatus } from './health.service';
 
 /**
@@ -28,8 +31,17 @@ import { HealthService, HealthStatus } from './health.service';
  * poll (every 5s for up to 5 minutes) all have to pass comfortably -- a 429
  * to those reads as "unhealthy" and would trigger a restart loop. They also
  * key on their own IPs, so an external flood cannot exhaust their budget.
+ *
+ * Every other bucket is skipped by name. ThrottlerGuard evaluates every
+ * configured bucket unless told otherwise, so a bucket added elsewhere lands
+ * here by default -- which is how `admin` (#83) ended up applying to this
+ * route until #90. The rule the other two controllers state is that a handler
+ * answers to exactly one bucket, and this is what makes it true here too.
  */
-@SkipThrottle({ [AUTH_IP_THROTTLE_NAME]: true })
+@SkipThrottle({
+  [AUTH_IP_THROTTLE_NAME]: true,
+  [ADMIN_THROTTLE_NAME]: true,
+})
 @UseGuards(ThrottlerGuard)
 @Controller('health')
 export class HealthController {
