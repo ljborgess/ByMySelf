@@ -70,6 +70,18 @@ else
   echo "entrypoint: RUN_MIGRATIONS_ON_START=false, skipping migrations"
 fi
 
+# Least privilege (#88): ensures the role in DATABASE_URL exists with only
+# the grants the app uses (SELECT/INSERT/UPDATE/DELETE, no DDL). Runs after
+# migrations, not before -- the GRANT on ALL TABLES only covers tables that
+# already exist. Idempotent, and a no-op in the shape used by local dev
+# (MIGRATION_DATABASE_URL unset, same role as DATABASE_URL), so this is safe
+# to always run rather than gating it on RUN_MIGRATIONS_ON_START.
+#
+# No retry, unlike the migrations loop above: by the time this runs the
+# database has already answered, so a failure here is permanent.
+echo "entrypoint: ensuring the application role has least-privilege grants"
+node dist/database/bootstrap-role
+
 # exec so the server replaces this shell as PID 1 and receives SIGTERM from
 # Dokploy directly -- otherwise the shell swallows it and the graceful
 # shutdown in main.ts (app.enableShutdownHooks) never runs.

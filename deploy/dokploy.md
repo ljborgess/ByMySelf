@@ -186,7 +186,8 @@ também falha em vez de subir com valor em branco.
 | --- | --- |
 | `NODE_ENV` | `production` |
 | `PORT` | `3100` (já é default na imagem) |
-| `DATABASE_URL` | URL completa, ex. `postgresql://user:senha@postgres:5432/portfolio`. **Percent-encode a senha**: ela fica na userinfo da URL, então um `/`, `@`, `:` ou `#` cru faz o parser ler host e database errados — e o erro aparece como "banco não existe", que joga a investigação para o lado errado |
+| `DATABASE_URL` | URL completa, ex. `postgresql://user:senha@postgres:5432/portfolio`. **Percent-encode a senha**: ela fica na userinfo da URL, então um `/`, `@`, `:` ou `#` cru faz o parser ler host e database errados — e o erro aparece como "banco não existe", que joga a investigação para o lado errado. **A role aqui é a restrita** — ver "Roles do Postgres" abaixo |
+| `MIGRATION_DATABASE_URL` | obrigatória. Mesma forma de `DATABASE_URL`, mas com a role de superusuário (`POSTGRES_USER`/`POSTGRES_PASSWORD` acima). Usada só para migrations e para criar a role de `DATABASE_URL` — ver "Roles do Postgres" |
 | `JWT_ACCESS_SECRET` | mínimo 32 chars, independente do refresh |
 | `JWT_REFRESH_SECRET` | mínimo 32 chars, independente do access |
 | `JWT_ACCESS_EXPIRATION` | `15m` — limite do RNF-SEG4 |
@@ -242,6 +243,29 @@ Pontos que não são detalhe:
 - **`depends_on: condition: service_healthy`** faz a api esperar o Postgres
   estar de fato aceitando conexão, não só o container existir.
 
+## Roles do Postgres (#88)
+
+Duas roles, duas variáveis:
+
+- **`POSTGRES_USER`/`MIGRATION_DATABASE_URL`** — superusuário, criado pela
+  própria imagem oficial do Postgres no primeiro boot. Só faz DDL: aplica
+  migrations e cria/atualiza a role de `DATABASE_URL`.
+- **`DATABASE_URL`** — a role que a API usa de fato em runtime. Sem
+  `SUPERUSER`, `CREATEDB` nem `CREATEROLE`, com `SELECT`/`INSERT`/`UPDATE`/`DELETE`
+  nas tabelas de `public` e nada além disso. Uma brecha futura de SQL fica
+  limitada ao que a app legitimamente faz, em vez de virar controle total do
+  banco.
+
+A role de `DATABASE_URL` **não existe por si só** — quem a cria é o script
+de bootstrap (abaixo), lendo o username de dentro da própria URL. Não há
+convenção de nome para criar à mão: o que estiver em `DATABASE_URL` é o que
+o bootstrap garante que existe, com esses privilégios, a cada boot.
+
+A aplicação também confere isso sozinha: no boot, em produção, recusa subir
+se a role de `DATABASE_URL` for superusuário (`DatabaseModule`, consultando
+`pg_roles`) — a mesma garantia checada, não presumida, que
+`env.schema.ts` já aplica a segredo curto e `COOKIE_DOMAIN` de loopback.
+
 ## Migrations
 
 Rodam sozinhas. O entrypoint da imagem da api
@@ -249,6 +273,10 @@ Rodam sozinhas. O entrypoint da imagem da api
 executa o servidor — então um banco novo nunca deixa a API respondendo contra
 tabelas que não existem (#36, user story 3). São idempotentes: no segundo
 boot não fazem nada.
+
+Logo em seguida, o mesmo entrypoint roda o bootstrap da role (ver "Roles do
+Postgres" acima) — depois das migrations, porque os `GRANT` dependem das
+tabelas já existirem. Também idempotente.
 
 Fica no entrypoint, e não num campo de pre-deploy do painel, de propósito: um
 passo que mora numa caixinha de configuração é um passo que dá para esquecer

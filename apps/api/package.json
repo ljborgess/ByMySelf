@@ -16,8 +16,10 @@
     "type-check": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "ts-node -r tsconfig-paths/register src/database/migrate.ts",
+    "db:bootstrap-role": "ts-node -r tsconfig-paths/register src/database/bootstrap-role.ts",
     "db:smoke": "ts-node -r tsconfig-paths/register test/projects.smoke.ts",
     "db:smoke:users": "ts-node -r tsconfig-paths/register test/users.smoke.ts",
+    "db:smoke:role": "ts-node -r tsconfig-paths/register test/role-privilege.smoke.ts",
     "cli": "ts-node -r tsconfig-paths/register src/cli/index.ts",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -89,6 +91,7 @@
       "!**/*.module.ts",
       "!**/*.schema.ts",
       "!database/migrate.ts",
+      "!database/bootstrap-role.ts",
       "!cli/index.ts",
       "!**/*.repository.ts"
     ],

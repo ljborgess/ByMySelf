@@ -253,4 +253,26 @@ describe('envSchemaWithCrossChecks', () => {
       },
     );
   });
+
+  describe('MIGRATION_DATABASE_URL (#88)', () => {
+    it('accepts production without it — migrate.ts and bootstrap-role.ts fall back to DATABASE_URL', () => {
+      expect(parse().success).toBe(true);
+    });
+
+    it('accepts a migration URL distinct from DATABASE_URL', () => {
+      const result = parse({
+        MIGRATION_DATABASE_URL:
+          'postgresql://migrator:secret@postgres:5432/portfolio',
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects a migration URL identical to DATABASE_URL — same role, no separation', () => {
+      const result = parse({ MIGRATION_DATABASE_URL: prodEnv.DATABASE_URL });
+
+      expect(result.success).toBe(false);
+      expect(JSON.stringify(result)).toMatch(/must differ from DATABASE_URL/i);
+    });
+  });
 });

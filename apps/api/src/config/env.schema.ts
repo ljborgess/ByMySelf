@@ -107,6 +107,12 @@ export const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3100),
   TRUST_PROXY_HOPS: trustProxySchema,
   DATABASE_URL: z.url(),
+  // Least privilege (#88): DATABASE_URL passa a apontar para uma role sem
+  // DDL, então migrations precisam de uma conexão separada com privilégio
+  // para CREATE/ALTER TABLE. Opcional porque em dev só existe a role
+  // `postgres`: os call sites (migrate.ts, bootstrap-role.ts) caem de volta
+  // para DATABASE_URL quando esta não está definida.
+  MIGRATION_DATABASE_URL: z.url().optional(),
   // HS256 (docs/stack.md) rests entirely on the secret's entropy: a short one
   // is brute-forceable offline from any captured token, letting an attacker
   // forge admin credentials. Refuse to boot below 32 characters.
@@ -180,6 +186,23 @@ export const envSchemaWithCrossChecks = envSchema.superRefine((env, ctx) => {
           'looks like a placeholder or development value — generate a fresh production secret (openssl rand -base64 48)',
       });
     }
+  }
+
+  // #88: pega o erro de copiar/colar a mesma URL nas duas variáveis antes
+  // mesmo de tocar o banco -- sem isto o sintoma só apareceria na checagem
+  // de rolsuper no boot do DatabaseModule, ou pior, passaria despercebido se
+  // a role de DATABASE_URL não for de fato superusuário mas ainda assim for
+  // a mesma usada para migrar (nenhuma separação de fato).
+  if (
+    env.MIGRATION_DATABASE_URL !== undefined &&
+    env.MIGRATION_DATABASE_URL === env.DATABASE_URL
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['MIGRATION_DATABASE_URL'],
+      message:
+        'must differ from DATABASE_URL — identical values mean migrations and the app share the same role, defeating least privilege (#88)',
+    });
   }
 
   // Case-insensitive e cobrindo os endereços de loopback: `LOCALHOST` e

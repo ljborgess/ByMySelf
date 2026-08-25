@@ -4,10 +4,12 @@ import {
   Logger,
   Module,
   OnApplicationShutdown,
+  OnModuleInit,
 } from '@nestjs/common';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { env } from '../config/env';
+import { assertNoSuperuserInProduction } from './assert-role-privilege';
 import {
   DB_CONNECTION_TIMEOUT_MS,
   DB_STATEMENT_TIMEOUT_MS,
@@ -59,8 +61,16 @@ function createPool(): Pool {
   ],
   exports: [DRIZZLE, PG_POOL],
 })
-export class DatabaseModule implements OnApplicationShutdown {
+export class DatabaseModule implements OnModuleInit, OnApplicationShutdown {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
+
+  // Least privilege (#88), user story 3: recusa subir em produção se a
+  // conexão está usando uma role superusuário -- no espírito do que
+  // env.schema.ts já faz para segredo curto e COOKIE_DOMAIN de loopback,
+  // só que esta checagem depende de uma conexão real, então não cabe lá.
+  async onModuleInit(): Promise<void> {
+    await assertNoSuperuserInProduction(this.pool, env.NODE_ENV);
+  }
 
   async onApplicationShutdown(): Promise<void> {
     await this.pool.end();
