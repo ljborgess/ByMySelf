@@ -69,7 +69,13 @@ function isRetryable(error: unknown, depth = 0): boolean {
  * and by the container entrypoint before the server starts.
  */
 async function runMigrations(): Promise<void> {
-  const pool = new Pool({ connectionString: env.DATABASE_URL });
+  // Least privilege (#88): DATABASE_URL passa a apontar para a role
+  // restrita, sem DDL. MIGRATION_DATABASE_URL é a conexão com privilégio
+  // para CREATE/ALTER TABLE; cai de volta para DATABASE_URL quando ausente,
+  // que é o caso em dev, onde só existe a role `postgres`.
+  const pool = new Pool({
+    connectionString: env.MIGRATION_DATABASE_URL ?? env.DATABASE_URL,
+  });
 
   try {
     const db = drizzle(pool);

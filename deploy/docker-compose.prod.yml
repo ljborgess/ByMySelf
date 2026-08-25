@@ -65,7 +65,15 @@ services:
       # `:` ou `#` nela faz o parser ler host e database errados. O erro sai
       # como "banco não existe", que manda quem investiga para o lado errado.
       # Gere a URL já percent-encoded em #38 e passe pronta.
+      # Least privilege (#88): DATABASE_URL conecta com a role restrita
+      # (sem DDL), usada em runtime. MIGRATION_DATABASE_URL conecta com
+      # privilégio de DDL -- usada só para aplicar migrations e para criar
+      # a role de DATABASE_URL no primeiro boot. Exigida aqui, e não deixada
+      # cair no fallback do schema, porque sem ela a migration falharia por
+      # falta de permissão, e é melhor recusar subir do que descobrir isso
+      # só na tentativa de deploy.
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required (percent-encode a senha)}
+      MIGRATION_DATABASE_URL: ${MIGRATION_DATABASE_URL:?MIGRATION_DATABASE_URL is required (percent-encode a senha) -- see #88}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
       JWT_ACCESS_EXPIRATION: ${JWT_ACCESS_EXPIRATION:-15m}
