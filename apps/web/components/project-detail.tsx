@@ -18,7 +18,7 @@ export function ProjectDetail({ project }: { project: PublicProject }) {
     <article className="flex flex-col gap-6">
       <div>
         {project.featured && (
-          <span className="mb-2 inline-block rounded-full border border-current px-2 py-0.5 text-xs font-medium tracking-wide uppercase opacity-70">
+          <span className="text-accent border-accent mb-2 inline-block rounded-full border px-2 py-0.5 text-xs font-medium tracking-wide uppercase">
             {tProjects('featured')}
           </span>
         )}
@@ -48,7 +48,7 @@ export function ProjectDetail({ project }: { project: PublicProject }) {
               href={project.repoUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 rounded-lg border border-black/10 px-4 py-2 text-sm font-medium hover:border-black/30 dark:border-white/15 dark:hover:border-white/40"
+              className="hover:border-accent hover:text-accent inline-flex items-center gap-1 rounded-lg border border-black/10 px-4 py-2 text-sm font-medium dark:border-white/15"
             >
               {t('repo')}
               <span aria-hidden="true">↗</span>
@@ -60,7 +60,7 @@ export function ProjectDetail({ project }: { project: PublicProject }) {
               href={project.demoUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 rounded-lg border border-black/10 px-4 py-2 text-sm font-medium hover:border-black/30 dark:border-white/15 dark:hover:border-white/40"
+              className="hover:border-accent hover:text-accent inline-flex items-center gap-1 rounded-lg border border-black/10 px-4 py-2 text-sm font-medium dark:border-white/15"
             >
               {t('demo')}
               <span aria-hidden="true">↗</span>
