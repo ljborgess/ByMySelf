@@ -150,6 +150,22 @@ async function checkRepository(tx: Tx): Promise<boolean[]> {
     slug: '__smoke-repo-third',
   });
 
+  /**
+   * As asserções de ordem olham só as linhas que este teste criou.
+   *
+   * `findAll` devolve a listagem inteira, e um smoke que roda contra um
+   * Postgres de verdade encontra projetos de verdade nele. Comparar a lista
+   * global contra dois ids só passa num banco vazio — o que fazia o teste
+   * falhar assim que o banco de desenvolvimento ganhou conteúdo, sem que
+   * nada no código estivesse errado.
+   *
+   * O que importa aqui é a *ordem relativa* e o reindexado contíguo dessas
+   * duas linhas, e isso continua sendo verificado.
+   */
+  const ourIds = new Set([extra.id, live.id]);
+  const onlyOurs = (rows: { id: string }[]) =>
+    rows.filter((row) => ourIds.has(row.id)).map((row) => row.id);
+
   await repository.applyOrdering([extra.id, live.id]);
   const afterFirstMove = await repository.findAll();
   results.push(
@@ -162,8 +178,7 @@ async function checkRepository(tx: Tx): Promise<boolean[]> {
   results.push(
     check(
       'repository.applyOrdering deixa findAll já ordenado',
-      afterFirstMove.map((row) => row.id).join(',') ===
-        [extra.id, live.id].join(','),
+      onlyOurs(afterFirstMove).join(',') === [extra.id, live.id].join(','),
     ),
   );
 
@@ -172,8 +187,11 @@ async function checkRepository(tx: Tx): Promise<boolean[]> {
   results.push(
     check(
       'repository.applyOrdering troca a ordem sem duplicar posição',
-      afterSwap.map((row) => row.order).join(',') === '0,1' &&
-        afterSwap[0].id === live.id,
+      onlyOurs(afterSwap).join(',') === [live.id, extra.id].join(',') &&
+        afterSwap
+          .filter((row) => ourIds.has(row.id))
+          .map((row) => row.order)
+          .join(',') === '0,1',
     ),
   );
 
