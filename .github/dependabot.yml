@@ -1,0 +1,93 @@
+# Atualização de dependências (issue #89).
+#
+# Existe porque a varredura manual da auditoria (#87) é um retrato de um dia:
+# ela mostrou que nenhum segredo foi commitado e que nada estava vulnerável
+# *naquele momento*. O que faltava era alguém avisando quando isso mudar.
+#
+# O secret scanning e o push protection ficam nas configurações do repositório,
+# não aqui — não há arquivo para versionar. Este arquivo cobre só o Dependabot.
+version: 2
+
+updates:
+  # ---------------------------------------------------------------------------
+  # Dependências npm
+  # ---------------------------------------------------------------------------
+  #
+  # Só a raiz, e não um bloco por pacote. É um workspace pnpm com um
+  # `pnpm-lock.yaml` único: o Dependabot lê esse lockfile e atualiza os quatro
+  # `package.json` a partir dele. Declarar `apps/api`, `apps/web` e
+  # `packages/shared` separadamente faria três jobs disputarem o mesmo lockfile,
+  # e o resultado seriam PRs que conflitam entre si.
+  - package-ecosystem: npm
+    directory: /
+
+    # Semanal, não diário. O projeto é solo, e o custo aqui é o tempo de revisão
+    # de quem lê o PR — não a latência de horas até a atualização chegar.
+    # Segurança não espera por isto: os alertas do Dependabot são um canal
+    # separado e disparam quando o CVE sai, independente deste cronograma.
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: America/Sao_Paulo
+
+    # Dois grupos, e é o que separa ruído de risco: uma bump de `eslint` não se
+    # revisa como uma de `@nestjs/core`. Sem agrupar, um `pnpm update` semanal
+    # abriria dezenas de PRs — e o efeito de dezenas de PRs num projeto solo é
+    # que nenhum é lido.
+    #
+    # Sem `update-types` nos grupos, de propósito: um major entra no mesmo PR e
+    # fica visível. Filtrá-lo aqui esconderia justamente a atualização que mais
+    # precisa de atenção.
+    groups:
+      producao:
+        dependency-type: production
+      desenvolvimento:
+        dependency-type: development
+
+    # Dois grupos, então dois PRs em aberto bastam. Um terceiro só apareceria se
+    # um dos dois ficasse parado — e o sinal certo nesse caso é o PR parado, não
+    # mais um PR.
+    open-pull-requests-limit: 2
+
+    # `infra` já existe no repositório. O default do Dependabot é criar
+    # `dependencies`, o que acrescentaria um label fora da taxonomia do projeto.
+    labels:
+      - infra
+
+    commit-message:
+      prefix: chore
+      include: scope
+
+  # ---------------------------------------------------------------------------
+  # Versões das actions no workflow
+  # ---------------------------------------------------------------------------
+  #
+  # O CI é a única coisa entre um PR e a `dev` desde que a #46 tornou o check
+  # obrigatório, e ele roda com o token do repositório sobre código de pull
+  # request. Uma action desatualizada é superfície de execução, não só
+  # manutenção atrasada.
+  - package-ecosystem: github-actions
+    directory: /
+
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: America/Sao_Paulo
+
+    # Um PR para todas: são poucas actions, e agrupá-las evita três PRs de uma
+    # linha cada.
+    groups:
+      actions:
+        patterns:
+          - '*'
+
+    open-pull-requests-limit: 1
+
+    labels:
+      - infra
+
+    commit-message:
+      prefix: chore
+      include: scope
