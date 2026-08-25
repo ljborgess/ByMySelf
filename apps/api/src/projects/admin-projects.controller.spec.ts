@@ -2,10 +2,22 @@ import { INestApplication } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
+import { ThrottlerModule } from '@nestjs/throttler';
 import cookieParser from 'cookie-parser';
 import { ZodValidationPipe } from 'nestjs-zod';
 import request from 'supertest';
 import { App } from 'supertest/types';
+import {
+  ADMIN_THROTTLE_LIMIT,
+  ADMIN_THROTTLE_NAME,
+  ADMIN_THROTTLE_TTL_MS,
+  AUTH_IP_THROTTLE_LIMIT,
+  AUTH_IP_THROTTLE_NAME,
+  AUTH_IP_THROTTLE_TTL_MS,
+  PUBLIC_READ_THROTTLE_LIMIT,
+  PUBLIC_READ_THROTTLE_NAME,
+  PUBLIC_READ_THROTTLE_TTL_MS,
+} from '../auth/auth.constants';
 import { AuthGuard } from '../auth/auth.guard';
 import { CsrfGuard } from '../common/csrf.guard';
 import { env } from '../config/env';
@@ -62,7 +74,29 @@ describe('AdminProjectsController', () => {
     };
 
     const moduleRef = await Test.createTestingModule({
-      imports: [JwtModule.register({})],
+      imports: [
+        JwtModule.register({}),
+        // Os três buckets, como em produção: o guard avalia todo bucket
+        // configurado, então registrar só o do admin esconderia justamente o
+        // erro de o controller herdar um limite que não é o dele.
+        ThrottlerModule.forRoot([
+          {
+            name: AUTH_IP_THROTTLE_NAME,
+            ttl: AUTH_IP_THROTTLE_TTL_MS,
+            limit: AUTH_IP_THROTTLE_LIMIT,
+          },
+          {
+            name: PUBLIC_READ_THROTTLE_NAME,
+            ttl: PUBLIC_READ_THROTTLE_TTL_MS,
+            limit: PUBLIC_READ_THROTTLE_LIMIT,
+          },
+          {
+            name: ADMIN_THROTTLE_NAME,
+            ttl: ADMIN_THROTTLE_TTL_MS,
+            limit: ADMIN_THROTTLE_LIMIT,
+          },
+        ]),
+      ],
       controllers: [AdminProjectsController],
       providers: [
         { provide: ProjectsService, useValue: service },
@@ -319,6 +353,70 @@ describe('AdminProjectsController', () => {
         .expect(400);
 
       expect(service.findById).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('rate limiting', () => {
+    /**
+     * The failure this guards against is not "no limit" but "the wrong
+     * limit": ThrottlerGuard applies every configured bucket unless a
+     * controller opts out, and the auth bucket allows 10 requests per 15
+     * minutes. Inherited here, it would lock the owner out of their own
+     * panel after a dozen page loads.
+     */
+    it('does not subject the panel to the strict auth bucket', async () => {
+      const overAuthLimit = AUTH_IP_THROTTLE_LIMIT + 5;
+
+      for (let i = 0; i < overAuthLimit; i++) {
+        await request(app.getHttpServer())
+          .get('/admin/projects')
+          .set('Cookie', authCookie())
+          .expect(200);
+      }
+    });
+
+    /**
+     * Authentication decides who may call these; the ceiling caps how fast
+     * someone who already got in can go. Without it, a stolen session could
+     * dump or rewrite the whole listing in a loop.
+     */
+    it('still caps the admin bucket, so a stolen session is not unbounded', async () => {
+      for (let i = 0; i < ADMIN_THROTTLE_LIMIT; i++) {
+        await request(app.getHttpServer())
+          .get('/admin/projects')
+          .set('Cookie', authCookie())
+          .expect(200);
+      }
+
+      await request(app.getHttpServer())
+        .get('/admin/projects')
+        .set('Cookie', authCookie())
+        .expect(429);
+    });
+
+    /**
+     * Guard order, stated as behaviour rather than assumed: AuthGuard is
+     * global (APP_GUARD) and ThrottlerGuard is controller-scoped, so Nest
+     * runs authentication first and an unauthenticated request is refused
+     * before it ever reaches the bucket.
+     *
+     * That is the right way round. This ceiling exists to bound what a
+     * *stolen session* can do; spending it on requests that carry no session
+     * would let an anonymous flood exhaust the owner's own budget. Refusing
+     * them costs one failed signature check and no database round trip.
+     */
+    it('spends the budget on sessions, not on requests that never had one', async () => {
+      const beyondLimit = ADMIN_THROTTLE_LIMIT + 20;
+
+      for (let i = 0; i < beyondLimit; i++) {
+        await request(app.getHttpServer()).get('/admin/projects').expect(401);
+      }
+
+      // o orçamento continua inteiro para quem tem sessão
+      await request(app.getHttpServer())
+        .get('/admin/projects')
+        .set('Cookie', authCookie())
+        .expect(200);
     });
   });
 });

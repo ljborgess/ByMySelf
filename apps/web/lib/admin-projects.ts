@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import type { LocalizedText, ProjectStatus } from '@portfolio/shared';
-import { ACCESS_TOKEN_COOKIE } from './admin-routes';
+import { ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } from './admin-routes';
 
 /**
  * O que `GET /admin/projects` devolve: a linha crua, não a projeção pública.
@@ -34,12 +34,17 @@ export interface AdminProject {
 export type AdminProjectsResult =
   | { ok: true; projects: AdminProject[] }
   /**
-   * `unauthenticated` é separado de `failed` porque leva a lugares
-   * diferentes: sessão expirada manda para o login, API fora mostra estado de
-   * erro na própria tela. Tratar os dois igual jogaria alguém com sessão
-   * válida para o login só porque o backend piscou.
+   * Três desfechos de falha, três destinos:
+   *
+   * - `recoverable`: o access token venceu, mas o refresh ainda está aí. A
+   *   tela renova em silêncio em vez de mandar para o login — é o que impede
+   *   o painel de expulsar a cada quinze minutos.
+   * - `unauthenticated`: não há sessão nenhuma. Vai para o login.
+   * - `failed`: a API não respondeu. Estado de erro na própria tela — jogar
+   *   quem tem sessão válida para o login porque o backend piscou seria
+   *   diagnóstico errado.
    */
-  | { ok: false; reason: 'unauthenticated' | 'failed' };
+  | { ok: false; reason: 'recoverable' | 'unauthenticated' | 'failed' };
 
 /**
  * RF-PROJ4: todo projeto, arquivado incluído.
@@ -61,8 +66,7 @@ export async function getAdminProjects(): Promise<AdminProjectsResult> {
     // acrescentar ao tipo público um caso que nunca acontece.
     return {
       ok: false,
-      reason:
-        result.reason === 'unauthenticated' ? 'unauthenticated' : 'failed',
+      reason: result.reason === 'notFound' ? 'failed' : result.reason,
     };
   }
 
@@ -84,7 +88,10 @@ export type AdminProjectResult =
    * a API fora é um estado de erro na tela. Tratá-los igual mostraria
    * "projeto não encontrado" toda vez que o backend piscasse.
    */
-  | { ok: false; reason: 'unauthenticated' | 'notFound' | 'failed' };
+  | {
+      ok: false;
+      reason: 'recoverable' | 'unauthenticated' | 'notFound' | 'failed';
+    };
 
 /**
  * RF-PROJ2. Um projeto pelo id, para o formulário de edição chegar
@@ -115,7 +122,10 @@ export async function getAdminProject(id: string): Promise<AdminProjectResult> {
 
 type AdminFetchResult =
   | { ok: true; body: unknown }
-  | { ok: false; reason: 'unauthenticated' | 'notFound' | 'failed' };
+  | {
+      ok: false;
+      reason: 'recoverable' | 'unauthenticated' | 'notFound' | 'failed';
+    };
 
 /**
  * A parte que as duas leituras do painel têm em comum: repassar o cookie,
@@ -129,13 +139,20 @@ type AdminFetchResult =
  */
 async function fetchAdmin(path: string): Promise<AdminFetchResult> {
   const apiUrl = process.env.API_URL ?? 'http://localhost:3100';
-  const token = (await cookies()).get(ACCESS_TOKEN_COOKIE);
+  const jar = await cookies();
+  const token = jar.get(ACCESS_TOKEN_COOKIE);
 
   if (!token) {
-    // O proxy já redireciona antes de chegar aqui; isto cobre o caso de a
-    // página ser renderizada por outro caminho, e evita gastar uma chamada
-    // que só pode dar 401.
-    return { ok: false, reason: 'unauthenticated' };
+    // Sem access token, mas com refresh: estado normal de quem passou quinze
+    // minutos fora da tela. Não gasta uma chamada que só pode dar 401, e diz
+    // a quem chama que vale renovar em vez de mandar para o login.
+    //
+    // Renovar aqui não é opção: só Route Handler e Server Action podem gravar
+    // cookie no Next, e isto roda em Server Component.
+    return {
+      ok: false,
+      reason: jar.has(REFRESH_TOKEN_COOKIE) ? 'recoverable' : 'unauthenticated',
+    };
   }
 
   let response: Response;
@@ -150,8 +167,13 @@ async function fetchAdmin(path: string): Promise<AdminFetchResult> {
     return { ok: false, reason: 'failed' };
   }
 
+  // Um access token presente mas recusado é o mesmo caso: vencido ou
+  // inválido, e o refresh decide se ainda há sessão.
   if (response.status === 401) {
-    return { ok: false, reason: 'unauthenticated' };
+    return {
+      ok: false,
+      reason: jar.has(REFRESH_TOKEN_COOKIE) ? 'recoverable' : 'unauthenticated',
+    };
   }
 
   // 404 e 400 são o mesmo desfecho numa busca por id: a rota da API valida o

@@ -26,3 +26,19 @@ export const AUTH_IP_THROTTLE_LIMIT = 10;
 export const PUBLIC_READ_THROTTLE_NAME = 'public-read';
 export const PUBLIC_READ_THROTTLE_TTL_MS = 60 * 1000;
 export const PUBLIC_READ_THROTTLE_LIMIT = 120;
+
+/**
+ * The admin routes, which until now leaned on authentication alone.
+ *
+ * A valid session is the real gate here, so this is not about keeping
+ * strangers out -- it is a ceiling on what a *stolen* session can do before
+ * anyone notices: dumping the listing in a loop, or hammering writes.
+ *
+ * Deliberately generous. The panel is one person clicking, and a burst of
+ * page loads, a reorder run down a long list, or a form saved twice must
+ * never hit it -- a limit that fires during honest work would be worse than
+ * no limit, because it trains the owner to expect failures.
+ */
+export const ADMIN_THROTTLE_NAME = 'admin';
+export const ADMIN_THROTTLE_TTL_MS = 60 * 1000;
+export const ADMIN_THROTTLE_LIMIT = 240;

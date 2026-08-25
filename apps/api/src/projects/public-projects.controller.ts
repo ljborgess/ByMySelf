@@ -1,7 +1,10 @@
 import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { SkipThrottle, ThrottlerGuard } from '@nestjs/throttler';
 import type { PublicProject, PublicProjectSummary } from '@portfolio/shared';
-import { AUTH_IP_THROTTLE_NAME } from '../auth/auth.constants';
+import {
+  ADMIN_THROTTLE_NAME,
+  AUTH_IP_THROTTLE_NAME,
+} from '../auth/auth.constants';
 import { LocaleQueryDto } from './dto/project.dto';
 import { ProjectsService } from './projects.service';
 
@@ -20,7 +23,10 @@ import { ProjectsService } from './projects.service';
  * straight line into Postgres. The strict `auth-ip` bucket is skipped: at 10
  * requests per 15 minutes it would break the site for real visitors.
  */
-@SkipThrottle({ [AUTH_IP_THROTTLE_NAME]: true })
+@SkipThrottle({
+  [AUTH_IP_THROTTLE_NAME]: true,
+  [ADMIN_THROTTLE_NAME]: true,
+})
 @UseGuards(ThrottlerGuard)
 @Controller('projects')
 export class PublicProjectsController {

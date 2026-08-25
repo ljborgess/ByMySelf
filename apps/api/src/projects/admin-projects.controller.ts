@@ -9,7 +9,13 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
+import { SkipThrottle, ThrottlerGuard } from '@nestjs/throttler';
+import {
+  AUTH_IP_THROTTLE_NAME,
+  PUBLIC_READ_THROTTLE_NAME,
+} from '../auth/auth.constants';
 import {
   AdminListQueryDto,
   CreateProjectDto,
@@ -21,10 +27,21 @@ import { Project } from './projects.schema';
 
 /**
  * Every route here sits under /admin, so the global AuthGuard requires a
- * valid access token before any of them run -- there is deliberately no
- * @UseGuards() on this controller. Protection comes from the path, which is
- * what keeps a route added here later from being reachable by accident.
+ * valid access token before any of them run -- that protection comes from
+ * the path, which is what keeps a route added here later from being
+ * reachable by accident.
+ *
+ * The throttler is layered on top of that, not in place of it. Authentication
+ * decides *who* may call these; the `admin` bucket caps how fast a caller
+ * who already got in can go -- which is the only thing standing between a
+ * stolen session and dumping or rewriting the whole listing in a loop. The
+ * ceiling is set well above anything one person clicking can reach.
  */
+@SkipThrottle({
+  [AUTH_IP_THROTTLE_NAME]: true,
+  [PUBLIC_READ_THROTTLE_NAME]: true,
+})
+@UseGuards(ThrottlerGuard)
 @Controller('admin/projects')
 export class AdminProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}

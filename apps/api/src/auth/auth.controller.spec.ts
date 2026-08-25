@@ -1,7 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ThrottlerGuard } from '@nestjs/throttler';
-import type { Request, Response } from 'express';
+import type { CookieOptions, Request, Response } from 'express';
 import { AuthController } from './auth.controller';
+import { env } from '../config/env';
 import { AuthService, LoginResult } from './auth.service';
 
 function mockResponse(): {
@@ -171,6 +172,57 @@ describe('AuthController', () => {
 
       expect(logout).toHaveBeenCalledWith(undefined);
       expect(clearCookie).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  /**
+   * `Domain=localhost` é um domínio de rótulo único, e browsers divergem
+   * sobre aceitá-lo. Quando um descarta o cookie, o login responde 200 sem
+   * sessão nenhuma e o painel volta para a tela de login sem nada explicando
+   * o porquê — foi exatamente o sintoma visto rodando isto localmente.
+   *
+   * Host-only é o que um cookie de loopback deveria ser de qualquer forma:
+   * não há subdomínio com quem compartilhar.
+   */
+  describe('escopo de domínio', () => {
+    it('omits Domain on loopback, leaving the cookie host-only', async () => {
+      // o .env de dev e o de teste usam localhost; se isso mudar, o teste
+      // abaixo estaria medindo outra coisa
+      expect(env.COOKIE_DOMAIN.toLowerCase()).toBe('localhost');
+
+      login.mockResolvedValue(loginResult);
+      const { response, cookie } = mockResponse();
+
+      await controller.login(
+        { email: 'admin@example.com', password: 'correct-password' },
+        response,
+      );
+
+      const options = cookie.mock.calls.map(
+        (call: unknown[]) => call[2] as CookieOptions,
+      );
+      expect(options).not.toHaveLength(0);
+      for (const option of options) {
+        expect(option).not.toHaveProperty('domain');
+      }
+    });
+
+    it('still clears cookies with the same options it set them with', async () => {
+      // opções divergentes entre set e clear fazem o browser tratar como
+      // outro cookie, e o antigo sobreviveria ao logout
+      logout.mockResolvedValue(undefined);
+      const { response, clearCookie } = mockResponse();
+
+      await controller.logout({ cookies: {} } as unknown as Request, response);
+
+      const options = clearCookie.mock.calls.map(
+        (call: unknown[]) => call[1] as CookieOptions,
+      );
+      expect(options).not.toHaveLength(0);
+      for (const option of options) {
+        expect(option).not.toHaveProperty('domain');
+        expect(option).toMatchObject({ httpOnly: true, secure: true });
+      }
     });
   });
 });

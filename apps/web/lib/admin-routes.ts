@@ -11,6 +11,16 @@ import { routing } from '../i18n/routing';
  */
 export const ACCESS_TOKEN_COOKIE = 'access_token';
 
+/**
+ * Idem para `REFRESH_TOKEN_COOKIE` em apps/api/src/auth/auth.constants.ts.
+ *
+ * O painel precisa saber que ele existe — não ler o valor, que é `HttpOnly`.
+ * A presença é o que distingue "não há sessão" de "o access token venceu e a
+ * sessão ainda pode ser recuperada", e são desfechos diferentes: um manda
+ * para o login, o outro renova em silêncio.
+ */
+export const REFRESH_TOKEN_COOKIE = 'refresh_token';
+
 /** Segmento do painel, logo abaixo do prefixo de locale. */
 const ADMIN_SEGMENT = 'admin';
 

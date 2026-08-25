@@ -136,7 +136,30 @@ const securityHeaders = [
   },
 ];
 
+/**
+ * Origens de loopback que o dev server aceita servir.
+ *
+ * O Next 16 recusa com 403 uma requisição a `/_next/*` cujo `Origin` ele não
+ * reconheça — proteção para que um site aberto noutra aba não leia o servidor
+ * de desenvolvimento. O padrão cobre só o host pelo qual o servidor foi
+ * acessado.
+ *
+ * Na prática o `next dev` anuncia vários endereços no boot (loopback e o IP
+ * da máquina), e `localhost` e `127.0.0.1` são o mesmo computador com duas
+ * grafias. Abrir por uma grafia diferente da esperada faz três chunks do app
+ * voltarem 403 — e o efeito é traiçoeiro: a página renderiza inteira, o
+ * formulário aparece, e nada no console avisa. Só que o React nunca hidrata,
+ * então o `onSubmit` não existe e o browser faz o submit nativo do
+ * formulário: um GET com e-mail e senha na query string, sem nunca falar com
+ * a API.
+ *
+ * Vale apenas em desenvolvimento; `next build` ignora este campo.
+ */
+const allowedDevOrigins = ['localhost', '127.0.0.1', '[::1]'];
+
 const nextConfig: NextConfig = {
+  allowedDevOrigins,
+
   /**
    * Emits `.next/standalone`, a self-contained server with only the traced
    * dependencies, so the runtime image does not need node_modules at all
