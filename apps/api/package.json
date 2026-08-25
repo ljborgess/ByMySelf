@@ -17,6 +17,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "ts-node -r tsconfig-paths/register src/database/migrate.ts",
     "db:smoke": "ts-node -r tsconfig-paths/register test/projects.smoke.ts",
+    "db:smoke:users": "ts-node -r tsconfig-paths/register test/users.smoke.ts",
     "cli": "ts-node -r tsconfig-paths/register src/cli/index.ts",
     "test": "jest",
     "test:watch": "jest --watch",
