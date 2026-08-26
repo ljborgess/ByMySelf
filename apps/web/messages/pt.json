@@ -188,6 +188,11 @@
       "projects": "Projetos que construí, com stack e código."
     }
   },
+  "coreFocus": {
+    "label": "Foco principal",
+    "aboutLabel": "Sobre",
+    "focusLabel": "Foco"
+  },
   "carousel": {
     "previous": "Slide anterior",
     "next": "Próximo slide",

@@ -46,6 +46,28 @@ jest.mock('embla-carousel-autoplay', () => ({
   default: () => ({ stop: jest.fn(), play: jest.fn() }),
 }));
 
+// CoreFocusSection renders PinnedFrameSection (GSAP/ScrollTrigger) --
+// mocked the same way pinned-frame-section.test.tsx does. Not strictly
+// exercised while mockProfile.bio stays null (CoreFocusSection bails out
+// before ever mounting it), but mocking defensively here means a future
+// test that sets a bio does not have to remember this dependency exists.
+jest.mock('gsap', () => ({
+  __esModule: true,
+  default: {
+    registerPlugin: jest.fn(),
+    timeline: jest.fn(() => ({
+      scrollTrigger: { kill: jest.fn() },
+      kill: jest.fn(),
+      from: jest.fn(),
+    })),
+  },
+}));
+
+jest.mock('gsap/ScrollTrigger', () => ({
+  __esModule: true,
+  ScrollTrigger: {},
+}));
+
 beforeAll(() => {
   window.matchMedia = jest.fn().mockReturnValue({
     matches: false,
