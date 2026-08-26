@@ -35,13 +35,20 @@ export default async function HomePage() {
   const currentLocale = await locale();
 
   let featuredProjects: PublicProjectListItem[] = [];
+  let projectCount = 0;
 
   try {
     const projects = await getPublishedProjects(currentLocale);
     featuredProjects = projects.filter((project) => project.featured);
+    projectCount = projects.length;
   } catch (error) {
     console.error('Failed to load featured projects for the home page:', error);
   }
 
-  return <HomeContent featuredProjects={featuredProjects} />;
+  return (
+    <HomeContent
+      featuredProjects={featuredProjects}
+      projectCount={projectCount}
+    />
+  );
 }
