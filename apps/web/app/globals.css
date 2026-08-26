@@ -1,146 +1,56 @@
 @import 'tailwindcss';
 
 /*
- * Dark-only (docs/design-aurora-futurista.md, decisão de 2026-08-26):
- * RNF-USA2 (suporte a tema claro/escuro) foi derrubado -- o gradiente
- * aurora animado do fundo só funciona sobre fundo escuro, então manter uma
- * variante clara custaria o efeito principal da direção pra metade das
- * visitas. Chegou a existir uma variante @media (prefers-color-scheme:
- * light) aqui (2026-08-25, direção dark terminal/orb-ui, épico #97); saiu
- * inteira no dia seguinte.
+ * Dark-only (decisão de 2026-08-25, RNF-USA2 derrubado -- ver
+ * docs/design-clone-syahril.md). Fundo preto sólido, sem gradiente: a
+ * referência clonada aqui não usa fundo animado (isso era o épico aurora,
+ * #109, superado em 2026-08-26).
  */
 :root {
   --background: #0a0a0a;
   --foreground: #cccccc;
-  /* Acento sobrevive do épico #97 -- vira a semente da paleta aurora em vez
-     de ser descartado. Alto contraste sobre #0a0a0a (11:1). */
-  --accent: #8bc7ff;
-  /* Roxo e ciano -- usados no anel do ProfileAvatar
-     (components/profile-avatar.tsx). Não é a paleta do fundo aurora (essa
-     é --aurora-blob-1/2/3, logo abaixo) -- pedido do usuário (2026-08-26)
-     foi especificamente sobre a cor de fundo, não sobre o resto do site. */
-  --aurora-purple: #7c5cff;
-  --aurora-cyan: #22d3ee;
-  /* Paleta do fundo aurora: preto com variações de roxo, sem azul/ciano
-     (2026-08-26). Três tons diferentes de roxo, mais escuros que o roxo do
-     anel acima -- violeta profundo, roxo médio, magenta-roxo -- pra dar
-     variedade dentro da família ao invés de repetir o mesmo tom. */
-  --aurora-blob-1: #3b0764;
-  --aurora-blob-2: #6b21a8;
-  --aurora-blob-3: #86198f;
+
+  /*
+   * Paleta multi-cor por seção (docs/design-clone-syahril.md), não uma
+   * --accent única -- cada cor tem um papel específico na referência
+   * clonada, então o nome descreve o papel, não "a cor de destaque". Os
+   * quatro passam AA (4.5:1) contra --background:
+   *   red   5.26:1  gold  9.22:1  green  8.69:1  lime  13.13:1
+   */
+  --highlight-red: #ef4444; /* frame/moldura das seções pinadas, labels tipo "CORE FOCUS" */
+  --highlight-gold: #f59e0b; /* bloco de destaque atrás de palavra-chave no hero */
+  --highlight-green: #22c55e; /* ponto de status pulsante (badge "PROFESSIONAL STATISTICS") */
+  --highlight-lime: #a3e635; /* separador em losango do marquee */
+
+  /* --accent segue existindo, agora como alias do vermelho -- é o que os
+     componentes que ainda não migraram pro papel específico continuam
+     usando (nav, botões, badges) até as issues #126-#134 do épico #123
+     darem a cada seção sua cor certa. */
+  --accent: var(--highlight-red);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-accent: var(--accent);
-  --color-aurora-purple: var(--aurora-purple);
-  --color-aurora-cyan: var(--aurora-cyan);
+  --color-highlight-red: var(--highlight-red);
+  --color-highlight-gold: var(--highlight-gold);
+  --color-highlight-green: var(--highlight-green);
+  --color-highlight-lime: var(--highlight-lime);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  /* Tipografia nova (docs/design-clone-syahril.md): display bold pra
+     headline, serif itálica pra frase de destaque em citação, script pra
+     assinatura pessoal. */
+  --font-display: var(--font-inter-display);
+  --font-serif-italic: var(--font-playfair);
+  --font-script: var(--font-dancing-script);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
-}
-
-/*
- * Fundo aurora (components/aurora-background.tsx) -- direção "aurora
- * futurista" (docs/design-aurora-futurista.md), substitui o OrbGlow do
- * épico #97. `position: fixed` atrás de tudo: ao rolar a página a aurora
- * fica parada (parallax sem esforço). Três blobs, cada um com seu próprio
- * período de movimento pra não sincronizar -- sensação orgânica em vez de
- * mecânica.
- *
- * Opacidade deliberadamente baixa (0.35): texto de qualquer seção da
- * página pode acabar sobre um blob (as seções não têm fundo próprio, só o
- * body), então o contraste --foreground/--background real precisa
- * sobreviver ao blob por baixo, não só ao preto sólido. Auditoria de
- * contraste completa (texto sobre aurora, não só cálculo estático) é o
- * escopo da issue de acessibilidade que fecha o épico (#115) -- este valor
- * é o ponto de partida conservador, não o final necessariamente auditado.
- */
-.aurora-background {
-  position: fixed;
-  inset: 0;
-  z-index: -10;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.aurora-blob {
-  position: absolute;
-  width: 60vmax;
-  height: 60vmax;
-  border-radius: 9999px;
-  filter: blur(120px);
-  opacity: 0.35;
-  /* screen clareia onde os blobs se sobrepõem, em vez de misturar pra um
-     tom lamacento -- é o que dá a sensação de luz em vez de tinta. */
-  mix-blend-mode: screen;
-}
-
-.aurora-blob-1 {
-  top: -10%;
-  left: -10%;
-  background: var(--aurora-blob-1);
-  animation: aurora-drift-1 26s ease-in-out infinite;
-}
-
-.aurora-blob-2 {
-  top: 20%;
-  right: -15%;
-  background: var(--aurora-blob-2);
-  animation: aurora-drift-2 32s ease-in-out infinite;
-}
-
-.aurora-blob-3 {
-  bottom: -20%;
-  left: 20%;
-  background: var(--aurora-blob-3);
-  animation: aurora-drift-3 38s ease-in-out infinite;
-}
-
-@keyframes aurora-drift-1 {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(8%, 6%) scale(1.1);
-  }
-}
-
-@keyframes aurora-drift-2 {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(-10%, 8%) scale(0.95);
-  }
-}
-
-@keyframes aurora-drift-3 {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(6%, -8%) scale(1.05);
-  }
-}
-
-/* Blobs ficam parados na posição inicial em vez de desaparecerem -- perde
-   só o movimento, a aurora continua existindo como fundo estático. */
-@media (prefers-reduced-motion: reduce) {
-  .aurora-blob-1,
-  .aurora-blob-2,
-  .aurora-blob-3 {
-    animation: none;
-  }
 }
 
 /*
