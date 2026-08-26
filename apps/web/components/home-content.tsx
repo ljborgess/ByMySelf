@@ -1,9 +1,11 @@
 import { useTranslations } from 'next-intl';
+import { profile } from '../content/profile';
 import type { PublicProjectListItem } from '../lib/projects';
 import { CoreFocusSection } from './core-focus-section';
 import { FeaturedProjects } from './featured-projects';
 import { HeroSection } from './hero-section';
 import { IntroLoader } from './intro-loader';
+import { Marquee } from './marquee';
 import { SectionCards } from './section-cards';
 import { StatsSection } from './stats-section';
 
@@ -39,6 +41,13 @@ export function HomeContent({
       <CoreFocusSection />
 
       <StatsSection projectCount={projectCount} />
+
+      {/* full-bleed: quebra o max-w-5xl do <main> (app/[locale]/(site)/layout.tsx)
+          de propósito -- é uma faixa decorativa, não conteúdo de leitura,
+          e a referência a estica pela largura inteira do viewport. */}
+      <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen">
+        <Marquee items={profile.skills} />
+      </div>
 
       <FeaturedProjects projects={featuredProjects} />
 

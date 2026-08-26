@@ -54,6 +54,36 @@ body {
 }
 
 /*
+ * Marquee (components/marquee.tsx, docs/design-clone-syahril.md) -- loop
+ * horizontal infinito, CSS puro em vez de GSAP: é uma translação linear
+ * contínua, não precisa de scroll-scrub nem de timeline com estágios, e
+ * CSS é mais barato pra isso (mesmo raciocínio do OrbGlow/aurora dos
+ * épicos anteriores). O componente duplica o conteúdo uma vez (uma "volta"
+ * inteira + a cópia), então -50% sempre fecha o loop sem costura visível,
+ * qualquer que seja a quantidade de itens.
+ */
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  animation: marquee-scroll linear infinite;
+}
+
+/* Estático em vez de removido: perde só o movimento, o conteúdo continua
+   legível parado -- mesmo padrão do resto do projeto. */
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+  }
+}
+
+/*
  * Styles the raw tags react-markdown renders project.content into (h1-h6,
  * p, ul/ol, code, table, ...). Not a Tailwind `prose` plugin -- that would be
  * one more dependency for a single page -- just enough hand-written CSS to
