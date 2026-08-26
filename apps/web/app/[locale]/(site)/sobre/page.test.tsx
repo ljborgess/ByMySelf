@@ -175,5 +175,25 @@ describe('AboutPage', () => {
         screen.getByRole('img', { name: mockProfile.name }),
       ).toBeInTheDocument();
     });
+
+    it('adds a decorative duotone banner when a photo is set', () => {
+      mockProfile.photoUrl = 'https://example.com/foto.jpg';
+
+      const { container } = renderAbout();
+
+      const banner = container.querySelector(
+        'img[src="https://example.com/foto.jpg"].grayscale',
+      );
+      expect(banner).not.toBeNull();
+      // decorative, not a second accessible photo -- the header avatar
+      // right above already carries alt={name}
+      expect(banner).toHaveAttribute('alt', '');
+    });
+
+    it('omits the duotone banner when there is no photo', () => {
+      const { container } = renderAbout();
+
+      expect(container.querySelector('img.grayscale')).toBeNull();
+    });
   });
 });

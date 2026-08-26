@@ -41,6 +41,28 @@ export default function AboutPage() {
         </div>
       </section>
 
+      {profile.photoUrl && (
+        // Foto duotone (#133, docs/design-clone-syahril.md's "Foto duotone"
+        // section) -- full-bleed like the marquee (home-content.tsx), and
+        // aria-hidden: the header's ProfileAvatar right above already
+        // carries the accessible photo (alt={name}), so this is a purely
+        // decorative, enlarged restatement of it, not new information.
+        <div
+          aria-hidden="true"
+          className="relative left-1/2 right-1/2 -mx-[50vw] w-screen"
+        >
+          {/* plain <img>, not next/image -- same reasoning as ProfileAvatar:
+              photoUrl is an arbitrary external URL the owner pastes in */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={profile.photoUrl}
+            alt=""
+            loading="lazy"
+            className="aspect-[21/9] w-full grayscale contrast-125 sm:aspect-[3/1] object-cover"
+          />
+        </div>
+      )}
+
       {profile.bio && (
         <section>
           <h2 className="text-lg font-semibold tracking-tight">
