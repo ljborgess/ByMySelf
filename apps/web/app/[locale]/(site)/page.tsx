@@ -1,9 +1,12 @@
 import type { Metadata } from 'next';
-import { useTranslations } from 'next-intl';
+import { locale } from 'next/root-params';
 import { getTranslations } from 'next-intl/server';
-import { ProfileAvatar } from '../../../components/profile-avatar';
-import { SectionCards } from '../../../components/section-cards';
+import { HomeContent } from '../../../components/home-content';
 import { profile } from '../../../content/profile';
+import {
+  getPublishedProjects,
+  type PublicProjectListItem,
+} from '../../../lib/projects';
 import { withOpenGraph } from '../../../lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -16,39 +19,29 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * The hub: who this is, in one glance, then a direct route into every
- * section.
+ * Thin async wrapper, same split as ProjectsPage/ProjectsList: Next.js does
+ * not support unit-testing `async` Server Components, so the actual
+ * rendering lives in HomeContent (a plain component), which is what
+ * home-content.test.tsx exercises.
  *
- * Plain Tailwind, no Framer Motion. Ambient lighting now comes from the
- * site-wide AuroraBackground (app/[locale]/layout.tsx), not a hero-local
- * element -- this section no longer needs its own glow.
+ * A failed fetch here just means the featured preview does not render --
+ * unlike /projetos, where the fetch failing is the whole page's reason to
+ * exist, this is a decorative preview on a page that works fine without it.
+ * No error message, no retry affordance: silently falling back to "no
+ * featured projects" is indistinguishable from an actually-quiet catalog,
+ * and both are fine states for this section to be in.
  */
-export default function HomePage() {
-  const t = useTranslations('home');
+export default async function HomePage() {
+  const currentLocale = await locale();
 
-  return (
-    <div className="flex flex-col gap-10 sm:gap-14">
-      {/* stacks on mobile, side by side from sm -- a 375px viewport cannot
-          fit an avatar beside two lines of text without cramping both */}
-      <section className="flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-6">
-        <ProfileAvatar name={profile.name} photoUrl={profile.photoUrl} />
+  let featuredProjects: PublicProjectListItem[] = [];
 
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-            {profile.name}
-          </h1>
-          <p className="text-accent mt-2 font-mono text-base sm:text-lg">
-            {profile.headline}
-          </p>
-        </div>
-      </section>
+  try {
+    const projects = await getPublishedProjects(currentLocale);
+    featuredProjects = projects.filter((project) => project.featured);
+  } catch (error) {
+    console.error('Failed to load featured projects for the home page:', error);
+  }
 
-      <section>
-        {/* the cards are the page's navigation, so the heading names them for
-            anyone listing landmarks rather than reading top to bottom */}
-        <h2 className="sr-only">{t('sectionsHeading')}</h2>
-        <SectionCards />
-      </section>
-    </div>
-  );
+  return <HomeContent featuredProjects={featuredProjects} />;
 }
