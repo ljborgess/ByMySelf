@@ -46,21 +46,25 @@ jest.mock('embla-carousel-autoplay', () => ({
   default: () => ({ stop: jest.fn(), play: jest.fn() }),
 }));
 
-// CoreFocusSection renders PinnedFrameSection (GSAP/ScrollTrigger) --
-// mocked the same way pinned-frame-section.test.tsx does. Not strictly
-// exercised while mockProfile.bio stays null (CoreFocusSection bails out
-// before ever mounting it), but mocking defensively here means a future
-// test that sets a bio does not have to remember this dependency exists.
+// CoreFocusSection/StatsSection render PinnedFrameSection (GSAP/ScrollTrigger),
+// IntroLoader/HeroSection build their own plain gsap.timeline() -- mocked the
+// same way pinned-frame-section.test.tsx does. set/to/from all return the
+// timeline itself so chained calls (timeline.set(...).to(...)) do not throw
+// on `undefined` the way the real GSAP API's chaining would not.
 jest.mock('gsap', () => ({
   __esModule: true,
   default: {
     registerPlugin: jest.fn(),
-    timeline: jest.fn(() => ({
-      scrollTrigger: { kill: jest.fn() },
-      kill: jest.fn(),
-      from: jest.fn(),
-      to: jest.fn(),
-    })),
+    timeline: jest.fn(() => {
+      const tl: Record<string, jest.Mock> = {
+        kill: jest.fn(),
+      };
+      tl.set = jest.fn(() => tl);
+      tl.to = jest.fn(() => tl);
+      tl.from = jest.fn(() => tl);
+      tl.scrollTrigger = { kill: jest.fn() } as unknown as jest.Mock;
+      return tl;
+    }),
   },
 }));
 
