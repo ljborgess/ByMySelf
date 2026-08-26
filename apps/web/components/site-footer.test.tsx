@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import { makeProfile } from '../content/profile.fixture';
 import messages from '../messages/pt.json';
@@ -18,6 +19,11 @@ jest.mock('../content/profile', () => ({
   },
 }));
 
+beforeAll(() => {
+  window.matchMedia = jest.fn().mockReturnValue({ matches: false });
+  window.scrollTo = jest.fn();
+});
+
 function renderFooter() {
   return render(
     <NextIntlClientProvider locale="pt" messages={messages}>
@@ -31,6 +37,7 @@ const fullLinks = { ...mockProfile.links };
 describe('SiteFooter', () => {
   beforeEach(() => {
     mockProfile.links = { ...fullLinks };
+    mockProfile.cvUrl = null;
   });
 
   it('renders as a footer landmark', () => {
@@ -95,5 +102,64 @@ describe('SiteFooter', () => {
     expect(
       screen.queryByRole('link', { name: messages.footer.links.email }),
     ).not.toBeInTheDocument();
+  });
+
+  describe('CTA', () => {
+    it('shows the "Hire Me" button as a mailto, matching the profile email', () => {
+      renderFooter();
+
+      const link = screen.getByRole('link', {
+        name: new RegExp(messages.footer.cta.hireMe),
+      });
+
+      expect(link).toHaveAttribute('href', `mailto:${fullLinks.email}`);
+    });
+
+    it('omits the "Hire Me" button when there is no email', () => {
+      mockProfile.links = { ...fullLinks, email: null };
+
+      renderFooter();
+
+      expect(
+        screen.queryByRole('link', {
+          name: new RegExp(messages.footer.cta.hireMe),
+        }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows the CV button when a CV is set', () => {
+      mockProfile.cvUrl = '/cv-pt.pdf';
+
+      renderFooter();
+
+      expect(
+        screen.getByRole('link', {
+          name: new RegExp(messages.about.downloadCv),
+        }),
+      ).toHaveAttribute('href', '/cv-pt.pdf');
+    });
+
+    it('omits the CV button while there is no CV', () => {
+      renderFooter();
+
+      expect(
+        screen.queryByRole('link', {
+          name: new RegExp(messages.about.downloadCv),
+        }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it('scrolls back to the top when the button is clicked', async () => {
+    const user = userEvent.setup();
+    renderFooter();
+
+    await user.click(
+      screen.getByRole('button', { name: messages.footer.backToTop }),
+    );
+
+    expect(window.scrollTo).toHaveBeenCalledWith(
+      expect.objectContaining({ top: 0 }),
+    );
   });
 });
