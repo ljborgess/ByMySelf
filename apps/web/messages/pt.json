@@ -27,7 +27,14 @@
       "github": "GitHub",
       "linkedin": "LinkedIn",
       "email": "E-mail"
-    }
+    },
+    "cta": {
+      "headlineStrong": "Vamos conversar",
+      "headlineDim": "sobre o que posso construir para você.",
+      "support": "Disponível para novas oportunidades e colaborações.",
+      "hireMe": "Contrate-me"
+    },
+    "backToTop": "Voltar ao topo"
   },
   "about": {
     "title": "Sobre",

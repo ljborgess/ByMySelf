@@ -9,24 +9,39 @@ import { profile } from '../content/profile';
  * Renders nothing while `cvUrl` is unset. A button that 404s is worse than an
  * absent one: the visitor blames the site rather than concluding there is no
  * CV to download.
+ *
+ * `variant`: `'filled'` (default) is the Sobre page's primary CTA -- solid,
+ * to stand out from the outline secondary links (repo/demo in
+ * project-detail.tsx). `'outline'` is the footer CTA's (#134) pill style,
+ * paired there with the filled "Hire Me" mailto button -- reused rather than
+ * duplicated, just adapted.
  */
-export function CvDownloadButton({ className = '' }: { className?: string }) {
+export function CvDownloadButton({
+  className = '',
+  variant = 'filled',
+}: {
+  className?: string;
+  variant?: 'filled' | 'outline';
+}) {
   const t = useTranslations('about');
 
   if (!profile.cvUrl) {
     return null;
   }
 
+  // Texto preto no filled: --accent é sempre #8bc7ff (site é dark-only, ver
+  // globals.css), preto rende 11.7:1 de contraste sobre esse azul -- branco
+  // falharia.
+  const variantClassName =
+    variant === 'filled'
+      ? 'bg-accent rounded-md px-4 py-2 font-medium text-black hover:opacity-90'
+      : 'rounded-full border border-white/30 px-5 py-2.5 font-semibold hover:border-accent hover:text-accent';
+
   return (
     <a
       href={profile.cvUrl}
       download
-      // CTA primária da página: preenchida em vez de outline, pra se
-      // destacar dos links secundários (repo/demo em project-detail.tsx,
-      // que continuam outline). Texto preto: --accent é sempre #8bc7ff
-      // (site é dark-only, ver globals.css), preto rende 11.7:1 de
-      // contraste sobre esse azul -- branco falharia.
-      className={`${className} bg-accent inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90`}
+      className={`${className} ${variantClassName} inline-flex items-center gap-2 text-sm transition-colors`}
     >
       {t('downloadCv')}
       <span aria-hidden="true">↓</span>
