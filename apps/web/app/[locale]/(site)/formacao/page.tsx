@@ -38,7 +38,7 @@ export default function EducationPage() {
             return (
               <li
                 key={`${entry.course}-${entry.institution ?? ''}`}
-                className="rounded-lg border border-black/10 p-5 dark:border-white/15"
+                className="rounded-lg border border-white/15 p-5"
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                   <h2 className="text-base font-semibold tracking-tight">
@@ -52,7 +52,7 @@ export default function EducationPage() {
                     <span className="text-sm opacity-70">{period}</span>
                   ) : (
                     entry.endDate === null && (
-                      <span className="rounded-full border border-black/15 px-2 py-0.5 text-xs dark:border-white/20">
+                      <span className="rounded-full border border-white/20 px-2 py-0.5 text-xs">
                         {t('ongoing')}
                       </span>
                     )
@@ -68,7 +68,7 @@ export default function EducationPage() {
                     {entry.technologies.map((technology) => (
                       <li
                         key={technology}
-                        className="rounded-full border border-black/10 px-3 py-1 text-xs dark:border-white/15"
+                        className="rounded-full border border-white/15 px-3 py-1 text-xs"
                       >
                         {technology}
                       </li>

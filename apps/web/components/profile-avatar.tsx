@@ -31,7 +31,7 @@ export function ProfileAvatar({
         // aria-hidden with the name already in the adjacent heading: read out,
         // the initials would just repeat it
         aria-hidden="true"
-        className={`${size} ${className} flex shrink-0 items-center justify-center rounded-full bg-black/5 text-xl font-semibold tracking-wide select-none dark:bg-white/10`}
+        className={`${size} ${className} flex shrink-0 items-center justify-center rounded-full bg-white/10 text-xl font-semibold tracking-wide select-none`}
       >
         {initialsOf(name)}
       </div>

@@ -45,7 +45,7 @@ export function LogoutButton({ loginPath }: { loginPath: string }) {
       type="button"
       onClick={handleClick}
       disabled={leaving}
-      className="hover:border-accent rounded-md border border-black/15 px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-60 dark:border-white/20"
+      className="hover:border-accent rounded-md border border-white/20 px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-60"
     >
       {leaving ? t('leaving') : t('logout')}
     </button>

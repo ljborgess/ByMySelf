@@ -21,7 +21,7 @@ export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="border-b border-black/10 dark:border-white/15">
+    <header className="border-b border-white/15">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
         <Link
           href="/"
@@ -66,7 +66,7 @@ export function SiteHeader() {
         <nav
           id="mobile-nav"
           aria-label={tNav('label')}
-          className="border-t border-black/10 sm:hidden dark:border-white/15"
+          className="border-t border-white/15 sm:hidden"
         >
           <ul className="mx-auto flex max-w-5xl flex-col px-4 py-2">
             {NAVIGATION_SECTIONS.map((section) => (

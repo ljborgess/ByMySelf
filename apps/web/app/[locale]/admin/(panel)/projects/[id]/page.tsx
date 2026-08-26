@@ -82,7 +82,7 @@ export default async function EditAdminProjectPage({
           erro: parece um projeto sem dados, e salvar apagaria o que existe.
         */
         <div className="flex flex-col items-start gap-3">
-          <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+          <p role="alert" className="text-sm text-red-400">
             {t('loadError')}
           </p>
           <Link

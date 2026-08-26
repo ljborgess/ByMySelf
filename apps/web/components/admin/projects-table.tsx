@@ -18,12 +18,9 @@ import { ConfirmDialog } from './confirm-dialog';
  * não separa verde de âmbar.
  */
 const STATUS_STYLES: Record<ProjectStatus, string> = {
-  completed:
-    'border-emerald-600/30 bg-emerald-600/10 text-emerald-800 dark:text-emerald-300',
-  in_progress:
-    'border-amber-600/30 bg-amber-600/10 text-amber-800 dark:text-amber-300',
-  archived:
-    'border-black/15 bg-black/5 text-black/60 dark:border-white/15 dark:bg-white/5 dark:text-white/50',
+  completed: 'border-emerald-600/30 bg-emerald-600/10 text-emerald-300',
+  in_progress: 'border-amber-600/30 bg-amber-600/10 text-amber-300',
+  archived: 'border-white/15 bg-white/5 text-white/50',
 };
 
 /**
@@ -191,7 +188,7 @@ export function AdminProjectsTable({
         {/* Ponto de entrada para criar sem precisar decorar URL (user story 3) */}
         <Link
           href={newProjectPath}
-          className="hover:border-accent rounded-md border border-black/15 px-4 py-2 text-sm font-medium transition-colors dark:border-white/20"
+          className="hover:border-accent rounded-md border border-white/20 px-4 py-2 text-sm font-medium transition-colors"
         >
           {t('create')}
         </Link>
@@ -202,13 +199,13 @@ export function AdminProjectsTable({
         próxima tentativa dá certo, e aparece com a tabela ainda na tela.
       */}
       {actionError && (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="text-sm text-red-400">
           {actionError}
         </p>
       )}
 
       {failed ? (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="text-sm text-red-400">
           {t('error')}
         </p>
       ) : projects.length === 0 ? (
@@ -217,7 +214,7 @@ export function AdminProjectsTable({
           é informação, "não deu para carregar" é problema, e uma tabela vazia
           não diz qual dos dois aconteceu.
         */
-        <div className="rounded-lg border border-dashed border-black/15 p-8 text-center dark:border-white/20">
+        <div className="rounded-lg border border-dashed border-white/20 p-8 text-center">
           <p className="text-sm opacity-70">{t('empty')}</p>
           <Link
             href={newProjectPath}
@@ -229,10 +226,10 @@ export function AdminProjectsTable({
       ) : (
         // overflow-x no container e não no body: a tabela é larga em telas
         // pequenas, e a página inteira rolando lateralmente é pior
-        <div className="overflow-x-auto rounded-lg border border-black/10 dark:border-white/15">
+        <div className="overflow-x-auto rounded-lg border border-white/15">
           <table className="w-full border-collapse text-sm">
             <thead>
-              <tr className="border-b border-black/10 text-left dark:border-white/15">
+              <tr className="border-b border-white/15 text-left">
                 <th className="px-4 py-3 font-medium">{t('columns.order')}</th>
                 <th className="px-4 py-3 font-medium">{t('columns.title')}</th>
                 <th className="px-4 py-3 font-medium">{t('columns.status')}</th>
@@ -246,7 +243,7 @@ export function AdminProjectsTable({
               {projects.map((project, index) => (
                 <tr
                   key={project.id}
-                  className="border-b border-black/5 last:border-0 dark:border-white/10"
+                  className="border-b border-white/10 last:border-0"
                 >
                   <td className="px-4 py-3">
                     {/*
@@ -320,7 +317,7 @@ export function AdminProjectsTable({
                         aria-label={t('deleteNamed', {
                           title: project.title.pt,
                         })}
-                        className="text-red-700 underline underline-offset-4 hover:opacity-70 disabled:opacity-40 dark:text-red-400"
+                        className="text-red-400 underline underline-offset-4 hover:opacity-70 disabled:opacity-40"
                       >
                         {t('delete')}
                       </button>
@@ -372,7 +369,7 @@ function MoveButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="hover:border-accent rounded border border-black/15 px-2 py-0.5 text-xs leading-none transition-colors disabled:opacity-30 dark:border-white/20"
+      className="hover:border-accent rounded border border-white/20 px-2 py-0.5 text-xs leading-none transition-colors disabled:opacity-30"
     >
       {/*
         A seta é decoração: quem usa leitor de tela recebe a mesma informação

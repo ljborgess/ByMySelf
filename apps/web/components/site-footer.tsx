@@ -41,7 +41,7 @@ export function SiteFooter() {
   const links = footerLinks();
 
   return (
-    <footer className="mt-auto border-t border-black/10 dark:border-white/15">
+    <footer className="mt-auto border-t border-white/15">
       <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-6 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <p className="opacity-70">
           © {new Date().getFullYear()} {profile.name}. {t('rights')}

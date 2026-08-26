@@ -1,19 +1,24 @@
 @import 'tailwindcss';
 
 /*
- * Dark-first (RNF-USA2, decisão de 2026-08-25 — ver
- * docs/design-orb-ui-reference.md): a paleta escura é a referência de
- * design, então vive em :root sem media query. A clara é a variante
- * derivada, dentro de @media (prefers-color-scheme: light) -- inverso do
- * que havia antes. O comportamento de seguir a preferência do SO não muda;
- * só troca qual paleta é o fallback quando nenhuma preferência é detectada.
+ * Dark-only (docs/design-aurora-futurista.md, decisão de 2026-08-26):
+ * RNF-USA2 (suporte a tema claro/escuro) foi derrubado -- o gradiente
+ * aurora animado do fundo só funciona sobre fundo escuro, então manter uma
+ * variante clara custaria o efeito principal da direção pra metade das
+ * visitas. Chegou a existir uma variante @media (prefers-color-scheme:
+ * light) aqui (2026-08-25, direção dark terminal/orb-ui, épico #97); saiu
+ * inteira no dia seguinte.
  */
 :root {
   --background: #0a0a0a;
   --foreground: #cccccc;
-  /* Acento (docs/design-orb-ui-reference.md): mesmo azul-claro do orb-ui,
-     alto contraste sobre #0a0a0a. */
+  /* Acento sobrevive do épico #97 -- vira a semente da paleta aurora em vez
+     de ser descartado. Alto contraste sobre #0a0a0a (11:1). */
   --accent: #8bc7ff;
+  /* Roxo e ciano -- os outros dois tons dos blobs do fundo aurora
+     (.aurora-blob, mais abaixo). Só usados ali por enquanto. */
+  --aurora-purple: #7c5cff;
+  --aurora-cyan: #22d3ee;
 }
 
 @theme inline {
@@ -24,61 +29,107 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    --background: #ffffff;
-    --foreground: #171717;
-    /* Azul mais escuro que o acento dark: #8bc7ff falha contraste AA sobre
-       branco. Cobalt do tema radial do orb-ui (docs/design-orb-ui-reference.md). */
-    --accent: #0457c2;
-  }
-}
-
-/*
- * OrbGlow (components/orb-glow.tsx) -- esfera decorativa do hero, direção
- * dark terminal (docs/design-orb-ui-reference.md). O orb-ui original anima
- * via requestAnimationFrame pra suavizar um sinal de volume real; aqui não
- * há sinal nenhum pra reagir, então um loop CSS ambiente contínuo basta --
- * mais barato e sem exigir componente client.
- */
-@keyframes orb-glow-pulse {
-  0%,
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 40px 10px color-mix(in srgb, var(--accent) 35%, transparent);
-  }
-  50% {
-    transform: scale(1.06);
-    box-shadow: 0 0 60px 18px color-mix(in srgb, var(--accent) 55%, transparent);
-  }
-}
-
-.orb-glow {
-  background: radial-gradient(
-    circle at 35% 30%,
-    color-mix(in srgb, var(--accent) 70%, white),
-    var(--accent) 60%,
-    color-mix(in srgb, var(--accent) 40%, black) 100%
-  );
-  animation: orb-glow-pulse 4s ease-in-out infinite;
-}
-
-/*
- * Estático em vez de removido: sem o pulso, o glow ainda precisa existir
- * fixo -- senão a esfera perde o elemento central do design pra quem
- * desativou animação, em vez de só perder o movimento.
- */
-@media (prefers-reduced-motion: reduce) {
-  .orb-glow {
-    animation: none;
-    box-shadow: 0 0 40px 10px color-mix(in srgb, var(--accent) 35%, transparent);
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/*
+ * Fundo aurora (components/aurora-background.tsx) -- direção "aurora
+ * futurista" (docs/design-aurora-futurista.md), substitui o OrbGlow do
+ * épico #97. `position: fixed` atrás de tudo: ao rolar a página a aurora
+ * fica parada (parallax sem esforço). Três blobs, cada um com seu próprio
+ * período de movimento pra não sincronizar -- sensação orgânica em vez de
+ * mecânica.
+ *
+ * Opacidade deliberadamente baixa (0.35): texto de qualquer seção da
+ * página pode acabar sobre um blob (as seções não têm fundo próprio, só o
+ * body), então o contraste --foreground/--background real precisa
+ * sobreviver ao blob por baixo, não só ao preto sólido. Auditoria de
+ * contraste completa (texto sobre aurora, não só cálculo estático) é o
+ * escopo da issue de acessibilidade que fecha o épico (#115) -- este valor
+ * é o ponto de partida conservador, não o final necessariamente auditado.
+ */
+.aurora-background {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.aurora-blob {
+  position: absolute;
+  width: 60vmax;
+  height: 60vmax;
+  border-radius: 9999px;
+  filter: blur(120px);
+  opacity: 0.35;
+  /* screen clareia onde os blobs se sobrepõem, em vez de misturar pra um
+     tom lamacento -- é o que dá a sensação de luz em vez de tinta. */
+  mix-blend-mode: screen;
+}
+
+.aurora-blob-1 {
+  top: -10%;
+  left: -10%;
+  background: var(--accent);
+  animation: aurora-drift-1 26s ease-in-out infinite;
+}
+
+.aurora-blob-2 {
+  top: 20%;
+  right: -15%;
+  background: var(--aurora-purple);
+  animation: aurora-drift-2 32s ease-in-out infinite;
+}
+
+.aurora-blob-3 {
+  bottom: -20%;
+  left: 20%;
+  background: var(--aurora-cyan);
+  animation: aurora-drift-3 38s ease-in-out infinite;
+}
+
+@keyframes aurora-drift-1 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(8%, 6%) scale(1.1);
+  }
+}
+
+@keyframes aurora-drift-2 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-10%, 8%) scale(0.95);
+  }
+}
+
+@keyframes aurora-drift-3 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(6%, -8%) scale(1.05);
+  }
+}
+
+/* Blobs ficam parados na posição inicial em vez de desaparecerem -- perde
+   só o movimento, a aurora continua existindo como fundo estático. */
+@media (prefers-reduced-motion: reduce) {
+  .aurora-blob-1,
+  .aurora-blob-2,
+  .aurora-blob-3 {
+    animation: none;
+  }
 }
 
 /*

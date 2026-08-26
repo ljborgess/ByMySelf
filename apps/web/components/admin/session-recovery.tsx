@@ -63,11 +63,7 @@ export function SessionRecovery({ loginPath }: { loginPath: string }) {
         sem isso quem usa leitor de tela ouviria silêncio durante a espera e
         depois se veria noutra página sem explicação.
       */}
-      <p
-        aria-live="polite"
-        aria-busy="true"
-        className="text-sm text-black/70 dark:text-white/70"
-      >
+      <p aria-live="polite" aria-busy="true" className="text-sm text-white/70">
         {t('restoring')}
       </p>
     </main>
