@@ -1,3 +1,5 @@
+'use client';
+
 import { useTranslations } from 'next-intl';
 import { Link } from '../i18n/navigation';
 import type { PublicProjectListItem } from '../lib/projects';
@@ -12,6 +14,13 @@ import { Carousel } from './carousel';
  * (page.tsx) já decide o que "falhou ao carregar" significa aqui (nada --
  * ver o comentário lá), então este componente só sabe renderizar o que
  * recebeu.
+ *
+ * 'use client': Carousel é Client Component, e `getKey`/`renderItem` logo
+ * abaixo são funções -- Server Component não pode passar função como prop
+ * pra Client Component (nada que cruza essa fronteira pode, já que props
+ * são serializadas). Pego rodando de verdade, não pelos testes unitários:
+ * jsdom renderiza isolado e nunca exercita o split real servidor/cliente
+ * do RSC (ver PR do #115).
  */
 export function FeaturedProjects({
   projects,

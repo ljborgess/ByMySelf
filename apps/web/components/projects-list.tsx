@@ -1,3 +1,5 @@
+'use client';
+
 import { useTranslations } from 'next-intl';
 import { Link } from '../i18n/navigation';
 import type { PublicProjectListItem } from '../lib/projects';
@@ -15,6 +17,14 @@ import { Carousel } from './carousel';
  * preview in featured-projects.tsx) in the Carousel from #112 --
  * docs/design-aurora-futurista.md replaces the static grid this used to be
  * with the carousel as the primary listing here.
+ *
+ * 'use client': Carousel is a Client Component, and `getKey`/`renderItem`
+ * below are functions -- Server Components cannot pass functions as props
+ * to a Client Component (nothing crossing that boundary can be, since
+ * props are serialized). Caught live, not by the unit tests: jsdom renders
+ * this in isolation and never exercises the actual RSC server/client
+ * split, so the failure only showed up running the real dev server (see
+ * #115's PR).
  */
 export function ProjectsList({
   projects,

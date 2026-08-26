@@ -130,7 +130,7 @@ describe('Carousel', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('stops autoplay when prefers-reduced-motion is active', () => {
+  it('stops autoplay when prefers-reduced-motion is already active on mount', () => {
     mockMatchMedia(true);
 
     renderCarousel();
@@ -139,12 +139,29 @@ describe('Carousel', () => {
     expect(mockAutoplay.play).not.toHaveBeenCalled();
   });
 
-  it('keeps autoplay running when there is no motion preference', () => {
+  it('does not call play() on mount -- the plugin already autoplays by default', () => {
+    // Calling play() proactively on mount raced the plugin's own init in
+    // the real embla-carousel-autoplay (fixed after being caught running
+    // the real dev server, not by this suite's mocked Autoplay -- see
+    // #115's PR). This test guards the fix: no preference means leaving
+    // the plugin's default autostart alone, not re-triggering it.
     mockMatchMedia(false);
 
     renderCarousel();
 
-    expect(mockAutoplay.play).toHaveBeenCalled();
+    expect(mockAutoplay.play).not.toHaveBeenCalled();
     expect(mockAutoplay.stop).not.toHaveBeenCalled();
+  });
+
+  it('reacts to the preference changing later, while the page is open', () => {
+    const listeners = mockMatchMedia(false);
+
+    renderCarousel();
+    listeners.forEach((listener) => listener());
+
+    // By the time a *later* toggle fires, mount has long finished, so
+    // calling play() here does not race anything -- only the live-change
+    // path calls play(), never the mount path (previous test).
+    expect(mockAutoplay.play).toHaveBeenCalledTimes(1);
   });
 });
