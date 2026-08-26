@@ -16,9 +16,9 @@ function initialsOf(name: string): string {
  *
  * Plain circle, no ring: the gradient ring from the aurora epic (#109)
  * referenced tokens (--aurora-purple/--aurora-cyan) that don't exist
- * anymore (docs/design-clone-syahril.md, #124). The clone's own photo
- * treatment (duotone, full-bleed) is #133's job, on the Sobre page --
- * this component stays a plain, working avatar until then.
+ * anymore (docs/design-clone-syahril.md, #124). The clone's own duotone,
+ * full-bleed photo treatment lives on the Sobre page instead (#133) --
+ * this stays the plain, compact identity photo used everywhere else.
  */
 export function ProfileAvatar({
   name,
