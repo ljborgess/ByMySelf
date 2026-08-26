@@ -1,6 +1,7 @@
 import { useTranslations } from 'next-intl';
 import { profile } from '../content/profile';
 import type { PublicProjectListItem } from '../lib/projects';
+import { CoreFocusSection } from './core-focus-section';
 import { FeaturedProjects } from './featured-projects';
 import { ProfileAvatar } from './profile-avatar';
 import { SectionCards } from './section-cards';
@@ -42,6 +43,8 @@ export function HomeContent({
           </p>
         </div>
       </section>
+
+      <CoreFocusSection />
 
       <FeaturedProjects projects={featuredProjects} />
 
