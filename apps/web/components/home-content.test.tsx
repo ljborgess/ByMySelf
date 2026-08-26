@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { makeProfile } from '../content/profile.fixture';
 import type { PublicProjectListItem } from '../lib/projects';
@@ -17,33 +17,6 @@ jest.mock('../content/profile', () => ({
   get profile() {
     return mockProfile;
   },
-}));
-
-// The featured-projects carousel renders Carousel (embla-carousel-react),
-// which needs ResizeObserver -- not implemented in jsdom. Mocked the same
-// way carousel.test.tsx does -- the fake api object has to be a stable
-// module-level reference, not created fresh inside the factory: Carousel's
-// effect depends on `[emblaApi]`, so a new object identity every render
-// re-triggers it every render, which loops forever ("Maximum update depth
-// exceeded") since the effect itself calls setState.
-const mockEmblaApi = {
-  scrollPrev: jest.fn(),
-  scrollNext: jest.fn(),
-  scrollTo: jest.fn(),
-  scrollSnapList: jest.fn(() => []),
-  selectedScrollSnap: jest.fn(() => 0),
-  on: jest.fn(),
-  off: jest.fn(),
-};
-
-jest.mock('embla-carousel-react', () => ({
-  __esModule: true,
-  default: () => [jest.fn(), mockEmblaApi],
-}));
-
-jest.mock('embla-carousel-autoplay', () => ({
-  __esModule: true,
-  default: () => ({ stop: jest.fn(), play: jest.fn() }),
 }));
 
 // CoreFocusSection/StatsSection render PinnedFrameSection (GSAP/ScrollTrigger),
@@ -230,12 +203,13 @@ describe('HomeContent', () => {
       ).toHaveAttribute('href', '/pt/projetos/dois');
     });
 
-    it('exposes the carousel as a labelled landmark', () => {
-      renderHome([project()]);
+    it('renders one card per featured project', () => {
+      renderHome([project({ id: '1' }), project({ id: '2', slug: 'dois' })]);
 
-      expect(
-        screen.getByRole('group', { name: messages.home.featuredHeading }),
-      ).toBeInTheDocument();
+      const list = screen.getByRole('list', {
+        name: messages.home.featuredHeading,
+      });
+      expect(within(list).getAllByRole('listitem')).toHaveLength(2);
     });
   });
 });
