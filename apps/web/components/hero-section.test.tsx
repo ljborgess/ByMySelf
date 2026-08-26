@@ -11,6 +11,7 @@ jest.mock('gsap', () => ({
     timeline: jest.fn(() => ({
       from: jest.fn(),
       kill: jest.fn(),
+      revert: jest.fn(),
     })),
   },
 }));

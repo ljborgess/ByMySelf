@@ -46,8 +46,16 @@ export function HeroSection() {
       ease: 'power2.out',
     });
 
+    // .revert(), not .kill() (#135 audit): React 18 Strict Mode
+    // double-invokes this effect in dev (mount, cleanup, mount again,
+    // synchronously). .kill() stops the tween but leaves its .from()
+    // starting values (opacity: 0) as inline styles; the second mount's
+    // .from() then reads that as the element's "natural" end state and
+    // tweens 0 -> 0 -- it reports onComplete/progress 1 while the content
+    // stays invisible forever. .revert() strips the inline styles it
+    // applied instead of freezing them, so the remount starts clean.
     return () => {
-      timeline.kill();
+      timeline.revert();
     };
   }, []);
 
@@ -74,9 +82,15 @@ export function HeroSection() {
 
         <div>
           <h1 className="font-display relative inline-block text-4xl font-black tracking-tight sm:text-6xl">
+            {/* opacity-35, not the 80 this started at (#135 contrast audit):
+                the bar's height band crosses the glyphs' own ink, so its
+                rendered color is what --foreground text sits on top of --
+                at 80% that measured ~2:1 against --foreground, well under
+                WCAG AA's 4.5:1. 35% keeps the highlighter look while
+                landing safely above it. */}
             <span
               aria-hidden="true"
-              className="bg-highlight-gold absolute inset-x-[-0.15em] top-[55%] -z-10 h-[0.45em] -translate-y-1/2 opacity-80"
+              className="bg-highlight-gold absolute inset-x-[-0.15em] top-[55%] -z-10 h-[0.45em] -translate-y-1/2 opacity-35"
             />
             {profile.name}
           </h1>
@@ -97,7 +111,14 @@ export function HeroSection() {
           type="button"
           onClick={scrollToNext}
           aria-label={t('scrollHint')}
-          className="border-highlight-red hover:bg-highlight-red flex size-11 items-center justify-center rounded-full border transition-colors"
+          // hover:text-black alongside hover:bg-highlight-red (#135
+          // contrast audit): the arrow's default text color is
+          // --foreground, which against a solid highlight-red hover
+          // background measures ~2.3:1 -- under WCAG AA's 4.5:1 even
+          // though it's an aria-hidden glyph (aria-hidden hides it from
+          // assistive tech, not from sighted eyes, so the contrast rule
+          // still applies). Black on that red is ~5.6:1.
+          className="border-highlight-red hover:bg-highlight-red hover:text-black flex size-11 items-center justify-center rounded-full border transition-colors"
         >
           <span aria-hidden="true">↓</span>
         </button>

@@ -66,9 +66,17 @@ export function PinnedFrameSection({
 
     onSetup?.(timeline, container);
 
+    // .revert(), not .kill(), on the timeline (#135 audit -- same fix as
+    // hero-section.tsx): React 18 Strict Mode double-invokes this effect in
+    // dev, and killing a .from()-based tween (CoreFocusSection/StatsSection
+    // both use one in onSetup) leaves its starting values as inline styles;
+    // the second mount's .from() then reads that corrupted state as the
+    // "natural" end target and animates 0 -> 0 forever, reporting
+    // onComplete while the content stays invisible. .revert() strips the
+    // inline styles instead of freezing them.
     return () => {
       timeline.scrollTrigger?.kill();
-      timeline.kill();
+      timeline.revert();
     };
     // onSetup deliberately left out of the deps array: it is expected to
     // be a stable function per call site (defined once per section, not

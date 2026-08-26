@@ -16,6 +16,7 @@ jest.mock('gsap', () => ({
     timeline: jest.fn(() => ({
       scrollTrigger: { kill: jest.fn() },
       kill: jest.fn(),
+      revert: jest.fn(),
     })),
   },
 }));
@@ -102,7 +103,7 @@ describe('PinnedFrameSection', () => {
     );
   });
 
-  it('kills the ScrollTrigger and the timeline on unmount, so route changes do not leak listeners', () => {
+  it('kills the ScrollTrigger and reverts the timeline on unmount, so route changes do not leak listeners or leave corrupted inline styles', () => {
     mockMatchMedia(false);
     const { unmount } = render(
       <PinnedFrameSection>
@@ -112,13 +113,16 @@ describe('PinnedFrameSection', () => {
 
     const timelineInstance = mockedGsap.timeline.mock.results[0].value as {
       scrollTrigger: { kill: jest.Mock };
-      kill: jest.Mock;
+      revert: jest.Mock;
     };
 
     unmount();
 
     expect(timelineInstance.scrollTrigger.kill).toHaveBeenCalled();
-    expect(timelineInstance.kill).toHaveBeenCalled();
+    // .revert(), not .kill() (#135): killing a .from()-based tween leaves
+    // its starting values as inline styles, which a remount's own .from()
+    // then reads as the "natural" end state -- see pinned-frame-section.tsx.
+    expect(timelineInstance.revert).toHaveBeenCalled();
   });
 
   it('registers the ScrollTrigger plugin at module load', () => {

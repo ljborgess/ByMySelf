@@ -81,17 +81,17 @@ export function CoreFocusSection() {
 
         <div data-stage className="mt-8 grid gap-8 sm:grid-cols-2">
           <div>
-            <h3 className="text-sm font-semibold tracking-wide uppercase opacity-70">
+            <h2 className="text-sm font-semibold tracking-wide uppercase opacity-70">
               {t('aboutLabel')}
-            </h3>
+            </h2>
             <p className="mt-2 text-sm whitespace-pre-line opacity-80">
               {aboutText}
             </p>
           </div>
           <div>
-            <h3 className="text-sm font-semibold tracking-wide uppercase opacity-70">
+            <h2 className="text-sm font-semibold tracking-wide uppercase opacity-70">
               {t('focusLabel')}
-            </h3>
+            </h2>
             <p className="mt-2 text-sm whitespace-pre-line opacity-80">
               {focusText}
             </p>

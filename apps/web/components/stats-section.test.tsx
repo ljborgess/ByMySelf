@@ -11,6 +11,7 @@ jest.mock('gsap', () => ({
     timeline: jest.fn(() => ({
       scrollTrigger: { kill: jest.fn() },
       kill: jest.fn(),
+      revert: jest.fn(),
       to: jest.fn(),
     })),
   },

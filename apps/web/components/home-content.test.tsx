@@ -31,6 +31,7 @@ jest.mock('gsap', () => ({
     timeline: jest.fn(() => {
       const tl: Record<string, jest.Mock> = {
         kill: jest.fn(),
+        revert: jest.fn(),
       };
       tl.set = jest.fn(() => tl);
       tl.to = jest.fn(() => tl);

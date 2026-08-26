@@ -29,9 +29,10 @@ export function CvDownloadButton({
     return null;
   }
 
-  // Texto preto no filled: --accent é sempre #8bc7ff (site é dark-only, ver
-  // globals.css), preto rende 11.7:1 de contraste sobre esse azul -- branco
-  // falharia.
+  // Texto preto no filled: --accent é var(--highlight-red) (#ef4444, ver
+  // globals.css) desde o épico #123 -- preto rende ~5.6:1 de contraste
+  // sobre esse vermelho (WCAG AA precisa de 4.5:1), branco cairia pra
+  // ~3.7:1 e falharia.
   const variantClassName =
     variant === 'filled'
       ? 'bg-accent rounded-md px-4 py-2 font-medium text-black hover:opacity-90'
