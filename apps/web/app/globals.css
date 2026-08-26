@@ -27,6 +27,14 @@
      usando (nav, botões, badges) até as issues #126-#134 do épico #123
      darem a cada seção sua cor certa. */
   --accent: var(--highlight-red);
+
+  /* Altura da ilha flutuante do header (components/site-header.tsx) mais o
+     respiro acima dela. O header é `fixed`, então sai do fluxo: sem essa
+     folga no topo do <main>, a primeira linha de cada página nasce por
+     baixo da barra. PinnedFrameSection não usa este valor -- mede o
+     elemento real em runtime, que é o que mantém os dois em sincronia se
+     a barra mudar de tamanho. */
+  --header-offset: 5.5rem;
 }
 
 @theme inline {

@@ -19,9 +19,9 @@ jest.mock('../content/profile', () => ({
   },
 }));
 
-// CoreFocusSection/StatsSection render PinnedFrameSection (GSAP/ScrollTrigger),
+// CoreFocusSection/StatsSection render PinnedSection (GSAP/ScrollTrigger),
 // IntroLoader/HeroSection build their own plain gsap.timeline() -- mocked the
-// same way pinned-frame-section.test.tsx does. set/to/from all return the
+// same way pinned-section.test.tsx does. set/to/from all return the
 // timeline itself so chained calls (timeline.set(...).to(...)) do not throw
 // on `undefined` the way the real GSAP API's chaining would not.
 jest.mock('gsap', () => ({

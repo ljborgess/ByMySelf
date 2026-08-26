@@ -36,11 +36,20 @@ export function HomeContent({
     <div className="flex flex-col gap-10 sm:gap-14">
       <IntroLoader />
 
-      <HeroSection />
+      {/* data-section-label alimenta a trilha lateral (ScrollProgress).
+          Rótulos curtos de propósito: a trilha os escreve na vertical, e
+          "Projetos em destaque" de pé ocuparia meia tela. */}
+      <div data-section-label={t('sectionLabels.intro')}>
+        <HeroSection />
+      </div>
 
-      <CoreFocusSection />
+      <div data-section-label={t('sectionLabels.focus')}>
+        <CoreFocusSection />
+      </div>
 
-      <StatsSection projectCount={projectCount} />
+      <div data-section-label={t('sectionLabels.stats')}>
+        <StatsSection projectCount={projectCount} />
+      </div>
 
       {/* full-bleed: quebra o max-w-5xl do <main> (app/[locale]/(site)/layout.tsx)
           de propósito -- é uma faixa decorativa, não conteúdo de leitura,
@@ -49,7 +58,9 @@ export function HomeContent({
         <Marquee items={profile.skills} />
       </div>
 
-      <FeaturedProjects projects={featuredProjects} />
+      <div data-section-label={t('sectionLabels.projects')}>
+        <FeaturedProjects projects={featuredProjects} />
+      </div>
 
       <section>
         {/* the cards are the page's navigation, so the heading names them for

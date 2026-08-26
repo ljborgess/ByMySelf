@@ -1,10 +1,10 @@
 import { render } from '@testing-library/react';
 import gsap from 'gsap';
-import { PinnedFrameSection } from './pinned-frame-section';
+import { PinnedSection } from './pinned-section';
 
 // Mock functions are created *inside* the factory, not referenced from
 // outer `const`s: jest.mock is hoisted above module-level declarations, and
-// pinned-frame-section.tsx calls gsap.registerPlugin at module scope (not
+// pinned-section.tsx calls gsap.registerPlugin at module scope (not
 // inside the component) -- so the mock has to be self-contained by the
 // time that import runs, or it throws "Cannot access ... before
 // initialization". Read the mocks back off the imported `gsap` module
@@ -35,12 +35,12 @@ function mockMatchMedia(reducedMotion: boolean) {
   window.matchMedia = jest.fn().mockReturnValue({ matches: reducedMotion });
 }
 
-describe('PinnedFrameSection', () => {
+describe('PinnedSection', () => {
   beforeEach(() => {
     mockedGsap.timeline.mockClear();
     // registerPlugin is NOT cleared here: it runs once at module load
     // (top-level `if (typeof window !== 'undefined')` in
-    // pinned-frame-section.tsx), not per render -- Node only evaluates the
+    // pinned-section.tsx), not per render -- Node only evaluates the
     // module once across this whole file, so it is only ever called on
     // whichever test happens to trigger the first import.
   });
@@ -48,32 +48,34 @@ describe('PinnedFrameSection', () => {
   it('renders children inside the frame', () => {
     mockMatchMedia(false);
     const { getByText } = render(
-      <PinnedFrameSection>
+      <PinnedSection>
         <p>conteúdo</p>
-      </PinnedFrameSection>,
+      </PinnedSection>,
     );
 
     expect(getByText('conteúdo')).toBeInTheDocument();
   });
 
-  it('draws the four corner markers, hidden from the accessibility tree', () => {
+  it('adds no decoration of its own, leaving all styling to the caller', () => {
     mockMatchMedia(false);
     const { container } = render(
-      <PinnedFrameSection>
+      <PinnedSection>
         <p>conteúdo</p>
-      </PinnedFrameSection>,
+      </PinnedSection>,
     );
 
-    const markers = container.querySelectorAll('[aria-hidden="true"]');
-    expect(markers).toHaveLength(4);
+    // The red frame and its four corner markers were removed along with
+    // the "Frame" in the old name -- this is a pure behaviour wrapper now,
+    // so it must not smuggle decorative nodes back in.
+    expect(container.querySelectorAll('[aria-hidden="true"]')).toHaveLength(0);
   });
 
   it('never calls gsap.timeline (so never pins) under prefers-reduced-motion', () => {
     mockMatchMedia(true);
     render(
-      <PinnedFrameSection>
+      <PinnedSection>
         <p>conteúdo</p>
-      </PinnedFrameSection>,
+      </PinnedSection>,
     );
 
     expect(mockedGsap.timeline).not.toHaveBeenCalled();
@@ -83,9 +85,9 @@ describe('PinnedFrameSection', () => {
     mockMatchMedia(false);
     const onSetup = jest.fn();
     render(
-      <PinnedFrameSection onSetup={onSetup}>
+      <PinnedSection onSetup={onSetup}>
         <p>conteúdo</p>
-      </PinnedFrameSection>,
+      </PinnedSection>,
     );
 
     expect(mockedGsap.timeline).toHaveBeenCalledWith(
@@ -106,9 +108,9 @@ describe('PinnedFrameSection', () => {
   it('kills the ScrollTrigger and reverts the timeline on unmount, so route changes do not leak listeners or leave corrupted inline styles', () => {
     mockMatchMedia(false);
     const { unmount } = render(
-      <PinnedFrameSection>
+      <PinnedSection>
         <p>conteúdo</p>
-      </PinnedFrameSection>,
+      </PinnedSection>,
     );
 
     const timelineInstance = mockedGsap.timeline.mock.results[0].value as {
@@ -121,7 +123,7 @@ describe('PinnedFrameSection', () => {
     expect(timelineInstance.scrollTrigger.kill).toHaveBeenCalled();
     // .revert(), not .kill() (#135): killing a .from()-based tween leaves
     // its starting values as inline styles, which a remount's own .from()
-    // then reads as the "natural" end state -- see pinned-frame-section.tsx.
+    // then reads as the "natural" end state -- see pinned-section.tsx.
     expect(timelineInstance.revert).toHaveBeenCalled();
   });
 

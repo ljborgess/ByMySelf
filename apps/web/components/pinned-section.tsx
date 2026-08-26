@@ -10,10 +10,14 @@ if (typeof window !== 'undefined') {
 
 /**
  * Reusable pin/scroll-jacking wrapper (docs/design-clone-syahril.md) --
- * used by #128 (Quote) and #129 (Stats), built once here instead of
- * duplicated in both. Draws the reference's repeated frame (thin red
- * border + 4 corner markers) and pins the section via ScrollTrigger while
+ * used by the Quote (#128) and Stats (#129) sections, built once here
+ * instead of duplicated in both. Pins the section via ScrollTrigger while
  * `onSetup` populates the scroll-scrubbed timeline.
+ *
+ * Draws no frame: the reference's red border and corner markers were
+ * dropped by the owner's call, and the component was renamed from
+ * PinnedFrameSection to match what it actually does. It is now purely a
+ * pin behaviour wrapper -- all styling comes from `className`.
  *
  * `prefers-reduced-motion` disables the pin *entirely*, not just the
  * internal animation -- leaving the pin active with nothing animating
@@ -24,7 +28,7 @@ if (typeof window !== 'undefined') {
  * route change without a full page reload, so an un-killed ScrollTrigger
  * instance leaks into whatever page loads next.
  */
-export function PinnedFrameSection({
+export function PinnedSection({
   children,
   onSetup,
   pinSpacing = true,
@@ -53,10 +57,20 @@ export function PinnedFrameSection({
       return;
     }
 
+    // O header é uma ilha `fixed` (site-header.tsx): pinar em `top top`
+    // encaixaria o topo da seção exatamente atrás dela. Medido do elemento
+    // real em vez de repetir a constante `--header-offset` do CSS -- assim
+    // mudar o tamanho da barra não deixa os dois valores divergirem em
+    // silêncio.
+    const header = document.querySelector('header');
+    const headerClearance = header
+      ? Math.round(header.getBoundingClientRect().bottom) + 12
+      : 0;
+
     const timeline = gsap.timeline({
       scrollTrigger: {
         trigger: container,
-        start: 'top top',
+        start: `top top+=${headerClearance}`,
         end: scrollDistance,
         pin: true,
         pinSpacing,
@@ -86,26 +100,7 @@ export function PinnedFrameSection({
   }, [pinSpacing, scrollDistance]);
 
   return (
-    <div
-      ref={containerRef}
-      className={`border-highlight-red relative border ${className}`}
-    >
-      <span
-        aria-hidden="true"
-        className="bg-highlight-red absolute -top-[3px] -left-[3px] size-1.5"
-      />
-      <span
-        aria-hidden="true"
-        className="bg-highlight-red absolute -top-[3px] -right-[3px] size-1.5"
-      />
-      <span
-        aria-hidden="true"
-        className="bg-highlight-red absolute -bottom-[3px] -left-[3px] size-1.5"
-      />
-      <span
-        aria-hidden="true"
-        className="bg-highlight-red absolute -bottom-[3px] -right-[3px] size-1.5"
-      />
+    <div ref={containerRef} className={`relative ${className}`}>
       {children}
     </div>
   );

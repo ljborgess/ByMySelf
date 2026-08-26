@@ -136,7 +136,10 @@ export function SiteFooter() {
                           rel: 'noopener noreferrer',
                         }
                       : {})}
-                    className="hover:text-accent"
+                    // block + py-1.5: o line box nu media 18px de altura,
+                    // abaixo do mínimo de 24x24 do WCAG 2.2 SC 2.5.8 (AA,
+                    // que é o nível que este projeto persegue).
+                    className="hover:text-accent block py-1.5"
                   >
                     {t(`links.${link.messageKey}`)}
                   </a>

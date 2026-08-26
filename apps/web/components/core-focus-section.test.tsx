@@ -4,18 +4,24 @@ import { makeProfile } from '../content/profile.fixture';
 import messages from '../messages/pt.json';
 import { CoreFocusSection } from './core-focus-section';
 
-// CoreFocusSection renders PinnedFrameSection, which needs GSAP/ScrollTrigger
-// -- mocked the same way pinned-frame-section.test.tsx does.
+// CoreFocusSection renders PinnedSection, which needs GSAP/ScrollTrigger
+// -- mocked the same way pinned-section.test.tsx does. `from` returns
+// the timeline itself: the reveal chains several .from() calls, and a mock
+// returning undefined would break on the second link of the chain the way
+// the real GSAP API would not.
 jest.mock('gsap', () => ({
   __esModule: true,
   default: {
     registerPlugin: jest.fn(),
-    timeline: jest.fn(() => ({
-      scrollTrigger: { kill: jest.fn() },
-      kill: jest.fn(),
-      revert: jest.fn(),
-      from: jest.fn(),
-    })),
+    timeline: jest.fn(() => {
+      const tl: Record<string, jest.Mock> = {
+        kill: jest.fn(),
+        revert: jest.fn(),
+      };
+      tl.from = jest.fn(() => tl);
+      tl.scrollTrigger = { kill: jest.fn() } as unknown as jest.Mock;
+      return tl;
+    }),
   },
 }));
 

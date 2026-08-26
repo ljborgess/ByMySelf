@@ -10,7 +10,7 @@ import { ProfileAvatar } from './profile-avatar';
 /**
  * Hero da home (docs/design-clone-syahril.md): reveal ao carregar a
  * página, não ao rolar -- é o primeiro elemento visível, então a timeline
- * dispara no mount em vez de usar `PinnedFrameSection`/`ScrollTrigger.
+ * dispara no mount em vez de usar `PinnedSection`/`ScrollTrigger.
  * Bloco de cor de destaque atrás do nome, botão pill (CTA pra /projetos)
  * + botão circular (rola pra próxima seção).
  *

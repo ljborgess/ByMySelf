@@ -1,3 +1,4 @@
+import { ScrollProgress } from '../../../components/scroll-progress';
 import { SiteFooter } from '../../../components/site-footer';
 import { SiteHeader } from '../../../components/site-header';
 
@@ -21,8 +22,14 @@ export default function SiteLayout({
   return (
     <>
       <SiteHeader />
-      {/* flex-1 so a short page still pushes the footer to the bottom */}
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6">
+      <ScrollProgress />
+      {/*
+        flex-1 so a short page still pushes the footer to the bottom.
+        pt-[--header-offset] clears the floating header, which is `fixed`
+        and therefore out of flow -- without it the first line of every
+        page renders underneath the bar.
+      */}
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-[var(--header-offset)] pb-8 sm:px-6">
         {children}
       </main>
       <SiteFooter />
