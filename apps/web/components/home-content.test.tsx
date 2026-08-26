@@ -59,6 +59,7 @@ jest.mock('gsap', () => ({
       scrollTrigger: { kill: jest.fn() },
       kill: jest.fn(),
       from: jest.fn(),
+      to: jest.fn(),
     })),
   },
 }));
@@ -95,10 +96,16 @@ function project(
   };
 }
 
-function renderHome(featuredProjects: PublicProjectListItem[] = []) {
+function renderHome(
+  featuredProjects: PublicProjectListItem[] = [],
+  projectCount = 0,
+) {
   return render(
     <NextIntlClientProvider locale="pt" messages={messages}>
-      <HomeContent featuredProjects={featuredProjects} />
+      <HomeContent
+        featuredProjects={featuredProjects}
+        projectCount={projectCount}
+      />
     </NextIntlClientProvider>,
   );
 }

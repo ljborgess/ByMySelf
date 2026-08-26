@@ -5,6 +5,7 @@ import { CoreFocusSection } from './core-focus-section';
 import { FeaturedProjects } from './featured-projects';
 import { ProfileAvatar } from './profile-avatar';
 import { SectionCards } from './section-cards';
+import { StatsSection } from './stats-section';
 
 /**
  * The hub: who this is, in one glance, a preview of featured work, then a
@@ -22,8 +23,10 @@ import { SectionCards } from './section-cards';
  */
 export function HomeContent({
   featuredProjects,
+  projectCount,
 }: {
   featuredProjects: PublicProjectListItem[];
+  projectCount: number;
 }) {
   const t = useTranslations('home');
 
@@ -45,6 +48,8 @@ export function HomeContent({
       </section>
 
       <CoreFocusSection />
+
+      <StatsSection projectCount={projectCount} />
 
       <FeaturedProjects projects={featuredProjects} />
 

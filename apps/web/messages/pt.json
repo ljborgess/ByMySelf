@@ -193,6 +193,14 @@
     "aboutLabel": "Sobre",
     "focusLabel": "Foco"
   },
+  "stats": {
+    "badge": "Em números",
+    "headline": "{skills}. Uma stack, sistemas que funcionam de verdade.",
+    "projects": "Projetos publicados",
+    "technologies": "Tecnologias",
+    "certificates": "Certificados",
+    "languages": "Idiomas"
+  },
   "carousel": {
     "previous": "Slide anterior",
     "next": "Próximo slide",
