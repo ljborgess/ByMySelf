@@ -1,9 +1,14 @@
 import type { Metadata } from 'next';
 import { hasLocale, NextIntlClientProvider } from 'next-intl';
-import { Geist, Geist_Mono } from 'next/font/google';
+import {
+  Dancing_Script,
+  Geist,
+  Geist_Mono,
+  Inter,
+  Playfair_Display,
+} from 'next/font/google';
 import { notFound } from 'next/navigation';
 import { locale as localeParam } from 'next/root-params';
-import { AuroraBackground } from '../../components/aurora-background';
 import { profile } from '../../content/profile';
 import { routing } from '../../i18n/routing';
 import { getSiteUrl } from '../../lib/site';
@@ -16,6 +21,27 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
+  subsets: ['latin'],
+});
+
+// Clone visual (docs/design-clone-syahril.md): três famílias novas, cada
+// uma com um papel único. Nenhuma reaproveita o peso/estilo das duas acima
+// -- Geist Sans continua sendo o corpo de texto corrido, essas três são só
+// para os elementos de destaque que o clone pede.
+const interDisplay = Inter({
+  variable: '--font-inter-display',
+  subsets: ['latin'],
+  weight: ['800', '900'],
+});
+
+const playfairDisplay = Playfair_Display({
+  variable: '--font-playfair',
+  subsets: ['latin'],
+  style: ['italic'],
+});
+
+const dancingScript = Dancing_Script({
+  variable: '--font-dancing-script',
   subsets: ['latin'],
 });
 
@@ -62,10 +88,9 @@ export default async function LocaleLayout({
   return (
     <html
       lang={locale}
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${interDisplay.variable} ${playfairDisplay.variable} ${dancingScript.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <AuroraBackground />
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </body>
     </html>
