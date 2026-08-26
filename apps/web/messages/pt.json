@@ -212,5 +212,9 @@
     "previous": "Slide anterior",
     "next": "Próximo slide",
     "goToSlide": "Ir para o slide {position}"
+  },
+  "timeline": {
+    "previous": "Item anterior",
+    "next": "Próximo item"
   }
 }
