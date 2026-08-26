@@ -3,6 +3,7 @@ import type { PublicProjectListItem } from '../lib/projects';
 import { CoreFocusSection } from './core-focus-section';
 import { FeaturedProjects } from './featured-projects';
 import { HeroSection } from './hero-section';
+import { IntroLoader } from './intro-loader';
 import { SectionCards } from './section-cards';
 import { StatsSection } from './stats-section';
 
@@ -31,6 +32,8 @@ export function HomeContent({
 
   return (
     <div className="flex flex-col gap-10 sm:gap-14">
+      <IntroLoader />
+
       <HeroSection />
 
       <CoreFocusSection />
