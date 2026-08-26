@@ -190,7 +190,7 @@ export function ProjectForm({
         inteiro para descobrir onde.
       */}
       {pending.length > 0 && (
-        <p className="rounded-md border border-amber-600/30 bg-amber-600/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">
+        <p className="rounded-md border border-amber-600/30 bg-amber-600/10 px-3 py-2 text-sm text-amber-200">
           {t('translationPending', {
             fields: pending.map((field) => t(`fields.${field}`)).join(', '),
           })}
@@ -305,7 +305,7 @@ export function ProjectForm({
             {values.techStack.map((tech) => (
               <li
                 key={tech}
-                className="flex items-center gap-1.5 rounded-full border border-black/15 px-3 py-1 text-sm dark:border-white/20"
+                className="flex items-center gap-1.5 rounded-full border border-white/20 px-3 py-1 text-sm"
               >
                 {tech}
                 <button
@@ -412,7 +412,7 @@ export function ProjectForm({
       {failure && (
         // `role="alert"` para um leitor de tela anunciar a falha sem a pessoa
         // ter que voltar procurando o que mudou na página
-        <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="text-sm text-red-400">
           {failure}
         </p>
       )}
@@ -438,10 +438,10 @@ export function ProjectForm({
 }
 
 const INPUT_CLASS =
-  'focus-visible:border-accent rounded-md border border-black/15 px-3 py-2 text-sm outline-none disabled:opacity-60 dark:border-white/20';
+  'focus-visible:border-accent rounded-md border border-white/20 px-3 py-2 text-sm outline-none disabled:opacity-60';
 
 const BUTTON_CLASS =
-  'hover:border-accent rounded-md border border-black/15 px-4 py-2 text-sm font-medium transition-colors disabled:opacity-60 dark:border-white/20';
+  'hover:border-accent rounded-md border border-white/20 px-4 py-2 text-sm font-medium transition-colors disabled:opacity-60';
 
 interface ControlProps {
   id: string;
@@ -575,7 +575,7 @@ function Field({
       )}
 
       {error && (
-        <p id={errorId} className="text-sm text-red-700 dark:text-red-400">
+        <p id={errorId} className="text-sm text-red-400">
           {error}
         </p>
       )}

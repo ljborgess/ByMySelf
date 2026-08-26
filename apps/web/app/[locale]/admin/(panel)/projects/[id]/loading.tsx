@@ -37,8 +37,8 @@ export default function Loading() {
         <span className="sr-only">{t('loading')}</span>
         {[0, 1, 2, 3].map((field) => (
           <div key={field} className="flex flex-col gap-2">
-            <div className="h-3 w-24 animate-pulse rounded bg-black/10 dark:bg-white/10" />
-            <div className="h-9 w-full animate-pulse rounded bg-black/10 dark:bg-white/10" />
+            <div className="h-3 w-24 animate-pulse rounded bg-white/10" />
+            <div className="h-9 w-full animate-pulse rounded bg-white/10" />
           </div>
         ))}
       </div>

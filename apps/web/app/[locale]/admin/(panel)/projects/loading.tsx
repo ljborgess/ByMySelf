@@ -27,17 +27,17 @@ export default function Loading() {
       <div
         aria-busy="true"
         aria-live="polite"
-        className="rounded-lg border border-black/10 dark:border-white/15"
+        className="rounded-lg border border-white/15"
       >
         <span className="sr-only">{t('loading')}</span>
         {[0, 1, 2].map((row) => (
           <div
             key={row}
-            className="flex items-center gap-4 border-b border-black/5 px-4 py-4 last:border-0 dark:border-white/10"
+            className="flex items-center gap-4 border-b border-white/10 px-4 py-4 last:border-0"
           >
-            <div className="h-4 w-1/3 animate-pulse rounded bg-black/10 dark:bg-white/10" />
-            <div className="h-4 w-20 animate-pulse rounded bg-black/10 dark:bg-white/10" />
-            <div className="h-4 w-1/4 animate-pulse rounded bg-black/10 dark:bg-white/10" />
+            <div className="h-4 w-1/3 animate-pulse rounded bg-white/10" />
+            <div className="h-4 w-20 animate-pulse rounded bg-white/10" />
+            <div className="h-4 w-1/4 animate-pulse rounded bg-white/10" />
           </div>
         ))}
       </div>

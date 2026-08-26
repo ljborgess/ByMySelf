@@ -74,7 +74,7 @@ export default function AboutPage() {
             {profile.skills.map((skill) => (
               <li
                 key={skill}
-                className="rounded-full border border-black/10 px-3 py-1 text-sm dark:border-white/15"
+                className="rounded-full border border-white/15 px-3 py-1 text-sm"
               >
                 {skill}
               </li>

@@ -3,6 +3,7 @@ import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import { locale as localeParam } from 'next/root-params';
+import { AuroraBackground } from '../../components/aurora-background';
 import { profile } from '../../content/profile';
 import { routing } from '../../i18n/routing';
 import { getSiteUrl } from '../../lib/site';
@@ -64,6 +65,7 @@ export default async function LocaleLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
+        <AuroraBackground />
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </body>
     </html>

@@ -39,9 +39,7 @@ export function ProjectsList({
                 // that looks clickable but only responds on its heading is a
                 // trap
                 className={`group hover:border-accent focus-visible:border-accent flex h-full flex-col rounded-lg border p-5 transition-colors ${
-                  project.featured
-                    ? 'border-accent'
-                    : 'border-black/10 dark:border-white/15'
+                  project.featured ? 'border-accent' : 'border-white/15'
                 }`}
               >
                 {project.featured && (
@@ -60,7 +58,7 @@ export function ProjectsList({
                     src={project.coverImageUrl}
                     alt={project.title}
                     loading="lazy"
-                    className="mb-3 aspect-video w-full rounded bg-black/5 object-cover dark:bg-white/10"
+                    className="mb-3 aspect-video w-full rounded bg-white/10 object-cover"
                   />
                 )}
 
@@ -74,7 +72,7 @@ export function ProjectsList({
                     {project.techStack.map((tech) => (
                       <li
                         key={tech}
-                        className="rounded-full border border-black/10 px-2.5 py-0.5 text-xs dark:border-white/15"
+                        className="rounded-full border border-white/15 px-2.5 py-0.5 text-xs"
                       >
                         {tech}
                       </li>

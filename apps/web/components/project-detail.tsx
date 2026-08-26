@@ -37,7 +37,7 @@ export function ProjectDetail({ project }: { project: PublicProject }) {
         <img
           src={project.coverImageUrl}
           alt={project.title}
-          className="aspect-video w-full rounded-lg bg-black/5 object-cover dark:bg-white/10"
+          className="aspect-video w-full rounded-lg bg-white/10 object-cover"
         />
       )}
 
@@ -48,7 +48,7 @@ export function ProjectDetail({ project }: { project: PublicProject }) {
               href={project.repoUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:border-accent hover:text-accent inline-flex items-center gap-1 rounded-lg border border-black/10 px-4 py-2 text-sm font-medium dark:border-white/15"
+              className="hover:border-accent hover:text-accent inline-flex items-center gap-1 rounded-lg border border-white/15 px-4 py-2 text-sm font-medium"
             >
               {t('repo')}
               <span aria-hidden="true">↗</span>
@@ -60,7 +60,7 @@ export function ProjectDetail({ project }: { project: PublicProject }) {
               href={project.demoUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:border-accent hover:text-accent inline-flex items-center gap-1 rounded-lg border border-black/10 px-4 py-2 text-sm font-medium dark:border-white/15"
+              className="hover:border-accent hover:text-accent inline-flex items-center gap-1 rounded-lg border border-white/15 px-4 py-2 text-sm font-medium"
             >
               {t('demo')}
               <span aria-hidden="true">↗</span>
@@ -74,7 +74,7 @@ export function ProjectDetail({ project }: { project: PublicProject }) {
           {project.techStack.map((tech) => (
             <li
               key={tech}
-              className="rounded-full border border-black/10 px-2.5 py-0.5 text-xs dark:border-white/15"
+              className="rounded-full border border-white/15 px-2.5 py-0.5 text-xs"
             >
               {tech}
             </li>

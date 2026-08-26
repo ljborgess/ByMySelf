@@ -29,7 +29,7 @@ export default async function AdminPanelLayout({
         outro landmark — aqui é filho direto do container do painel, então
         vale.
       */}
-      <header className="border-b border-black/10 dark:border-white/15">
+      <header className="border-b border-white/15">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
           {/*
             Leva à listagem, que é a raiz do painel. Não é o logotipo do site

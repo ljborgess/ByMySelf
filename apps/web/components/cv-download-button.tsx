@@ -23,11 +23,10 @@ export function CvDownloadButton({ className = '' }: { className?: string }) {
       download
       // CTA primária da página: preenchida em vez de outline, pra se
       // destacar dos links secundários (repo/demo em project-detail.tsx,
-      // que continuam outline). Texto claro/escuro invertido de propósito:
-      // o acento é escuro no tema claro (#0457c2) e claro no escuro
-      // (#8bc7ff) -- ver globals.css -- então o texto precisa da cor oposta
-      // em cada um pra manter contraste AA.
-      className={`${className} bg-accent inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 dark:text-black`}
+      // que continuam outline). Texto preto: --accent é sempre #8bc7ff
+      // (site é dark-only, ver globals.css), preto rende 11.7:1 de
+      // contraste sobre esse azul -- branco falharia.
+      className={`${className} bg-accent inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90`}
     >
       {t('downloadCv')}
       <span aria-hidden="true">↓</span>

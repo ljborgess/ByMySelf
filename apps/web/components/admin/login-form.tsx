@@ -66,7 +66,7 @@ export function LoginForm({ dashboardPath }: { dashboardPath: string }) {
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           disabled={submitting}
-          className="focus-visible:border-accent rounded-md border border-black/15 px-3 py-2 text-sm outline-none disabled:opacity-60 dark:border-white/20"
+          className="focus-visible:border-accent rounded-md border border-white/20 px-3 py-2 text-sm outline-none disabled:opacity-60"
         />
       </div>
 
@@ -83,14 +83,14 @@ export function LoginForm({ dashboardPath }: { dashboardPath: string }) {
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           disabled={submitting}
-          className="focus-visible:border-accent rounded-md border border-black/15 px-3 py-2 text-sm outline-none disabled:opacity-60 dark:border-white/20"
+          className="focus-visible:border-accent rounded-md border border-white/20 px-3 py-2 text-sm outline-none disabled:opacity-60"
         />
       </div>
 
       {failure && (
         // `role="alert"` para que um leitor de tela anuncie a falha sem a
         // pessoa ter que voltar procurando o que mudou na página
-        <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="text-sm text-red-400">
           {t(`errors.${failure.reason}`)}
         </p>
       )}
@@ -98,7 +98,7 @@ export function LoginForm({ dashboardPath }: { dashboardPath: string }) {
       <button
         type="submit"
         disabled={submitting}
-        className="hover:border-accent mt-2 rounded-md border border-black/15 px-4 py-2 text-sm font-medium transition-colors disabled:opacity-60 dark:border-white/20"
+        className="hover:border-accent mt-2 rounded-md border border-white/20 px-4 py-2 text-sm font-medium transition-colors disabled:opacity-60"
       >
         {submitting ? t('submitting') : t('submit')}
       </button>

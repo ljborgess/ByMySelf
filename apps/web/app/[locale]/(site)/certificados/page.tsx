@@ -38,7 +38,7 @@ export default function CertificatesPage() {
             return (
               <li
                 key={`${entry.issuer}-${entry.name}`}
-                className="rounded-lg border border-black/10 p-5 dark:border-white/15"
+                className="rounded-lg border border-white/15 p-5"
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                   <h2 className="text-base font-semibold tracking-tight">
