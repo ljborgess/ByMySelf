@@ -15,11 +15,19 @@
   /* Acento sobrevive do épico #97 -- vira a semente da paleta aurora em vez
      de ser descartado. Alto contraste sobre #0a0a0a (11:1). */
   --accent: #8bc7ff;
-  /* Roxo e ciano -- os outros dois tons dos blobs do fundo aurora
-     (.aurora-blob, mais abaixo) e do anel do ProfileAvatar
-     (components/profile-avatar.tsx). */
+  /* Roxo e ciano -- usados no anel do ProfileAvatar
+     (components/profile-avatar.tsx). Não é a paleta do fundo aurora (essa
+     é --aurora-blob-1/2/3, logo abaixo) -- pedido do usuário (2026-08-26)
+     foi especificamente sobre a cor de fundo, não sobre o resto do site. */
   --aurora-purple: #7c5cff;
   --aurora-cyan: #22d3ee;
+  /* Paleta do fundo aurora: preto com variações de roxo, sem azul/ciano
+     (2026-08-26). Três tons diferentes de roxo, mais escuros que o roxo do
+     anel acima -- violeta profundo, roxo médio, magenta-roxo -- pra dar
+     variedade dentro da família ao invés de repetir o mesmo tom. */
+  --aurora-blob-1: #3b0764;
+  --aurora-blob-2: #6b21a8;
+  --aurora-blob-3: #86198f;
 }
 
 @theme inline {
@@ -77,21 +85,21 @@ body {
 .aurora-blob-1 {
   top: -10%;
   left: -10%;
-  background: var(--accent);
+  background: var(--aurora-blob-1);
   animation: aurora-drift-1 26s ease-in-out infinite;
 }
 
 .aurora-blob-2 {
   top: 20%;
   right: -15%;
-  background: var(--aurora-purple);
+  background: var(--aurora-blob-2);
   animation: aurora-drift-2 32s ease-in-out infinite;
 }
 
 .aurora-blob-3 {
   bottom: -20%;
   left: 20%;
-  background: var(--aurora-cyan);
+  background: var(--aurora-blob-3);
   animation: aurora-drift-3 38s ease-in-out infinite;
 }
 
