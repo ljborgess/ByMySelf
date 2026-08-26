@@ -16,7 +16,8 @@
      de ser descartado. Alto contraste sobre #0a0a0a (11:1). */
   --accent: #8bc7ff;
   /* Roxo e ciano -- os outros dois tons dos blobs do fundo aurora
-     (.aurora-blob, mais abaixo). Só usados ali por enquanto. */
+     (.aurora-blob, mais abaixo) e do anel do ProfileAvatar
+     (components/profile-avatar.tsx). */
   --aurora-purple: #7c5cff;
   --aurora-cyan: #22d3ee;
 }
@@ -25,6 +26,8 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-accent: var(--accent);
+  --color-aurora-purple: var(--aurora-purple);
+  --color-aurora-cyan: var(--aurora-cyan);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
