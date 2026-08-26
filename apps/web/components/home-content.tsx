@@ -1,9 +1,8 @@
 import { useTranslations } from 'next-intl';
-import { profile } from '../content/profile';
 import type { PublicProjectListItem } from '../lib/projects';
 import { CoreFocusSection } from './core-focus-section';
 import { FeaturedProjects } from './featured-projects';
-import { ProfileAvatar } from './profile-avatar';
+import { HeroSection } from './hero-section';
 import { SectionCards } from './section-cards';
 import { StatsSection } from './stats-section';
 
@@ -32,20 +31,7 @@ export function HomeContent({
 
   return (
     <div className="flex flex-col gap-10 sm:gap-14">
-      {/* stacks on mobile, side by side from sm -- a 375px viewport cannot
-          fit an avatar beside two lines of text without cramping both */}
-      <section className="flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-6">
-        <ProfileAvatar name={profile.name} photoUrl={profile.photoUrl} />
-
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-            {profile.name}
-          </h1>
-          <p className="text-accent mt-2 font-mono text-base sm:text-lg">
-            {profile.headline}
-          </p>
-        </div>
-      </section>
+      <HeroSection />
 
       <CoreFocusSection />
 

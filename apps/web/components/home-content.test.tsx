@@ -158,16 +158,17 @@ describe('HomeContent', () => {
   it('points each card at its locale-prefixed route', () => {
     renderHome();
 
-    const hrefs = screen
-      .getAllByRole('link')
-      .map((link) => link.getAttribute('href'));
-
-    expect(hrefs).toEqual([
-      '/pt/sobre',
-      '/pt/formacao',
-      '/pt/certificados',
-      '/pt/projetos',
-    ]);
+    // Scoped to the cards by name rather than every link on the page --
+    // the hero's own CTA (also /projetos) is a legitimate extra link here,
+    // not a card, and asserting on getAllByRole('link') wholesale would
+    // make this test break every time an unrelated link is added anywhere
+    // on the page.
+    for (const section of CARD_SECTIONS) {
+      const label = messages.nav[section.messageKey];
+      expect(
+        screen.getByRole('link', { name: new RegExp(label) }),
+      ).toHaveAttribute('href', `/pt${section.href}`);
+    }
   });
 
   it('describes each card, so the label is not the only cue', () => {

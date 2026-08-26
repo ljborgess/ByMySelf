@@ -3,6 +3,10 @@
     "name": "Luciano Borges",
     "tagline": "Desenvolvedor Backend Node.js/NestJS"
   },
+  "hero": {
+    "cta": "Ver projetos",
+    "scrollHint": "Rolar para explorar"
+  },
   "nav": {
     "label": "Navegação principal",
     "home": "Início",
