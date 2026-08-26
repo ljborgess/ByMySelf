@@ -32,18 +32,21 @@ describe('CertificatesContent', () => {
         issuer: 'Emissor C',
         issuedAt: null,
         credentialUrl: null,
+        imageUrl: null,
       },
       {
         name: 'Mais antigo',
         issuer: 'Emissor A',
         issuedAt: '2020-01-01',
         credentialUrl: null,
+        imageUrl: null,
       },
       {
         name: 'Mais recente',
         issuer: 'Emissor B',
         issuedAt: '2024-06-01',
         credentialUrl: null,
+        imageUrl: null,
       },
     ]);
 
@@ -63,6 +66,7 @@ describe('CertificatesContent', () => {
         issuer: 'Emissor',
         issuedAt: '2024-01-01',
         credentialUrl: 'https://example.com/credential',
+        imageUrl: null,
       },
     ]);
 
@@ -82,6 +86,7 @@ describe('CertificatesContent', () => {
         issuer: 'Emissor',
         issuedAt: '2024-01-01',
         credentialUrl: null,
+        imageUrl: null,
       },
     ]);
 
@@ -100,12 +105,14 @@ describe('CertificatesContent', () => {
         issuer: 'Emissor 1',
         issuedAt: '2024-01-01',
         credentialUrl: null,
+        imageUrl: null,
       },
       {
         name: 'Segundo certificado',
         issuer: 'Emissor 2',
         issuedAt: '2020-01-01',
         credentialUrl: null,
+        imageUrl: null,
       },
     ]);
 

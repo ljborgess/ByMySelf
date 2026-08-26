@@ -30,12 +30,14 @@ const mockProfile = makeProfile({
       issuer: 'Emissor',
       issuedAt: null,
       credentialUrl: null,
+      imageUrl: null,
     },
     {
       name: 'Certificado B',
       issuer: 'Emissor',
       issuedAt: null,
       credentialUrl: null,
+      imageUrl: null,
     },
   ],
   languages: [

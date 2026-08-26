@@ -7,6 +7,7 @@ function cert(overrides: Partial<Certificate> = {}): Certificate {
     issuer: 'Emissor',
     issuedAt: '2025-01',
     credentialUrl: null,
+    imageUrl: null,
     ...overrides,
   };
 }

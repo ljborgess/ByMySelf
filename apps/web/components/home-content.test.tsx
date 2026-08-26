@@ -101,15 +101,22 @@ describe('HomeContent', () => {
   it('identifies whose portfolio this is, as the top-level heading', () => {
     renderHome();
 
+    // substring, not exact: the h1 is the whole sentence (greeting + name),
+    // which is what a screen reader and a crawler receive
     expect(
-      screen.getByRole('heading', { level: 1, name: mockProfile.name }),
+      screen.getByRole('heading', {
+        level: 1,
+        name: new RegExp(mockProfile.name),
+      }),
     ).toBeVisible();
   });
 
   it('shows the headline alongside the name', () => {
     renderHome();
 
-    expect(screen.getByText(mockProfile.headline)).toBeVisible();
+    // getAllBy: RotatingHeadline renders the headline as both the stable
+    // sr-only text and the rotation's first slide
+    expect(screen.getAllByText(mockProfile.headline).length).toBeGreaterThan(0);
   });
 
   it('links to every section, one card each', () => {
@@ -159,25 +166,9 @@ describe('HomeContent', () => {
     }
   });
 
-  describe('photo', () => {
-    it('falls back to initials when there is no photo', () => {
-      renderHome();
-
-      // a broken image or empty box would be worse than no photo at all
-      expect(screen.queryByRole('img')).not.toBeInTheDocument();
-      expect(screen.getByText('NS')).toBeInTheDocument();
-    });
-
-    it('renders the photo when one is set, labelled with the name', () => {
-      mockProfile.photoUrl = 'https://example.com/foto.jpg';
-
-      renderHome();
-
-      expect(
-        screen.getByRole('img', { name: mockProfile.name }),
-      ).toBeInTheDocument();
-    });
-  });
+  // No 'photo' block any more: the hero dropped the avatar (see
+  // hero-section.tsx), so ProfileAvatar only renders on /sobre now, and
+  // sobre/page.test.tsx is where the initials/photo fallback is covered.
 
   describe('featured projects', () => {
     it('renders nothing when there are no featured projects', () => {

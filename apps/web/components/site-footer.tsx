@@ -75,14 +75,14 @@ export function SiteFooter() {
           <Marquee
             items={profile.skills}
             rotateDeg={-6}
-            durationSeconds={38}
+            secondsPerItem={2.2}
             className="absolute top-6 left-[-15%] w-[130%]"
           />
           <Marquee
             items={profile.skills}
             rotateDeg={6}
             reverse
-            durationSeconds={42}
+            secondsPerItem={2.6}
             className="absolute bottom-6 left-[-15%] w-[130%]"
           />
         </div>

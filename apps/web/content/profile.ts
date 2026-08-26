@@ -48,6 +48,13 @@ export interface Certificate {
    * promise of verification (RF-PUB6).
    */
   credentialUrl: string | null;
+  /**
+   * The certificate itself, as an image under `apps/web/public/certificados`.
+   * `null` falls back to a generated panel with the issuer's monogram -- a
+   * card with a broken image reads as a bug, one with a drawn panel reads as
+   * a card.
+   */
+  imageUrl: string | null;
 }
 
 export interface Profile {
@@ -99,10 +106,14 @@ Meu foco é backend — NestJS, PostgreSQL, Docker — mas trabalho a stack comp
   // this is null, so leaving it unset costs nothing but a photo.
   photoUrl: null,
 
-  // TODO: the CV you sent is in English ("CV-EUA"), and this button is the
-  // pt one. Export a PT-BR version to apps/web/public/cv-pt.pdf and set this
-  // to '/cv-pt.pdf'. The English one becomes cv-en.pdf in Fase 3.
-  cvUrl: null,
+  // The English CV ("CV-EUA") you sent, served straight from
+  // apps/web/public. The file name is what the visitor's browser saves, so
+  // it spells you out instead of landing as "cv.pdf" in a downloads folder.
+  //
+  // TODO: it is the English CV under the pt locale. Export a PT-BR version
+  // and split into cv-pt.pdf / cv-en.pdf in Fase 3, when the en locale
+  // actually exists.
+  cvUrl: '/luciano-borges-cv.pdf',
 
   // Straight from the CV's Skills section, plus the notable ones its project
   // descriptions name. Trim anything you would rather not be asked about in
@@ -161,7 +172,28 @@ Meu foco é backend — NestJS, PostgreSQL, Docker — mas trabalho a stack comp
   // null -- and RF-PUB6 is about verifiability, which makes credentialUrl
   // the field most worth filling: without it each line is a claim a
   // recruiter has to take on trust.
+  //
+  // The two Alura entries below carry the name printed on the certificate
+  // itself, in Portuguese, instead of the CV's English rendering of it: the
+  // page now shows the image and the validation link side by side, and a
+  // title that does not match the document under it reads as the wrong file.
   certificates: [
+    {
+      name: 'IA: explorando o potencial da inteligência artificial generativa',
+      issuer: 'Alura',
+      issuedAt: '2026-06',
+      credentialUrl:
+        'https://cursos.alura.com.br/certificate/2df21c18-58cd-420d-ba35-a5244957dd67',
+      imageUrl: '/certificados/ia-generativa.png',
+    },
+    {
+      name: 'Pensamento computacional: fundamentos da computação e lógica de programação',
+      issuer: 'Alura',
+      issuedAt: '2026-06',
+      credentialUrl:
+        'https://cursos.alura.com.br/certificate/1ddb390a-9ac9-4dd2-93b9-5f960ff80835',
+      imageUrl: '/certificados/pensamento-computacional.png',
+    },
     {
       name: 'Introduction to Agent Skills',
       issuer: 'Anthropic',
@@ -171,36 +203,31 @@ Meu foco é backend — NestJS, PostgreSQL, Docker — mas trabalho a stack comp
       // TODO: the validation URL. No link is rendered while this is null,
       // rather than a dead one.
       credentialUrl: null,
+      // TODO: drop the certificate image in apps/web/public/certificados/ and
+      // point this at it (e.g. '/certificados/agent-skills.png'). Until then
+      // the card draws the issuer's monogram instead.
+      imageUrl: null,
     },
     {
       name: 'TypeScript: Building an API with Type Safety',
       issuer: 'Alura',
       issuedAt: null,
       credentialUrl: null,
+      imageUrl: null,
     },
     {
       name: 'Prompt Engineering',
       issuer: 'Alura',
       issuedAt: null,
       credentialUrl: null,
-    },
-    {
-      name: 'Artificial Intelligence',
-      issuer: 'Alura',
-      issuedAt: null,
-      credentialUrl: null,
-    },
-    {
-      name: 'Computational Thinking',
-      issuer: 'Alura',
-      issuedAt: null,
-      credentialUrl: null,
+      imageUrl: null,
     },
     {
       name: 'Introduction to JavaScript',
       issuer: 'Udemy',
       issuedAt: null,
       credentialUrl: null,
+      imageUrl: null,
     },
   ],
 
