@@ -4,41 +4,6 @@ import type { PublicProjectListItem } from '../lib/projects';
 import messages from '../messages/pt.json';
 import { ProjectsList } from './projects-list';
 
-// ProjectsList renders Carousel (embla-carousel-react), which needs
-// ResizeObserver -- not implemented in jsdom. Mocked the same way
-// carousel.test.tsx does: the fake api object must be a stable module-level
-// reference, not created fresh inside the factory, or Carousel's
-// `useEffect(..., [emblaApi])` re-fires every render and loops forever
-// (each new object identity looks like a change, and the effect itself
-// calls setState) -- see #113's PR description for how that was found.
-const mockEmblaApi = {
-  scrollPrev: jest.fn(),
-  scrollNext: jest.fn(),
-  scrollTo: jest.fn(),
-  scrollSnapList: jest.fn(() => []),
-  selectedScrollSnap: jest.fn(() => 0),
-  on: jest.fn(),
-  off: jest.fn(),
-};
-
-jest.mock('embla-carousel-react', () => ({
-  __esModule: true,
-  default: () => [jest.fn(), mockEmblaApi],
-}));
-
-jest.mock('embla-carousel-autoplay', () => ({
-  __esModule: true,
-  default: () => ({ stop: jest.fn(), play: jest.fn() }),
-}));
-
-beforeAll(() => {
-  window.matchMedia = jest.fn().mockReturnValue({
-    matches: false,
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-  });
-});
-
 function project(
   overrides: Partial<PublicProjectListItem> = {},
 ): PublicProjectListItem {
@@ -115,6 +80,17 @@ describe('ProjectsList', () => {
     expect(
       screen.queryByText(messages.projects.featured),
     ).not.toBeInTheDocument();
+  });
+
+  it('gives a featured card more grid width than a regular one', () => {
+    renderList([
+      project({ title: 'Destaque', featured: true }),
+      project({ title: 'Comum', slug: 'comum', featured: false }),
+    ]);
+
+    const [featuredItem, regularItem] = screen.getAllByRole('listitem');
+    expect(featuredItem).toHaveClass('sm:col-span-2');
+    expect(regularItem).not.toHaveClass('sm:col-span-2');
   });
 
   it('says so when there is nothing published yet', () => {
