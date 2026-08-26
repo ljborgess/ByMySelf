@@ -186,5 +186,10 @@
       "certificates": "Certificados, com link de validação.",
       "projects": "Projetos que construí, com stack e código."
     }
+  },
+  "carousel": {
+    "previous": "Slide anterior",
+    "next": "Próximo slide",
+    "goToSlide": "Ir para o slide {position}"
   }
 }
