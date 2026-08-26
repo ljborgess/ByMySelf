@@ -47,8 +47,32 @@ export function Carousel<T>({
   const [scrollSnaps, setScrollSnaps] = useState<number[]>([]);
 
   useEffect(() => {
+    // Gated on emblaApi: embla-carousel-autoplay only has a working
+    // internal engine once embla has finished attaching it, and emblaApi
+    // existing is what confirms that happened.
+    if (!emblaApi) {
+      return;
+    }
+
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 
+    // No initial autoplay.play() call here, on purpose: the plugin already
+    // autoplays as soon as embla finishes initializing (that is its
+    // documented default), and calling .play() ourselves this early races
+    // that same initialization -- embla has attached the plugin
+    // (emblaApi exists) but not yet measured/registered slides, so the
+    // plugin's internal timer setup throws ("Cannot read properties of
+    // undefined (reading '0')") reaching into state that is not there yet.
+    // Caught running the real dev server, not by the mocked-Autoplay unit
+    // tests (see #115's PR). Only .stop() needs an immediate call, to
+    // cancel that autostart if the preference is already active.
+    if (mediaQuery.matches) {
+      autoplay.stop();
+    }
+
+    // The listener only matters for a *later* toggle while the page is
+    // open, well after mount -- by then the race above cannot happen, so
+    // calling .play() here is safe.
     const applyMotionPreference = () => {
       if (mediaQuery.matches) {
         autoplay.stop();
@@ -57,11 +81,10 @@ export function Carousel<T>({
       }
     };
 
-    applyMotionPreference();
     mediaQuery.addEventListener('change', applyMotionPreference);
     return () =>
       mediaQuery.removeEventListener('change', applyMotionPreference);
-  }, [autoplay]);
+  }, [emblaApi, autoplay]);
 
   const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
   const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
