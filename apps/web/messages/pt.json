@@ -4,8 +4,20 @@
     "tagline": "Desenvolvedor Backend Node.js/NestJS"
   },
   "hero": {
-    "cta": "Ver projetos",
-    "scrollHint": "Rolar para explorar"
+    "cta": "Baixar CV",
+    "ctaProjects": "Ver projetos",
+    "scrollHint": "Rolar para explorar",
+    "taglines": [
+      "Entre em contato comigo",
+      "Criador de Produtos",
+      "Atuo em desenvolvimento de Projetos"
+    ],
+    "status": "Disponível para projetos",
+    "greeting": "Olá, meu nome é",
+    "social": {
+      "github": "Perfil no GitHub",
+      "linkedin": "Perfil no LinkedIn"
+    }
   },
   "intro": {
     "greeting": "Olá"
@@ -47,7 +59,13 @@
   "certificates": {
     "title": "Certificados",
     "description": "Certificados de Luciano Borges, com link de validação.",
+    "label": "Credenciais verificáveis",
+    "intro": "O documento original de cada curso, com o link de validação do emissor ao lado.",
+    "count": "{count, plural, one {# credencial} other {# credenciais}}",
     "validate": "Validar credencial",
+    "viewImage": "Ver certificado",
+    "imageAlt": "Certificado de {name}, emitido por {issuer}",
+    "noImage": "Documento ainda não enviado",
     "empty": "Nenhum certificado cadastrado ainda."
   },
   "education": {
@@ -195,6 +213,12 @@
     "description": "Portfólio de Luciano Borges, desenvolvedor full-stack com foco em NestJS, Next.js e TypeScript.",
     "sectionsHeading": "Seções do site",
     "featuredHeading": "Projetos em destaque",
+    "sectionLabels": {
+      "intro": "Início",
+      "focus": "Foco",
+      "stats": "Números",
+      "projects": "Projetos"
+    },
     "cards": {
       "about": "Quem sou, no que trabalho e o que busco.",
       "education": "Formação acadêmica e as tecnologias de cada etapa.",

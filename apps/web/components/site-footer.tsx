@@ -75,14 +75,14 @@ export function SiteFooter() {
           <Marquee
             items={profile.skills}
             rotateDeg={-6}
-            durationSeconds={38}
+            secondsPerItem={2.2}
             className="absolute top-6 left-[-15%] w-[130%]"
           />
           <Marquee
             items={profile.skills}
             rotateDeg={6}
             reverse
-            durationSeconds={42}
+            secondsPerItem={2.6}
             className="absolute bottom-6 left-[-15%] w-[130%]"
           />
         </div>
@@ -90,7 +90,10 @@ export function SiteFooter() {
         <div className="mx-auto flex max-w-5xl flex-col items-start gap-6">
           <h2 className="font-display text-4xl leading-tight font-black tracking-tight sm:text-6xl">
             {t('cta.headlineStrong')}{' '}
-            <span className="opacity-40">{t('cta.headlineDim')}</span>
+            {/* opacity-55, not 40 (#135 audit): Lighthouse measured the
+                dimmed span at ~2.78:1 against --background, under WCAG's
+                3:1 floor for large bold text. 55% lands at ~4.25:1. */}
+            <span className="opacity-55">{t('cta.headlineDim')}</span>
           </h2>
 
           <p className="max-w-xl opacity-70">{t('cta.support')}</p>
@@ -133,7 +136,10 @@ export function SiteFooter() {
                           rel: 'noopener noreferrer',
                         }
                       : {})}
-                    className="hover:text-accent"
+                    // block + py-1.5: o line box nu media 18px de altura,
+                    // abaixo do mínimo de 24x24 do WCAG 2.2 SC 2.5.8 (AA,
+                    // que é o nível que este projeto persegue).
+                    className="hover:text-accent block py-1.5"
                   >
                     {t(`links.${link.messageKey}`)}
                   </a>
@@ -146,7 +152,10 @@ export function SiteFooter() {
             type="button"
             onClick={scrollToTop}
             aria-label={t('backToTop')}
-            className="border-highlight-red hover:bg-highlight-red flex size-9 shrink-0 items-center justify-center rounded-full border transition-colors"
+            // hover:text-black -- same contrast fix as the hero's scroll
+            // button (#135 audit): default text color over a solid
+            // highlight-red hover background is ~2.3:1, under WCAG AA.
+            className="border-highlight-red hover:bg-highlight-red hover:text-black flex size-9 shrink-0 items-center justify-center rounded-full border transition-colors"
           >
             <span aria-hidden="true">↑</span>
           </button>

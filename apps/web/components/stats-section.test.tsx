@@ -11,6 +11,7 @@ jest.mock('gsap', () => ({
     timeline: jest.fn(() => ({
       scrollTrigger: { kill: jest.fn() },
       kill: jest.fn(),
+      revert: jest.fn(),
       to: jest.fn(),
     })),
   },
@@ -29,12 +30,14 @@ const mockProfile = makeProfile({
       issuer: 'Emissor',
       issuedAt: null,
       credentialUrl: null,
+      imageUrl: null,
     },
     {
       name: 'Certificado B',
       issuer: 'Emissor',
       issuedAt: null,
       credentialUrl: null,
+      imageUrl: null,
     },
   ],
   languages: [

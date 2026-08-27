@@ -8,16 +8,35 @@ import { HeroSection } from './hero-section';
 jest.mock('gsap', () => ({
   __esModule: true,
   default: {
+    // the component registers ScrambleTextPlugin at module scope, so the
+    // mock has to answer registerPlugin or the whole suite fails to load
+    registerPlugin: jest.fn(),
     timeline: jest.fn(() => ({
       from: jest.fn(),
+      to: jest.fn(),
       kill: jest.fn(),
+      revert: jest.fn(),
     })),
   },
+}));
+
+// mocked too: the real plugin reaches into gsap's internals, which the mock
+// above no longer provides
+jest.mock('gsap/ScrambleTextPlugin', () => ({
+  __esModule: true,
+  ScrambleTextPlugin: {},
 }));
 
 const mockProfile = makeProfile({
   name: 'Fulana Exemplo',
   headline: 'Desenvolvedora Full-Stack',
+  cvUrl: '/cv-pt.pdf',
+});
+
+const publishedCvUrl = mockProfile.cvUrl;
+
+beforeEach(() => {
+  mockProfile.cvUrl = publishedCvUrl;
 });
 
 jest.mock('../content/profile', () => ({
@@ -43,18 +62,45 @@ describe('HeroSection', () => {
     mockMatchMedia(true);
     renderHero();
 
+    // substring, not exact: the h1 is the whole sentence (greeting + name),
+    // which is what a screen reader and a crawler receive
     expect(
-      screen.getByRole('heading', { level: 1, name: mockProfile.name }),
+      screen.getByRole('heading', {
+        level: 1,
+        name: new RegExp(mockProfile.name),
+      }),
     ).toBeVisible();
-    expect(screen.getByText(mockProfile.headline)).toBeVisible();
+    // twice over, by design: RotatingHeadline renders the headline both as
+    // the stable sr-only text and as the first slide of the rotation, so
+    // it survives whether or not the rotation ever runs
+    expect(screen.getAllByText(mockProfile.headline).length).toBeGreaterThan(0);
   });
 
-  it('links the CTA to the locale-prefixed projects route', () => {
+  it('makes the primary CTA download the CV', () => {
     mockMatchMedia(false);
     renderHero();
 
+    const cta = screen.getByRole('link', { name: messages.hero.cta });
+
+    expect(cta).toHaveAttribute('href', publishedCvUrl);
+    // <a download>, not a router Link: the target is a static file in
+    // public/, and the browser owns the save dialog
+    expect(cta).toHaveAttribute('download');
+    expect(cta).not.toHaveAttribute('target');
+  });
+
+  it('falls back to the projects route while no CV is published', () => {
+    mockProfile.cvUrl = null;
+    mockMatchMedia(false);
+    renderHero();
+
+    // no dead download link...
     expect(
-      screen.getByRole('link', { name: messages.hero.cta }),
+      screen.queryByRole('link', { name: messages.hero.cta }),
+    ).not.toBeInTheDocument();
+    // ...but the hero still has a primary action
+    expect(
+      screen.getByRole('link', { name: messages.hero.ctaProjects }),
     ).toHaveAttribute('href', '/pt/projetos');
   });
 

@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { profile } from '../content/profile';
-import { PinnedFrameSection } from './pinned-frame-section';
+import { PinnedSection } from './pinned-section';
 
 interface Stat {
   key: string;
@@ -19,7 +19,7 @@ interface Stat {
  * aplica aqui e não tem equivalente honesto -- não virou stat nenhuma.
  *
  * 'use client': mesma razão do CoreFocusSection -- `onSetup` é função
- * passada pro `PinnedFrameSection` (Client Component).
+ * passada pro `PinnedSection` (Client Component).
  */
 export function StatsSection({ projectCount }: { projectCount: number }) {
   const t = useTranslations('stats');
@@ -45,8 +45,8 @@ export function StatsSection({ projectCount }: { projectCount: number }) {
 
   return (
     <section>
-      <PinnedFrameSection
-        className="px-6 py-10 sm:px-10 sm:py-14"
+      <PinnedSection
+        className="py-10 sm:py-14"
         onSetup={(timeline, container) => {
           const counters = container.querySelectorAll<HTMLElement>(
             '[data-counter-target]',
@@ -104,7 +104,7 @@ export function StatsSection({ projectCount }: { projectCount: number }) {
             </div>
           ))}
         </div>
-      </PinnedFrameSection>
+      </PinnedSection>
     </section>
   );
 }

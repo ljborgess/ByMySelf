@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { profile } from '../content/profile';
-import { PinnedFrameSection } from './pinned-frame-section';
+import { PinnedSection } from './pinned-section';
 
 /**
  * "Quote/Core Focus" (docs/design-clone-syahril.md): label pequeno em
@@ -11,7 +11,7 @@ import { PinnedFrameSection } from './pinned-frame-section';
  * `content/profile.ts` -- não é conteúdo novo, só apresentação nova.
  *
  * 'use client': `onSetup` abaixo é uma função passada pro
- * `PinnedFrameSection` (Client Component) -- mesma regra de fronteira
+ * `PinnedSection` (Client Component) -- mesma regra de fronteira
  * Server/Client que quebrou o Carousel antes de #122 corrigir. Um Server
  * Component não pode passar função como prop pra um Client Component.
  *
@@ -42,22 +42,47 @@ export function CoreFocusSection() {
 
   return (
     <section>
-      <PinnedFrameSection
-        className="px-6 py-10 sm:px-10 sm:py-14"
+      <PinnedSection
+        className="py-10 sm:py-14"
         onSetup={(timeline, container) => {
-          const stages = container.querySelectorAll('[data-stage]');
-          timeline.from(stages, { opacity: 0, y: 32, stagger: 0.2 });
+          const query = (selector: string) =>
+            container.querySelectorAll(selector);
+
+          // Transforms only, never opacity (#135 follow-up). A scrubbed
+          // .from() applies its starting values at page load, but the
+          // ScrollTrigger does not begin until `top top` -- so anything
+          // starting at opacity 0 leaves the frame sitting on screen
+          // visibly empty until the pin engages. Offsets keep every word
+          // readable at progress 0; only the rule has nothing to show yet,
+          // which reads as "not drawn" rather than "broken".
+          //
+          // Dimming the italic clause instead was measured and rejected:
+          // --foreground at 0.35 over --background is 2.38:1, below AA
+          // even for large text.
+          timeline
+            .from(query('[data-reveal="lead"]'), {
+              y: 24,
+              stagger: 0.2,
+            })
+            .from(
+              query('[data-reveal="rule"]'),
+              { scaleX: 0, transformOrigin: 'left center' },
+              '<0.2',
+            )
+            .from(query('[data-reveal="column-start"]'), { x: -16 }, '<0.15')
+            .from(query('[data-reveal="column-end"]'), { x: 16 }, '<')
+            .from(query('[data-reveal="signature"]'), { y: 20 }, '<0.2');
         }}
       >
         <p
-          data-stage
+          data-reveal="lead"
           className="text-highlight-red font-mono text-xs tracking-[0.2em] uppercase"
         >
           {t('label')}
         </p>
 
         <blockquote
-          data-stage
+          data-reveal="lead"
           className="mt-4 text-3xl leading-tight sm:text-5xl"
         >
           <span aria-hidden="true" className="opacity-30">
@@ -77,31 +102,31 @@ export function CoreFocusSection() {
           </span>
         </blockquote>
 
-        <hr data-stage className="mt-8 border-white/15" />
+        <hr data-reveal="rule" className="mt-8 border-white/15" />
 
-        <div data-stage className="mt-8 grid gap-8 sm:grid-cols-2">
-          <div>
-            <h3 className="text-sm font-semibold tracking-wide uppercase opacity-70">
+        <div className="mt-8 grid gap-8 sm:grid-cols-2">
+          <div data-reveal="column-start">
+            <h2 className="text-sm font-semibold tracking-wide uppercase opacity-70">
               {t('aboutLabel')}
-            </h3>
+            </h2>
             <p className="mt-2 text-sm whitespace-pre-line opacity-80">
               {aboutText}
             </p>
           </div>
-          <div>
-            <h3 className="text-sm font-semibold tracking-wide uppercase opacity-70">
+          <div data-reveal="column-end">
+            <h2 className="text-sm font-semibold tracking-wide uppercase opacity-70">
               {t('focusLabel')}
-            </h3>
+            </h2>
             <p className="mt-2 text-sm whitespace-pre-line opacity-80">
               {focusText}
             </p>
           </div>
         </div>
 
-        <p data-stage className="font-script mt-8 text-3xl">
+        <p data-reveal="signature" className="font-script mt-8 text-3xl">
           {profile.name}
         </p>
-      </PinnedFrameSection>
+      </PinnedSection>
     </section>
   );
 }
