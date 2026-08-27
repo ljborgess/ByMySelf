@@ -8,9 +8,6 @@ import { HeroSection } from './hero-section';
 jest.mock('gsap', () => ({
   __esModule: true,
   default: {
-    // the component registers ScrambleTextPlugin at module scope, so the
-    // mock has to answer registerPlugin or the whole suite fails to load
-    registerPlugin: jest.fn(),
     timeline: jest.fn(() => ({
       from: jest.fn(),
       to: jest.fn(),
@@ -18,13 +15,6 @@ jest.mock('gsap', () => ({
       revert: jest.fn(),
     })),
   },
-}));
-
-// mocked too: the real plugin reaches into gsap's internals, which the mock
-// above no longer provides
-jest.mock('gsap/ScrambleTextPlugin', () => ({
-  __esModule: true,
-  ScrambleTextPlugin: {},
 }));
 
 const mockProfile = makeProfile({

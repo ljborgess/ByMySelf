@@ -10,8 +10,7 @@ jest.mock('gsap', () => ({
   default: {
     timeline: jest.fn((config: { onComplete?: () => void }) => {
       capturedOnComplete = config?.onComplete;
-      const tl: { set: jest.Mock; to: jest.Mock; kill: jest.Mock } = {
-        set: jest.fn(() => tl),
+      const tl: { to: jest.Mock; kill: jest.Mock } = {
         to: jest.fn(() => tl),
         kill: jest.fn(),
       };
@@ -34,33 +33,35 @@ function renderIntro() {
 
 describe('IntroLoader', () => {
   beforeEach(() => {
-    sessionStorage.clear();
     capturedOnComplete = undefined;
   });
 
-  it('shows the greeting on a first visit', () => {
+  it('shows the greeting cycle, ending on the real site greeting', () => {
     mockMatchMedia(false);
     const { getByText } = renderIntro();
 
+    expect(getByText('Hello')).toBeInTheDocument();
     expect(getByText(messages.intro.greeting)).toBeInTheDocument();
   });
 
-  it('does not show again in the same session once already seen', () => {
-    sessionStorage.setItem('portfolio-intro-seen', 'true');
+  it('shows again on every render -- no "already seen" gate', () => {
     mockMatchMedia(false);
-    const { queryByText } = renderIntro();
+    const first = renderIntro();
+    expect(first.getByText(messages.intro.greeting)).toBeInTheDocument();
+    first.unmount();
 
-    expect(queryByText(messages.intro.greeting)).not.toBeInTheDocument();
+    const second = renderIntro();
+    expect(second.getByText(messages.intro.greeting)).toBeInTheDocument();
   });
 
-  it('skips straight to hidden under prefers-reduced-motion, even on a first visit', () => {
+  it('skips straight to hidden under prefers-reduced-motion', () => {
     mockMatchMedia(true);
     const { queryByText } = renderIntro();
 
     expect(queryByText(messages.intro.greeting)).not.toBeInTheDocument();
   });
 
-  it('marks the session as seen and hides itself once the draw animation completes', () => {
+  it('hides itself once the greeting cycle completes', () => {
     mockMatchMedia(false);
     const { getByText, queryByText } = renderIntro();
 
@@ -70,7 +71,6 @@ describe('IntroLoader', () => {
       capturedOnComplete?.();
     });
 
-    expect(sessionStorage.getItem('portfolio-intro-seen')).toBe('true');
     expect(queryByText(messages.intro.greeting)).not.toBeInTheDocument();
   });
 

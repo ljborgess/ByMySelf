@@ -45,3 +45,6 @@ docs/
 
 # misc
 *.tsbuildinfo
+
+# impeccable skill — local run state/cache
+.impeccable/
