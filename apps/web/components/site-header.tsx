@@ -48,7 +48,7 @@ export function SiteHeader() {
                     // py-1.5 is not decoration: the bare line box measured
                     // 18px tall, under WCAG 2.2 SC 2.5.8's 24x24 minimum
                     // (AA, which is the level this project targets).
-                    className="hover:text-accent aria-[current=page]:text-accent block py-1.5 font-mono aria-[current=page]:font-semibold"
+                    className="nav-glow-link hover:text-accent aria-[current=page]:text-accent block py-1.5 font-mono aria-[current=page]:font-semibold"
                   >
                     {tNav(section.messageKey)}
                   </Link>

@@ -4,60 +4,56 @@ import gsap from 'gsap';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
-const STORAGE_KEY = 'portfolio-intro-seen';
-
 /**
- * Comprimento de traço generoso o bastante pra cobrir a saudação em
- * qualquer tamanho de tela -- `<text>` do SVG não expõe `getTotalLength()`
- * como `<path>` expõe, então não dá pra medir o comprimento real do
- * traçado. DrawSVGPlugin (gsap.com/docs/v3/Plugins/DrawSVGPlugin) resolveria
- * isso com precisão, e ficou de graça junto com o resto dos plugins em
- * 2024 -- mas só funciona em formas com comprimento real (path/line/
- * polyline/circle...), não em texto. `stroke-dasharray`/`stroke-dashoffset`
- * puro continua sendo a ferramenta certa aqui, não por causa de licença.
- */
-const DASH_LENGTH = 1200;
-
-/**
- * Intro (docs/design-clone-syahril.md): saudação desenhada à mão em SVG
- * antes do hero aparecer. Só na home, uma vez por sessão (sessionStorage)
- * -- não repete ao navegar entre páginas nem ao voltar pra home na mesma
- * aba.
+ * "Hello" em vários idiomas, um de cada vez, dissolvendo um no outro --
+ * mesma linguagem visual da tela de configuração inicial do iPhone
+ * (pedido do dono, 2026-08-27). O último da lista é `t('greeting')`, não
+ * mais um idioma qualquer -- a intro "chega" na saudação real do site
+ * (a mesma que o hero mostra logo em seguida) antes de se dissolver, em
+ * vez de terminar num idioma desconectado do resto da página.
+ *
+ * Aparece a cada carregamento da home (pedido do dono, 2026-08-27): ao
+ * contrário da versão anterior, não guarda mais `sessionStorage` -- não
+ * há noção de "já visto".
  *
  * Não gate a renderização do resto da página: HomeContent sempre existe
  * no DOM, este componente só cobre visualmente por cima (`fixed inset-0`)
  * enquanto anima. `aria-hidden` no overlay inteiro -- é decoração
  * temporizada, não deve prender foco de teclado nem ficar no caminho de
- * quem usa leitor de tela.
+ * quem usa leitor de tela. Pulado inteiramente sob
+ * `prefers-reduced-motion`: uma introdução decorativa que atrasa a
+ * chegada ao conteúdo real não vale o gesto quando o visitante pediu
+ * menos movimento.
  */
+const OTHER_GREETINGS = [
+  'Hello',
+  'Bonjour',
+  'Hola',
+  'Ciao',
+  '你好',
+  'こんにちは',
+];
+
 export function IntroLoader() {
   const t = useTranslations('intro');
   const [visible, setVisible] = useState(false);
-  const textRef = useRef<SVGTextElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const wordRefs = useRef<(HTMLSpanElement | null)[]>([]);
+
+  const greetings = [...OTHER_GREETINGS, t('greeting')];
 
   useEffect(() => {
-    let alreadySeen = false;
-    try {
-      alreadySeen = sessionStorage.getItem(STORAGE_KEY) === 'true';
-    } catch {
-      // sessionStorage indisponível (aba privada restrita etc.) -- trata
-      // como "ainda não visto". Pior caso é a intro aparecer de novo numa
-      // navegação futura, não travar a página.
-    }
-
     const prefersReducedMotion = window.matchMedia(
       '(prefers-reduced-motion: reduce)',
     ).matches;
 
-    if (alreadySeen || prefersReducedMotion) {
+    if (prefersReducedMotion) {
       return;
     }
 
-    // Synchronizing with two external systems that only exist in the
-    // browser (sessionStorage, matchMedia) -- there is no way to know
-    // whether to show the intro before this effect runs once on mount, so
-    // there is nothing to move into a render-time computation instead.
+    // Nada além de matchMedia decide isto, e matchMedia só existe no
+    // navegador -- não há como saber antes de este efeito rodar uma vez
+    // no mount, então não há cálculo em tempo de render pra mover pra cá.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setVisible(true);
   }, []);
@@ -67,35 +63,40 @@ export function IntroLoader() {
       return;
     }
 
-    const text = textRef.current;
     const container = containerRef.current;
-    if (!text || !container) {
+    const words = wordRefs.current.filter(
+      (el): el is HTMLSpanElement => el !== null,
+    );
+    if (!container || words.length === 0) {
       return;
     }
 
-    const markSeenAndHide = () => {
-      try {
-        sessionStorage.setItem(STORAGE_KEY, 'true');
-      } catch {
-        // ver o try/catch acima -- sem sessionStorage, a intro só volta a
-        // aparecer na próxima visita, o que é aceitável.
+    const markHidden = () => setVisible(false);
+    const timeline = gsap.timeline({ onComplete: markHidden });
+
+    words.forEach((word, index) => {
+      const isLast = index === words.length - 1;
+
+      timeline.to(word, {
+        opacity: 1,
+        scale: 1,
+        duration: 0.2,
+        ease: 'power1.out',
+      });
+
+      // A última palavra (a saudação real do site) fica visível em vez de
+      // sumir -- é nela que a intro "pousa" antes do container inteiro se
+      // dissolver, não mais um idioma solto trocando pro próximo.
+      if (!isLast) {
+        timeline.to(
+          word,
+          { opacity: 0, scale: 1.05, duration: 0.2, ease: 'power1.in' },
+          '+=0.28',
+        );
       }
-      setVisible(false);
-    };
+    });
 
-    const timeline = gsap.timeline({ onComplete: markSeenAndHide });
-
-    timeline
-      .set(text, {
-        strokeDasharray: DASH_LENGTH,
-        strokeDashoffset: DASH_LENGTH,
-      })
-      .to(text, {
-        strokeDashoffset: 0,
-        duration: 1.6,
-        ease: 'power1.inOut',
-      })
-      .to(container, { opacity: 0, duration: 0.5 }, '+=0.3');
+    timeline.to(container, { opacity: 0, duration: 0.5 }, '+=0.35');
 
     return () => {
       timeline.kill();
@@ -112,20 +113,21 @@ export function IntroLoader() {
       aria-hidden="true"
       className="bg-background fixed inset-0 z-50 flex items-center justify-center"
     >
-      <svg viewBox="0 0 400 150" className="w-64 sm:w-96">
-        <text
-          ref={textRef}
-          x="50%"
-          y="50%"
-          textAnchor="middle"
-          dominantBaseline="middle"
-          className="font-script fill-none text-6xl sm:text-8xl"
-          stroke="currentColor"
-          strokeWidth="1"
-        >
-          {t('greeting')}
-        </text>
-      </svg>
+      {/* mesma célula de grid pra todas -- pilha exatamente centralizada,
+          sem depender da largura de cada palavra pra não pular. */}
+      <div className="grid">
+        {greetings.map((word, index) => (
+          <span
+            key={word}
+            ref={(el) => {
+              wordRefs.current[index] = el;
+            }}
+            className="font-display col-start-1 row-start-1 scale-90 text-6xl font-black opacity-0 sm:text-8xl"
+          >
+            {word}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
