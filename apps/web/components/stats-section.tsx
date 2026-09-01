@@ -86,7 +86,12 @@ export function StatsSection({ projectCount }: { projectCount: number }) {
           data-stage
           className="font-display mt-4 text-3xl leading-tight font-black sm:text-5xl"
         >
-          {t('headline', { skills: profile.skills.slice(0, 3).join('. ') })}
+          {t('headline', {
+            skills: profile.skills
+              .slice(0, 3)
+              .map((s) => s.name)
+              .join('. '),
+          })}
         </h2>
 
         <div

@@ -2,8 +2,14 @@ import type { Metadata } from 'next';
 import { useTranslations } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
 import { CvDownloadButton } from '../../../../components/cv-download-button';
+import { HudPanel } from '../../../../components/hud-panel';
 import { ProfileAvatar } from '../../../../components/profile-avatar';
-import { profile } from '../../../../content/profile';
+import { SkillBar } from '../../../../components/skill-bar';
+import {
+  profile,
+  type LanguageLevel,
+  type SkillLevel,
+} from '../../../../content/profile';
 import { withOpenGraph } from '../../../../lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -11,114 +17,141 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return withOpenGraph(
     `${t('title')} — ${profile.name}`,
-    // falls back to the headline while the bio is unset, so the page never
-    // ships an empty description
     profile.bio ?? profile.headline,
   );
 }
 
-/**
- * RF-PUB4 (bio, objetivo, foto, habilidades, idiomas) and RF-PUB7 (CV).
- *
- * Every section renders only when it has content. An empty heading over
- * nothing reads as broken, whereas an absent section simply is not there --
- * so the page looks finished at any stage of filling profile.ts in.
- */
+const LANG_LEVEL_MAP: Record<LanguageLevel, SkillLevel> = {
+  nativo: 'EXPERT',
+  fluente: 'ADV',
+  avançado: 'ADV',
+  intermediário: 'INT',
+  básico: 'JR',
+};
+
 export default function AboutPage() {
   const t = useTranslations('about');
 
   return (
-    <div className="flex flex-col gap-10">
-      <section className="flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-6">
-        <ProfileAvatar name={profile.name} photoUrl={profile.photoUrl} />
+    <div className="flex flex-col gap-8">
+      <h1 className="font-mono text-[10px] tracking-[0.25em] text-highlight-gold uppercase opacity-80">
+        {t('title')}
+      </h1>
 
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-            {t('title')}
-          </h1>
-          <p className="mt-2 opacity-70">{profile.headline}</p>
-          <CvDownloadButton className="mt-4" />
-        </div>
-      </section>
+      {/* Two-column: Identity (2/5) + Stack (3/5) */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-5">
+        <HudPanel label="IDENTITY" className="md:col-span-2">
+          <div className="flex flex-col items-center gap-5 p-6 text-center">
+            <ProfileAvatar name={profile.name} photoUrl={profile.photoUrl} />
 
-      {profile.photoUrl && (
-        // Foto duotone (#133, docs/design-clone-syahril.md's "Foto duotone"
-        // section) -- full-bleed like the marquee (home-content.tsx), and
-        // aria-hidden: the header's ProfileAvatar right above already
-        // carries the accessible photo (alt={name}), so this is a purely
-        // decorative, enlarged restatement of it, not new information.
-        <div
-          aria-hidden="true"
-          className="relative left-1/2 right-1/2 -mx-[50vw] w-screen"
-        >
-          {/* plain <img>, not next/image -- same reasoning as ProfileAvatar:
-              photoUrl is an arbitrary external URL the owner pastes in */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={profile.photoUrl}
-            alt=""
-            loading="lazy"
-            className="aspect-[21/9] w-full grayscale contrast-125 sm:aspect-[3/1] object-cover"
-          />
-        </div>
-      )}
+            <div className="flex flex-col gap-2">
+              <p className="font-display text-xl font-black tracking-tight">
+                {profile.name}
+              </p>
+              <p className="font-mono text-[10px] tracking-widest text-foreground/60 uppercase">
+                {profile.headline}
+              </p>
+              <div className="mt-1 flex items-center justify-center gap-2">
+                <span
+                  aria-hidden="true"
+                  className="size-1.5 rounded-full bg-highlight-green motion-safe:animate-pulse"
+                />
+                <span className="font-mono text-[10px] tracking-widest text-highlight-green uppercase">
+                  online
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-2">
+              {profile.links.github && (
+                <a
+                  href={profile.links.github}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-[10px] tracking-widest text-foreground/50 uppercase hover:text-highlight-gold transition-colors"
+                >
+                  GitHub
+                </a>
+              )}
+              {profile.links.linkedin && (
+                <>
+                  {profile.links.github && (
+                    <span aria-hidden="true" className="text-foreground/20">
+                      /
+                    </span>
+                  )}
+                  <a
+                    href={profile.links.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-mono text-[10px] tracking-widest text-foreground/50 uppercase hover:text-highlight-gold transition-colors"
+                  >
+                    LinkedIn
+                  </a>
+                </>
+              )}
+              {profile.links.email && (
+                <>
+                  {(profile.links.github || profile.links.linkedin) && (
+                    <span aria-hidden="true" className="text-foreground/20">
+                      /
+                    </span>
+                  )}
+                  <a
+                    href={`mailto:${profile.links.email}`}
+                    className="font-mono text-[10px] tracking-widest text-foreground/50 uppercase hover:text-highlight-gold transition-colors"
+                  >
+                    Email
+                  </a>
+                </>
+              )}
+            </div>
+
+            {profile.cvUrl && <CvDownloadButton />}
+          </div>
+        </HudPanel>
+
+        {profile.skills.length > 0 && (
+          <HudPanel label="STACK_INDEX" className="md:col-span-3">
+            <div className="flex flex-col gap-4 p-6">
+              <h2 className="sr-only">{t('skillsHeading')}</h2>
+              {profile.skills.map((skill) => (
+                <SkillBar
+                  key={skill.name}
+                  name={skill.name}
+                  level={skill.level}
+                />
+              ))}
+            </div>
+          </HudPanel>
+        )}
+      </div>
 
       {profile.bio && (
-        <section>
-          <h2 className="text-lg font-semibold tracking-tight">
-            {t('bioHeading')}
-          </h2>
-          {/* whitespace-pre-line so paragraph breaks in the source survive
-              without needing markdown here */}
-          <p className="mt-3 leading-relaxed whitespace-pre-line opacity-80">
-            {profile.bio}
-          </p>
-        </section>
-      )}
-
-      {profile.objective && (
-        <section>
-          <h2 className="text-lg font-semibold tracking-tight">
-            {t('objectiveHeading')}
-          </h2>
-          <p className="mt-3 leading-relaxed whitespace-pre-line opacity-80">
-            {profile.objective}
-          </p>
-        </section>
-      )}
-
-      {profile.skills.length > 0 && (
-        <section>
-          <h2 className="text-lg font-semibold tracking-tight">
-            {t('skillsHeading')}
-          </h2>
-          <ul className="mt-3 flex flex-wrap gap-2">
-            {profile.skills.map((skill) => (
-              <li
-                key={skill}
-                className="rounded-full border border-white/15 px-3 py-1 text-sm"
-              >
-                {skill}
-              </li>
-            ))}
-          </ul>
-        </section>
+        <HudPanel label="PROFILE_BIO">
+          <div className="p-6">
+            <h2 className="sr-only">{t('bioHeading')}</h2>
+            <p className="leading-relaxed whitespace-pre-line opacity-80">
+              {profile.bio}
+            </p>
+          </div>
+        </HudPanel>
       )}
 
       {profile.languages.length > 0 && (
-        <section>
-          <h2 className="text-lg font-semibold tracking-tight">
-            {t('languagesHeading')}
-          </h2>
-          <ul className="mt-3 flex flex-col gap-1">
-            {profile.languages.map((language) => (
-              <li key={language.language} className="text-sm">
-                <span className="font-medium">{language.language}</span>
-                <span className="opacity-70"> — {language.level}</span>
-              </li>
+        <HudPanel label="LANGUAGES">
+          <div className="flex flex-col gap-4 p-6">
+            <h2 className="sr-only">{t('languagesHeading')}</h2>
+            {profile.languages.map((lang) => (
+              <SkillBar
+                key={lang.language}
+                name={lang.language}
+                level={LANG_LEVEL_MAP[lang.level]}
+                displayLabel={lang.level}
+              />
             ))}
-          </ul>
-        </section>
+          </div>
+        </HudPanel>
       )}
     </div>
   );

@@ -1,9 +1,31 @@
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import type { Education } from '../content/profile';
 import messages from '../messages/pt.json';
 import { EducationContent } from './education-content';
+
+jest.mock('gsap', () => ({
+  __esModule: true,
+  default: {
+    registerPlugin: jest.fn(),
+    timeline: jest.fn(() => ({
+      scrollTrigger: { kill: jest.fn() },
+      kill: jest.fn(),
+      revert: jest.fn(),
+      from: jest.fn().mockReturnThis(),
+    })),
+    set: jest.fn(),
+  },
+}));
+
+jest.mock('gsap/ScrollTrigger', () => ({
+  __esModule: true,
+  ScrollTrigger: {},
+}));
+
+beforeAll(() => {
+  window.matchMedia = jest.fn().mockReturnValue({ matches: false });
+});
 
 function renderContent(education: Education[]) {
   return render(
@@ -13,11 +35,6 @@ function renderContent(education: Education[]) {
   );
 }
 
-beforeAll(() => {
-  window.matchMedia = jest.fn().mockReturnValue({ matches: false });
-  Element.prototype.scrollIntoView = jest.fn();
-});
-
 describe('EducationContent', () => {
   it('shows the empty state message when there is no education entry', () => {
     renderContent([]);
@@ -25,7 +42,7 @@ describe('EducationContent', () => {
     expect(screen.getByText(messages.education.empty)).toBeInTheDocument();
   });
 
-  it('sorts ongoing entries first, then by start date descending', () => {
+  it('renders all entries, ongoing first in DOM order', () => {
     renderContent([
       {
         course: 'Antigo',
@@ -43,16 +60,16 @@ describe('EducationContent', () => {
       },
     ]);
 
-    // ongoing entry sorts first, so it is the initial active card
-    expect(
-      screen.getByRole('heading', { name: 'Curso em andamento' }),
-    ).toBeInTheDocument();
+    const headings = screen.getAllByRole('heading', { level: 2 });
+    expect(headings[0]).toHaveTextContent('Curso em andamento');
+    expect(headings[1]).toHaveTextContent('Antigo');
+
+    // bento shows all entries simultaneously
+    expect(screen.getByText('Instituição A')).toBeInTheDocument();
     expect(screen.getByText('Instituição B')).toBeInTheDocument();
-    // the older entry is only present as a node label, not its full card
-    expect(screen.queryByText('Instituição A')).not.toBeInTheDocument();
   });
 
-  it('shows the ongoing badge for an entry without an end date or start date', () => {
+  it('shows the ongoing badge for an entry without an end date', () => {
     renderContent([
       {
         course: 'Sem datas',
@@ -66,7 +83,7 @@ describe('EducationContent', () => {
     expect(screen.getByText(messages.education.ongoing)).toBeInTheDocument();
   });
 
-  it('renders technologies for the active entry', () => {
+  it('renders technologies for each entry', () => {
     renderContent([
       {
         course: 'Curso',
@@ -81,7 +98,7 @@ describe('EducationContent', () => {
     expect(screen.getByText('React')).toBeInTheDocument();
   });
 
-  it('omits the institution line when the entry has none', () => {
+  it('shows the course heading even when institution is absent', () => {
     renderContent([
       {
         course: 'Curso sem instituição',
@@ -95,29 +112,5 @@ describe('EducationContent', () => {
     expect(
       screen.getByRole('heading', { name: 'Curso sem instituição' }),
     ).toBeInTheDocument();
-  });
-
-  it('switches the active card when a different node is clicked', async () => {
-    const user = userEvent.setup();
-    renderContent([
-      {
-        course: 'Primeiro curso',
-        institution: 'Instituição 1',
-        startDate: '2023-01-01',
-        endDate: null,
-        technologies: [],
-      },
-      {
-        course: 'Segundo curso',
-        institution: 'Instituição 2',
-        startDate: '2018-01-01',
-        endDate: '2020-01-01',
-        technologies: [],
-      },
-    ]);
-
-    await user.click(screen.getByRole('button', { name: 'Segundo curso' }));
-
-    expect(screen.getByText('Instituição 2')).toBeInTheDocument();
   });
 });

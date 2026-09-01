@@ -55,7 +55,7 @@ export function HomeContent({
           de propósito -- é uma faixa decorativa, não conteúdo de leitura,
           e a referência a estica pela largura inteira do viewport. */}
       <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen">
-        <Marquee items={profile.skills} />
+        <Marquee items={profile.skills.map((s) => s.name)} />
       </div>
 
       <div data-section-label={t('sectionLabels.projects')}>
