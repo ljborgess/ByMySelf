@@ -101,12 +101,100 @@ function processCommand(cmd: string): OutputLine[] | 'clear' {
   ];
 }
 
-const WELCOME: OutputLine[] = [
-  ...line('system', '┌─────────────────────────────┐'),
-  ...line('welcome', '  portfolio.sh  v1.0.0'),
-  ...line('system', '└─────────────────────────────┘'),
-  ...line('output', 'Digite /help para começar.'),
-];
+// ── Mario idle animation ──────────────────────────────────────────────────────
+
+const W = 36; // terminal char width
+const MARIO_COL = 3;
+const CYCLE = 42; // frames per pipe loop (~4.2 s at 100 ms/frame)
+
+function buildMarioFrame(tick: number): string[] {
+  const pipeX = W - 1 - (tick % CYCLE);
+
+  // Mario jumps when the pipe is within cols [2..13] of him
+  const jumping = pipeX >= 2 && pipeX <= 13;
+
+  // Leg alternates every 4 ticks (slower than frame rate)
+  const legA = Math.floor(tick / 4) % 2 === 0;
+
+  const rows: string[][] = [
+    Array(W).fill(' '),
+    Array(W).fill(' '),
+    Array(W).fill(' '),
+    Array(W).fill('─'), // ground
+  ];
+
+  const marioTop = jumping ? 0 : 1;
+
+  // Head: (o)
+  ['(', 'o', ')'].forEach((ch, i) => {
+    if (marioTop < 4) rows[marioTop][MARIO_COL + i] = ch;
+  });
+
+  // Body: /|\
+  ['/', '|', '\\'].forEach((ch, i) => {
+    if (marioTop + 1 < 4) rows[marioTop + 1][MARIO_COL + i] = ch;
+  });
+
+  // Legs: running on ground, tucked (U) when mid-air
+  const legs = jumping
+    ? [' ', 'U', ' ']
+    : legA
+      ? ['/', ' ', '\\']
+      : ['\\', ' ', '/'];
+  legs.forEach((ch, i) => {
+    if (marioTop + 2 < 4) rows[marioTop + 2][MARIO_COL + i] = ch;
+  });
+
+  // Pipe: visible while within screen bounds
+  if (pipeX >= 0 && pipeX + 2 < W) {
+    // cap at row 1, body at rows 2-3 (overwrites Mario only if not jumping)
+    ['[', '=', ']'].forEach((ch, i) => {
+      rows[1][pipeX + i] = ch;
+    });
+    ['|', '=', '|'].forEach((ch, i) => {
+      rows[2][pipeX + i] = ch;
+    });
+    ['|', '=', '|'].forEach((ch, i) => {
+      rows[3][pipeX + i] = ch;
+    });
+  }
+
+  // Mario rendered last → overwrites pipe when they briefly overlap during jump
+  if (jumping) {
+    ['(', 'o', ')'].forEach((ch, i) => {
+      rows[0][MARIO_COL + i] = ch;
+    });
+    ['/', '|', '\\'].forEach((ch, i) => {
+      rows[1][MARIO_COL + i] = ch;
+    });
+    [' ', 'U', ' '].forEach((ch, i) => {
+      rows[2][MARIO_COL + i] = ch;
+    });
+  }
+
+  return rows.map((r) => r.join(''));
+}
+
+function MarioIdle({ tick }: { tick: number }) {
+  const frames = buildMarioFrame(tick);
+  return (
+    <div aria-hidden="true" className="select-none py-2">
+      {frames.map((row, i) => (
+        <div
+          key={i}
+          className="whitespace-pre font-mono text-[11.5px] leading-[1.7] text-highlight-gold/40"
+        >
+          {row}
+        </div>
+      ))}
+      <div className="mt-3 font-mono text-[10px] text-white/15">
+        &gt; type /help to explore
+      </div>
+    </div>
+  );
+}
+
+// ── Titlebar ──────────────────────────────────────────────────────────────────
 
 interface Pos {
   x: number;
@@ -133,7 +221,6 @@ function Titlebar({
         draggable ? 'cursor-grab active:cursor-grabbing' : '',
       ].join(' ')}
     >
-      {/* traffic lights */}
       <button
         type="button"
         onClick={onClose}
@@ -148,12 +235,10 @@ function Titlebar({
       />
       <span aria-hidden className="size-3 rounded-full bg-[#28c840]/50" />
 
-      {/* title */}
       <span className="mx-auto font-mono text-[10px] tracking-[0.18em] text-white/25 uppercase">
         portfolio.sh
       </span>
 
-      {/* explicit minimize button */}
       <button
         type="button"
         onClick={onMinimize}
@@ -166,19 +251,30 @@ function Titlebar({
   );
 }
 
+// ── PortfolioTerminal ─────────────────────────────────────────────────────────
+
 export function PortfolioTerminal({ inline = false }: { inline?: boolean }) {
   const [minimized, setMinimized] = useState(false);
   const [pos, setPos] = useState<Pos | null>(null);
-  const [lines, setLines] = useState<OutputLine[]>(WELCOME);
+  const [lines, setLines] = useState<OutputLine[]>([]);
   const [input, setInput] = useState('');
   const [cmdHistory, setCmdHistory] = useState<string[]>([]);
   const [historyIdx, setHistoryIdx] = useState(-1);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [animated, setAnimated] = useState(true);
+  const [marioTick, setMarioTick] = useState(0);
 
   const termRef = useRef<HTMLDivElement>(null);
   const outputRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const drag = useRef({ active: false, sx: 0, sy: 0, px: 0, py: 0 });
+
+  // Mario animation tick
+  useEffect(() => {
+    if (!animated) return;
+    const id = setInterval(() => setMarioTick((t) => t + 1), 100);
+    return () => clearInterval(id);
+  }, [animated]);
 
   useEffect(() => {
     const el = termRef.current;
@@ -236,8 +332,11 @@ export function PortfolioTerminal({ inline = false }: { inline?: boolean }) {
     const result = processCommand(cmd);
     if (result === 'clear') {
       setLines([]);
+      setAnimated(true);
+      setMarioTick(0);
       return;
     }
+    setAnimated(false);
     setLines((prev) => [...prev, ...line('command', cmd), ...result]);
   };
 
@@ -279,18 +378,24 @@ export function PortfolioTerminal({ inline = false }: { inline?: boolean }) {
         className="flex-1 overflow-y-auto px-4 py-3 font-mono text-[11.5px] leading-[1.7] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         onClick={() => inputRef.current?.focus()}
       >
-        {lines.map((l) => (
-          <div key={l.id} className={COLOR[l.type]}>
-            {l.type === 'command' ? (
-              <>
-                <span className="text-highlight-green opacity-60">{'> '}</span>
-                {l.text}
-              </>
-            ) : (
-              l.text
-            )}
-          </div>
-        ))}
+        {animated ? (
+          <MarioIdle tick={marioTick} />
+        ) : (
+          lines.map((l) => (
+            <div key={l.id} className={COLOR[l.type]}>
+              {l.type === 'command' ? (
+                <>
+                  <span className="text-highlight-green opacity-60">
+                    {'> '}
+                  </span>
+                  {l.text}
+                </>
+              ) : (
+                l.text
+              )}
+            </div>
+          ))
+        )}
       </div>
 
       <form
