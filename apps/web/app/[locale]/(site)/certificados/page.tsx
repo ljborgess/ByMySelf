@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { useTranslations } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
 import { CertificatesContent } from '../../../../components/certificates-content';
 import { profile } from '../../../../content/profile';
@@ -12,21 +11,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * RF-PUB6. Stays a Server Component with `generateMetadata` -- the actual
- * rendering (and the client boundary `HorizontalTimeline` needs) lives in
- * `CertificatesContent`, which is also what certificates-content.test.tsx
- * exercises.
+ * RF-PUB6. Server Component for generateMetadata; client boundary lives in
+ * CertificatesContent. The component owns its heading (cert name as h1)
+ * and the "CERTIFICADOS" label, so no outer h1 here.
  */
 export default function CertificatesPage() {
-  const t = useTranslations('certificates');
-
-  return (
-    <div className="flex flex-col gap-8">
-      <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-        {t('title')}
-      </h1>
-
-      <CertificatesContent certificates={profile.certificates} />
-    </div>
-  );
+  return <CertificatesContent certificates={profile.certificates} />;
 }

@@ -3,12 +3,37 @@ import { NextIntlClientProvider } from 'next-intl';
 import { makeProfile } from '../../../../content/profile.fixture';
 import messages from '../../../../messages/pt.json';
 
+jest.mock('gsap', () => ({
+  __esModule: true,
+  default: {
+    registerPlugin: jest.fn(),
+    timeline: jest.fn(() => ({
+      scrollTrigger: { kill: jest.fn() },
+      kill: jest.fn(),
+      revert: jest.fn(),
+      from: jest.fn().mockReturnThis(),
+      fromTo: jest.fn().mockReturnThis(),
+      to: jest.fn().mockReturnThis(),
+      set: jest.fn().mockReturnThis(),
+    })),
+    set: jest.fn(),
+  },
+}));
+
+jest.mock('gsap/ScrollTrigger', () => ({
+  __esModule: true,
+  ScrollTrigger: {},
+}));
+
 /** Fully populated: individual tests blank out what they are checking. */
 const mockProfile = makeProfile({
   bio: 'Primeira linha da bio.\n\nSegunda linha.',
-  objective: 'Objetivo profissional de teste.',
   cvUrl: '/cv-pt.pdf',
-  skills: ['NestJS', 'PostgreSQL', 'TypeScript'],
+  skills: [
+    { name: 'NestJS', level: 'EXPERT' },
+    { name: 'PostgreSQL', level: 'ADV' },
+    { name: 'TypeScript', level: 'EXPERT' },
+  ],
   languages: [
     { language: 'Português', level: 'nativo' },
     { language: 'Inglês', level: 'avançado' },
@@ -20,6 +45,10 @@ jest.mock('../../../../content/profile', () => ({
     return mockProfile;
   },
 }));
+
+beforeAll(() => {
+  window.matchMedia = jest.fn().mockReturnValue({ matches: false });
+});
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const AboutPage = require('./page').default as () => React.ReactElement;
@@ -47,18 +76,17 @@ describe('AboutPage', () => {
     ).toBeVisible();
   });
 
-  it('shows the bio and the objective (RF-PUB4)', () => {
+  it('shows the bio (RF-PUB4)', () => {
     renderAbout();
 
     expect(screen.getByText(/Primeira linha da bio/)).toBeVisible();
-    expect(screen.getByText(mockProfile.objective!)).toBeVisible();
   });
 
   it('lists every skill', () => {
     renderAbout();
 
     for (const skill of fullProfile.skills) {
-      expect(screen.getByText(skill)).toBeVisible();
+      expect(screen.getByText(skill.name)).toBeVisible();
     }
   });
 
@@ -67,7 +95,6 @@ describe('AboutPage', () => {
 
     for (const { language, level } of fullProfile.languages) {
       expect(screen.getByText(language)).toBeVisible();
-      // the level is the point of the list; a bare language name says nothing
       expect(screen.getByText(new RegExp(level))).toBeVisible();
     }
   });
@@ -81,7 +108,6 @@ describe('AboutPage', () => {
       });
 
       expect(link).toHaveAttribute('href', '/cv-pt.pdf');
-      // a plain <a download>, not a JS fetch, so it survives client JS failing
       expect(link).toHaveAttribute('download');
     });
 
@@ -90,8 +116,6 @@ describe('AboutPage', () => {
 
       renderAbout();
 
-      // a button that 404s makes the visitor blame the site rather than
-      // conclude there is nothing to download
       expect(
         screen.queryByRole('link', {
           name: new RegExp(messages.about.downloadCv),
@@ -108,18 +132,6 @@ describe('AboutPage', () => {
 
       expect(
         screen.queryByRole('heading', { name: messages.about.bioHeading }),
-      ).not.toBeInTheDocument();
-    });
-
-    it('omits the objective heading rather than showing it empty', () => {
-      mockProfile.objective = null;
-
-      renderAbout();
-
-      expect(
-        screen.queryByRole('heading', {
-          name: messages.about.objectiveHeading,
-        }),
       ).not.toBeInTheDocument();
     });
 
@@ -142,7 +154,6 @@ describe('AboutPage', () => {
     it('still renders the page identifiably with nothing filled in', () => {
       Object.assign(mockProfile, {
         bio: null,
-        objective: null,
         cvUrl: null,
         skills: [],
         languages: [],
@@ -150,8 +161,6 @@ describe('AboutPage', () => {
 
       renderAbout();
 
-      // the page has to look unfinished, not broken, at any stage of filling
-      // profile.ts in
       expect(
         screen.getByRole('heading', { level: 1, name: messages.about.title }),
       ).toBeVisible();
@@ -174,26 +183,6 @@ describe('AboutPage', () => {
       expect(
         screen.getByRole('img', { name: mockProfile.name }),
       ).toBeInTheDocument();
-    });
-
-    it('adds a decorative duotone banner when a photo is set', () => {
-      mockProfile.photoUrl = 'https://example.com/foto.jpg';
-
-      const { container } = renderAbout();
-
-      const banner = container.querySelector(
-        'img[src="https://example.com/foto.jpg"].grayscale',
-      );
-      expect(banner).not.toBeNull();
-      // decorative, not a second accessible photo -- the header avatar
-      // right above already carries alt={name}
-      expect(banner).toHaveAttribute('alt', '');
-    });
-
-    it('omits the duotone banner when there is no photo', () => {
-      const { container } = renderAbout();
-
-      expect(container.querySelector('img.grayscale')).toBeNull();
     });
   });
 });

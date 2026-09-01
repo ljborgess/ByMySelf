@@ -22,7 +22,7 @@ export default function EducationPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+      <h1 className="font-display text-5xl font-black tracking-tight sm:text-7xl">
         {t('title')}
       </h1>
 

@@ -15,6 +15,13 @@
 export type LanguageLevel =
   'básico' | 'intermediário' | 'avançado' | 'fluente' | 'nativo';
 
+export type SkillLevel = 'EXPERT' | 'ADV' | 'INT' | 'JR';
+
+export interface Skill {
+  name: string;
+  level: SkillLevel;
+}
+
 export interface Language {
   language: string;
   level: LanguageLevel;
@@ -68,7 +75,7 @@ export interface Profile {
   photoUrl: string | null;
   /** Downloadable CV. The button is not rendered while null. */
   cvUrl: string | null;
-  skills: string[];
+  skills: Skill[];
   languages: Language[];
   education: Education[];
   certificates: Certificate[];
@@ -119,24 +126,24 @@ Meu foco é backend — NestJS, PostgreSQL, Docker — mas trabalho a stack comp
   // descriptions name. Trim anything you would rather not be asked about in
   // an interview -- this list is a promise.
   skills: [
-    'TypeScript',
-    'Node.js',
-    'NestJS',
-    'Next.js',
-    'React',
-    'PostgreSQL',
-    'MySQL',
-    'Drizzle ORM',
-    'MikroORM',
-    'Zod',
-    'TanStack Query',
-    'Tailwind CSS',
-    'Docker',
-    'Turborepo',
-    'JWT',
-    'Testes unitários',
-    'Microsserviços',
-    'Sistemas distribuídos',
+    { name: 'TypeScript', level: 'EXPERT' },
+    { name: 'Node.js', level: 'EXPERT' },
+    { name: 'NestJS', level: 'EXPERT' },
+    { name: 'Next.js', level: 'ADV' },
+    { name: 'React', level: 'ADV' },
+    { name: 'PostgreSQL', level: 'ADV' },
+    { name: 'Drizzle ORM', level: 'ADV' },
+    { name: 'Zod', level: 'ADV' },
+    { name: 'Tailwind CSS', level: 'ADV' },
+    { name: 'JWT', level: 'ADV' },
+    { name: 'MySQL', level: 'INT' },
+    { name: 'MikroORM', level: 'INT' },
+    { name: 'TanStack Query', level: 'INT' },
+    { name: 'Docker', level: 'INT' },
+    { name: 'Turborepo', level: 'INT' },
+    { name: 'Testes unitários', level: 'INT' },
+    { name: 'Microsserviços', level: 'INT' },
+    { name: 'Sistemas distribuídos', level: 'JR' },
   ],
 
   // The CV says "Portuguese, English – All professional proficiency or

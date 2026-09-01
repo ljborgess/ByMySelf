@@ -73,13 +73,13 @@ export function SiteFooter() {
             the reference) means here. */}
         <div className="pointer-events-none absolute inset-0 -z-10 opacity-[0.08]">
           <Marquee
-            items={profile.skills}
+            items={profile.skills.map((s) => s.name)}
             rotateDeg={-6}
             secondsPerItem={2.2}
             className="absolute top-6 left-[-15%] w-[130%]"
           />
           <Marquee
-            items={profile.skills}
+            items={profile.skills.map((s) => s.name)}
             rotateDeg={6}
             reverse
             secondsPerItem={2.6}

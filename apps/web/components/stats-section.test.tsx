@@ -23,7 +23,12 @@ jest.mock('gsap/ScrollTrigger', () => ({
 }));
 
 const mockProfile = makeProfile({
-  skills: ['TypeScript', 'NestJS', 'Next.js', 'PostgreSQL'],
+  skills: [
+    { name: 'TypeScript', level: 'EXPERT' },
+    { name: 'NestJS', level: 'EXPERT' },
+    { name: 'Next.js', level: 'ADV' },
+    { name: 'PostgreSQL', level: 'ADV' },
+  ],
   certificates: [
     {
       name: 'Certificado A',

@@ -1,6 +1,4 @@
 import { act, render } from '@testing-library/react';
-import { NextIntlClientProvider } from 'next-intl';
-import messages from '../messages/pt.json';
 import { IntroLoader } from './intro-loader';
 
 let capturedOnComplete: (() => void) | undefined;
@@ -10,9 +8,10 @@ jest.mock('gsap', () => ({
   default: {
     timeline: jest.fn((config: { onComplete?: () => void }) => {
       capturedOnComplete = config?.onComplete;
-      const tl: { to: jest.Mock; kill: jest.Mock } = {
+      const tl: { set: jest.Mock; to: jest.Mock; revert: jest.Mock } = {
+        set: jest.fn(() => tl),
         to: jest.fn(() => tl),
-        kill: jest.fn(),
+        revert: jest.fn(),
       };
       return tl;
     }),
@@ -24,54 +23,49 @@ function mockMatchMedia(reducedMotion: boolean) {
 }
 
 function renderIntro() {
-  return render(
-    <NextIntlClientProvider locale="pt" messages={messages}>
-      <IntroLoader />
-    </NextIntlClientProvider>,
-  );
+  return render(<IntroLoader />);
 }
 
 describe('IntroLoader', () => {
   beforeEach(() => {
+    sessionStorage.clear();
     capturedOnComplete = undefined;
   });
 
-  it('shows the greeting cycle, ending on the real site greeting', () => {
+  it('shows the greeting on a first visit', () => {
     mockMatchMedia(false);
     const { getByText } = renderIntro();
 
     expect(getByText('Hello')).toBeInTheDocument();
-    expect(getByText(messages.intro.greeting)).toBeInTheDocument();
   });
 
-  it('shows again on every render -- no "already seen" gate', () => {
+  it('does not show again in the same session once already seen', () => {
+    sessionStorage.setItem('portfolio-intro-seen', 'true');
     mockMatchMedia(false);
-    const first = renderIntro();
-    expect(first.getByText(messages.intro.greeting)).toBeInTheDocument();
-    first.unmount();
+    const { queryByText } = renderIntro();
 
-    const second = renderIntro();
-    expect(second.getByText(messages.intro.greeting)).toBeInTheDocument();
+    expect(queryByText('Hello')).not.toBeInTheDocument();
   });
 
-  it('skips straight to hidden under prefers-reduced-motion', () => {
+  it('skips straight to hidden under prefers-reduced-motion, even on a first visit', () => {
     mockMatchMedia(true);
     const { queryByText } = renderIntro();
 
-    expect(queryByText(messages.intro.greeting)).not.toBeInTheDocument();
+    expect(queryByText('Hello')).not.toBeInTheDocument();
   });
 
-  it('hides itself once the greeting cycle completes', () => {
+  it('marks the session as seen and hides itself once the draw animation completes', () => {
     mockMatchMedia(false);
     const { getByText, queryByText } = renderIntro();
 
-    expect(getByText(messages.intro.greeting)).toBeInTheDocument();
+    expect(getByText('Hello')).toBeInTheDocument();
 
     act(() => {
       capturedOnComplete?.();
     });
 
-    expect(queryByText(messages.intro.greeting)).not.toBeInTheDocument();
+    expect(sessionStorage.getItem('portfolio-intro-seen')).toBe('true');
+    expect(queryByText('Hello')).not.toBeInTheDocument();
   });
 
   it('is hidden from the accessibility tree -- decorative, must not block screen readers', () => {
