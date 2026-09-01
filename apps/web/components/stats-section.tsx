@@ -65,6 +65,12 @@ export function StatsSection({ projectCount }: { projectCount: number }) {
                 onUpdate: () => {
                   el.textContent = String(Math.round(state.value));
                 },
+                // Fires once the count lands -- a brief text-glow (globals.css
+                // .value-pulse) marking the number as freshly "read," not a
+                // looping effect competing with the count itself.
+                onComplete: () => {
+                  el.classList.add('value-pulse');
+                },
               },
               0,
             );

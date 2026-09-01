@@ -71,7 +71,7 @@ export function HorizontalTimeline<T>({
           onClick={() => goTo(activeIndex - 1)}
           disabled={activeIndex === 0}
           aria-label={t('previous')}
-          className="hover:border-accent flex size-9 shrink-0 items-center justify-center rounded-full border border-white/20 text-sm transition-colors disabled:opacity-30"
+          className="signal-glow hover:border-accent flex size-9 shrink-0 items-center justify-center rounded-full border border-white/20 text-sm transition-colors disabled:opacity-30"
         >
           <span aria-hidden="true">‹</span>
         </button>
@@ -92,7 +92,7 @@ export function HorizontalTimeline<T>({
                 aria-hidden="true"
                 className={`size-3 rounded-full border transition-colors ${
                   index === activeIndex
-                    ? 'bg-highlight-red border-highlight-red'
+                    ? 'signal-glow signal-glow-active bg-highlight-red border-highlight-red'
                     : 'group-hover:border-accent border-white/30'
                 }`}
               />
@@ -110,7 +110,7 @@ export function HorizontalTimeline<T>({
           onClick={() => goTo(activeIndex + 1)}
           disabled={activeIndex === items.length - 1}
           aria-label={t('next')}
-          className="hover:border-accent flex size-9 shrink-0 items-center justify-center rounded-full border border-white/20 text-sm transition-colors disabled:opacity-30"
+          className="signal-glow hover:border-accent flex size-9 shrink-0 items-center justify-center rounded-full border border-white/20 text-sm transition-colors disabled:opacity-30"
         >
           <span aria-hidden="true">›</span>
         </button>

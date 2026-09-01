@@ -1,7 +1,6 @@
 'use client';
 
 import gsap from 'gsap';
-import { ScrambleTextPlugin } from 'gsap/ScrambleTextPlugin';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
 import { profile } from '../content/profile';
@@ -9,13 +8,6 @@ import { Link } from '../i18n/navigation';
 import { HeroSocialLinks } from './hero-social-links';
 import { PortfolioTerminal } from './portfolio-terminal';
 import { RotatingHeadline } from './rotating-headline';
-
-// Registrado no escopo do módulo, guardado por `window`: no servidor não
-// há DOM para o plugin tocar. Mesmo padrão do ScrollTrigger em
-// pinned-section.tsx.
-if (typeof window !== 'undefined') {
-  gsap.registerPlugin(ScrambleTextPlugin);
-}
 
 /**
  * Hero da home: reveal ao carregar a página, não ao rolar -- é o primeiro
@@ -63,22 +55,21 @@ export function HeroSection() {
       ease: 'power2.out',
     });
 
-    // O nome se decodifica em vez de só aparecer -- é o gesto que carrega
-    // a estética de terminal. `.to` com o nome real como destino: o texto
-    // correto já veio do servidor no HTML (importa para busca e para quem
-    // está sem JS), e a animação só embaralha e resolve de volta nele.
-    const nameElement = container.querySelector('[data-scramble]');
+    // O nome se digita em vez de só aparecer -- é o gesto que carrega a
+    // estética de terminal (pedido do dono, 2026-08-27). `.from()` com
+    // `clipPath` fechado da direita: o texto real já veio do servidor no
+    // HTML (importa para busca e para quem está sem JS), a animação só
+    // revela o que já está lá, nunca troca o conteúdo -- ao contrário de
+    // um scramble, não há risco de o texto exibido divergir do real a
+    // meio caminho.
+    const nameElement = container.querySelector('[data-typewriter]');
     if (nameElement) {
-      timeline.to(
+      timeline.from(
         nameElement,
         {
-          duration: 1.1,
-          ease: 'none',
-          scrambleText: {
-            text: profile.name,
-            chars: 'upperCase',
-            speed: 0.5,
-          },
+          duration: 0.9,
+          ease: `steps(${profile.name.length})`,
+          clipPath: 'inset(0 100% 0 0)',
         },
         0.35,
       );
@@ -100,7 +91,7 @@ export function HeroSection() {
   // Uma classe para os dois: o CTA é o mesmo botão branco, mude o destino
   // e não a aparência.
   const ctaClassName =
-    'rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition-opacity hover:opacity-90';
+    'signal-glow rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition-opacity hover:opacity-90';
 
   const scrollToNext = () => {
     const prefersReducedMotion = window.matchMedia(
@@ -151,9 +142,14 @@ export function HeroSection() {
             <span className="block font-sans text-lg font-normal opacity-70 sm:text-xl">
               {t('greeting')}
             </span>
+            {/* inline-block, não block: a caixa precisa encolher pra largura
+              do próprio texto, senão o clip-path da digitação revela a
+              largura vazia do container inteiro em vez de acompanhar as
+              letras -- a quebra de linha antes dela já vem do span da
+              saudação, que é block. */}
             <span
-              data-scramble
-              className="block text-5xl font-black sm:text-7xl"
+              data-typewriter
+              className="inline-block text-5xl font-black sm:text-7xl"
             >
               {profile.name}
             </span>
@@ -212,7 +208,7 @@ export function HeroSection() {
             // though it's an aria-hidden glyph (aria-hidden hides it from
             // assistive tech, not from sighted eyes, so the contrast rule
             // still applies). Black on that red is ~5.6:1.
-            className="border-highlight-red hover:bg-highlight-red hover:text-black flex size-11 items-center justify-center rounded-full border transition-colors"
+            className="signal-glow border-highlight-red hover:bg-highlight-red hover:text-black flex size-11 items-center justify-center rounded-full border transition-colors"
           >
             <span aria-hidden="true">↓</span>
           </button>

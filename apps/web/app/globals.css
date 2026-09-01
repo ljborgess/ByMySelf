@@ -62,6 +62,123 @@ body {
 }
 
 /*
+ * Signal glow -- linguagem de feedback interativo (DESIGN.md, "Deepen the
+ * Signal" #futuro-2026-08-27): estende a Interactive-Only Rule (accent só
+ * preenche em resposta a interação) trocando o simples border-color swap
+ * por um brilho. Nunca `box-shadow` de propósito: a No-Shadow Rule proíbe
+ * sombra pra sinalizar profundidade, e isto não é profundidade, é luz --
+ * por isso um pseudo-elemento com radial-gradient borrado (`filter: blur`),
+ * não a propriedade box-shadow. Só acende em :hover/:focus-visible, nunca
+ * em repouso -- do contrário viraria decoração ambiente, o que a
+ * Interactive-Only Rule também proíbe.
+ */
+.signal-glow {
+  position: relative;
+  isolation: isolate;
+}
+
+.signal-glow::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(
+    closest-side,
+    var(--glow-color, var(--highlight-red)) 0%,
+    transparent 75%
+  );
+  filter: blur(14px);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.signal-glow:hover::after,
+.signal-glow:focus-visible::after {
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signal-glow::after {
+    transition: none;
+  }
+}
+
+/*
+ * Persistent variant: for a "this is the current one" marker (the active
+ * timeline node), not a hover response -- the system already treats
+ * "current" as a standing state elsewhere (nav's aria-current gets solid
+ * color, not just hover), so a standing glow here follows that precedent
+ * rather than breaking the Interactive-Only Rule, which governs transient
+ * hover/focus feedback specifically.
+ */
+.signal-glow-active::after {
+  opacity: 0.55;
+}
+
+/*
+ * Nav glow-underline: substitui o simples color swap do link ativo/hover
+ * por uma linha que desenha da esquerda pra direita -- mesma ideia da
+ * scan-sweep do frame (uma varredura), em miniatura, pro estado de
+ * navegação em vez do estado de reveal de seção.
+ */
+.nav-glow-link {
+  position: relative;
+}
+
+.nav-glow-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 100%;
+  bottom: -4px;
+  height: 2px;
+  background: var(--highlight-red);
+  transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-glow-link:hover::after,
+.nav-glow-link[aria-current='page']::after {
+  right: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-glow-link::after {
+    transition: none;
+  }
+}
+
+/*
+ * Value pulse: brilho de texto (não box-shadow -- é `text-shadow`, uma
+ * propriedade diferente, usada aqui como luz e não como profundidade) que
+ * acende no número da estatística no instante em que o contador termina de
+ * contar (stats-section.tsx, onComplete do GSAP). Reforça a sensação de
+ * "dado ao vivo" sem inventar um rótulo de status falso.
+ */
+@keyframes value-pulse {
+  0% {
+    text-shadow: 0 0 0 rgba(239, 68, 68, 0);
+  }
+  40% {
+    text-shadow: 0 0 18px rgba(239, 68, 68, 0.85);
+  }
+  100% {
+    text-shadow: 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+.value-pulse {
+  animation: value-pulse 0.7s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .value-pulse {
+    animation: none;
+  }
+}
+
+/*
  * Marquee (components/marquee.tsx, docs/design-clone-syahril.md) -- loop
  * horizontal infinito, CSS puro em vez de GSAP: é uma translação linear
  * contínua, não precisa de scroll-scrub nem de timeline com estágios, e

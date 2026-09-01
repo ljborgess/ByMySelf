@@ -104,7 +104,7 @@ export function SiteFooter() {
                 href={`mailto:${profile.links.email}`}
                 // mesmo par pill preenchido + círculo do hero (#134 reaproveita
                 // o estilo, ver hero-section.tsx)
-                className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition-opacity hover:opacity-90"
+                className="signal-glow inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition-opacity hover:opacity-90"
               >
                 <span aria-hidden="true">✉</span>
                 {t('cta.hireMe')}
@@ -155,7 +155,7 @@ export function SiteFooter() {
             // hover:text-black -- same contrast fix as the hero's scroll
             // button (#135 audit): default text color over a solid
             // highlight-red hover background is ~2.3:1, under WCAG AA.
-            className="border-highlight-red hover:bg-highlight-red hover:text-black flex size-9 shrink-0 items-center justify-center rounded-full border transition-colors"
+            className="signal-glow border-highlight-red hover:bg-highlight-red hover:text-black flex size-9 shrink-0 items-center justify-center rounded-full border transition-colors"
           >
             <span aria-hidden="true">↑</span>
           </button>

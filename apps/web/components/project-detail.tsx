@@ -49,7 +49,7 @@ export function ProjectDetail({ project }: { project: PublicProject }) {
               href={safeHref(project.repoUrl)!}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:border-accent hover:text-accent inline-flex items-center gap-1 rounded-lg border border-white/15 px-4 py-2 text-sm font-medium"
+              className="signal-glow hover:border-accent hover:text-accent inline-flex items-center gap-1 rounded-lg border border-white/15 px-4 py-2 text-sm font-medium"
             >
               {t('repo')}
               <span aria-hidden="true">↗</span>
@@ -61,7 +61,7 @@ export function ProjectDetail({ project }: { project: PublicProject }) {
               href={safeHref(project.demoUrl)!}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:border-accent hover:text-accent inline-flex items-center gap-1 rounded-lg border border-white/15 px-4 py-2 text-sm font-medium"
+              className="signal-glow hover:border-accent hover:text-accent inline-flex items-center gap-1 rounded-lg border border-white/15 px-4 py-2 text-sm font-medium"
             >
               {t('demo')}
               <span aria-hidden="true">↗</span>

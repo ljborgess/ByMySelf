@@ -42,7 +42,7 @@ export function CvDownloadButton({
     <a
       href={profile.cvUrl}
       download
-      className={`${className} ${variantClassName} inline-flex items-center gap-2 text-sm transition-colors`}
+      className={`${className} ${variantClassName} signal-glow inline-flex items-center gap-2 text-sm transition-colors`}
     >
       {t('downloadCv')}
       <span aria-hidden="true">↓</span>

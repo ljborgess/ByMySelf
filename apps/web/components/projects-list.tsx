@@ -49,8 +49,10 @@ export function ProjectsList({
                 // the whole card is the target, not just the title -- a card
                 // that looks clickable but only responds on its heading is a
                 // trap
-                className={`group hover:border-accent focus-visible:border-accent flex h-full flex-col rounded-lg border p-5 transition-colors ${
-                  project.featured ? 'border-accent' : 'border-white/15'
+                className={`signal-glow group hover:border-accent focus-visible:border-accent flex h-full flex-col rounded-lg border p-5 transition-[color,border-color,transform] hover:-translate-y-0.5 ${
+                  project.featured
+                    ? 'signal-glow-active border-accent'
+                    : 'border-white/15'
                 }`}
               >
                 {project.featured && (
