@@ -1,6 +1,4 @@
 import { act, render } from '@testing-library/react';
-import { NextIntlClientProvider } from 'next-intl';
-import messages from '../messages/pt.json';
 import { IntroLoader } from './intro-loader';
 
 let capturedOnComplete: (() => void) | undefined;
@@ -10,10 +8,10 @@ jest.mock('gsap', () => ({
   default: {
     timeline: jest.fn((config: { onComplete?: () => void }) => {
       capturedOnComplete = config?.onComplete;
-      const tl: { set: jest.Mock; to: jest.Mock; kill: jest.Mock } = {
+      const tl: { set: jest.Mock; to: jest.Mock; revert: jest.Mock } = {
         set: jest.fn(() => tl),
         to: jest.fn(() => tl),
-        kill: jest.fn(),
+        revert: jest.fn(),
       };
       return tl;
     }),
@@ -25,11 +23,7 @@ function mockMatchMedia(reducedMotion: boolean) {
 }
 
 function renderIntro() {
-  return render(
-    <NextIntlClientProvider locale="pt" messages={messages}>
-      <IntroLoader />
-    </NextIntlClientProvider>,
-  );
+  return render(<IntroLoader />);
 }
 
 describe('IntroLoader', () => {
@@ -42,7 +36,7 @@ describe('IntroLoader', () => {
     mockMatchMedia(false);
     const { getByText } = renderIntro();
 
-    expect(getByText(messages.intro.greeting)).toBeInTheDocument();
+    expect(getByText('Hello')).toBeInTheDocument();
   });
 
   it('does not show again in the same session once already seen', () => {
@@ -50,28 +44,28 @@ describe('IntroLoader', () => {
     mockMatchMedia(false);
     const { queryByText } = renderIntro();
 
-    expect(queryByText(messages.intro.greeting)).not.toBeInTheDocument();
+    expect(queryByText('Hello')).not.toBeInTheDocument();
   });
 
   it('skips straight to hidden under prefers-reduced-motion, even on a first visit', () => {
     mockMatchMedia(true);
     const { queryByText } = renderIntro();
 
-    expect(queryByText(messages.intro.greeting)).not.toBeInTheDocument();
+    expect(queryByText('Hello')).not.toBeInTheDocument();
   });
 
   it('marks the session as seen and hides itself once the draw animation completes', () => {
     mockMatchMedia(false);
     const { getByText, queryByText } = renderIntro();
 
-    expect(getByText(messages.intro.greeting)).toBeInTheDocument();
+    expect(getByText('Hello')).toBeInTheDocument();
 
     act(() => {
       capturedOnComplete?.();
     });
 
     expect(sessionStorage.getItem('portfolio-intro-seen')).toBe('true');
-    expect(queryByText(messages.intro.greeting)).not.toBeInTheDocument();
+    expect(queryByText('Hello')).not.toBeInTheDocument();
   });
 
   it('is hidden from the accessibility tree -- decorative, must not block screen readers', () => {
