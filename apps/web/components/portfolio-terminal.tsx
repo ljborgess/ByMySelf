@@ -102,74 +102,74 @@ function processCommand(cmd: string): OutputLine[] | 'clear' {
 }
 
 // ── Mario idle animation ──────────────────────────────────────────────────────
+//
+// 5-row layout (rows 0-4):
+//   row 0  sky  — Mario head when jumping
+//   row 1  head — Mario head on ground / body when jumping
+//   row 2  body — Mario body on ground / tucked legs when jumping
+//   row 3  legs — Mario legs on ground (empty when jumping)
+//   row 4  ─────  ground line
+//
+// Mario: 5-char wide  (o_o) head · /|M|\ body · /   \ legs
+// Pipe:  3-char wide  [=] cap (row 1) · |=| body (rows 2-4)
+// Jump trigger: pipe enters cols [0..14] → 15 frames ≈ 1.5 s air time.
+// Mario rendered last on jump frames so he appears over the pipe.
 
-const W = 36; // terminal char width
-const MARIO_COL = 3;
-const CYCLE = 42; // frames per pipe loop (~4.2 s at 100 ms/frame)
+const W = 36;
+const MARIO_COL = 2;
+const CYCLE = 44;
+
+const M_HEAD = ['(', 'o', '_', 'o', ')'] as const;
+const M_BODY = ['/', '|', 'M', '|', '\\'] as const;
+const M_TUCK = [' ', '(', 'U', ')', ' '] as const;
+
+function place(row: string[], chars: readonly string[], col: number) {
+  chars.forEach((ch, i) => {
+    row[col + i] = ch;
+  });
+}
 
 function buildMarioFrame(tick: number): string[] {
-  const pipeX = W - 1 - (tick % CYCLE);
-
-  // Mario jumps when the pipe is within cols [2..13] of him
-  const jumping = pipeX >= 2 && pipeX <= 13;
-
-  // Leg alternates every 4 ticks (slower than frame rate)
+  const pipeX = W - 4 - (tick % CYCLE);
+  const jumping = pipeX >= 0 && pipeX <= 14;
   const legA = Math.floor(tick / 4) % 2 === 0;
 
   const rows: string[][] = [
-    Array(W).fill(' '),
-    Array(W).fill(' '),
-    Array(W).fill(' '),
-    Array(W).fill('─'), // ground
+    Array<string>(W).fill(' '),
+    Array<string>(W).fill(' '),
+    Array<string>(W).fill(' '),
+    Array<string>(W).fill(' '),
+    Array<string>(W).fill('─'),
   ];
 
-  const marioTop = jumping ? 0 : 1;
+  const mRow = jumping ? 0 : 1;
 
-  // Head: (o)
-  ['(', 'o', ')'].forEach((ch, i) => {
-    if (marioTop < 4) rows[marioTop][MARIO_COL + i] = ch;
-  });
-
-  // Body: /|\
-  ['/', '|', '\\'].forEach((ch, i) => {
-    if (marioTop + 1 < 4) rows[marioTop + 1][MARIO_COL + i] = ch;
-  });
-
-  // Legs: running on ground, tucked (U) when mid-air
-  const legs = jumping
-    ? [' ', 'U', ' ']
-    : legA
-      ? ['/', ' ', '\\']
-      : ['\\', ' ', '/'];
-  legs.forEach((ch, i) => {
-    if (marioTop + 2 < 4) rows[marioTop + 2][MARIO_COL + i] = ch;
-  });
-
-  // Pipe: visible while within screen bounds
-  if (pipeX >= 0 && pipeX + 2 < W) {
-    // cap at row 1, body at rows 2-3 (overwrites Mario only if not jumping)
-    ['[', '=', ']'].forEach((ch, i) => {
-      rows[1][pipeX + i] = ch;
-    });
-    ['|', '=', '|'].forEach((ch, i) => {
-      rows[2][pipeX + i] = ch;
-    });
-    ['|', '=', '|'].forEach((ch, i) => {
-      rows[3][pipeX + i] = ch;
-    });
+  // Mario — first pass
+  place(rows[mRow], M_HEAD, MARIO_COL);
+  place(rows[mRow + 1], M_BODY, MARIO_COL);
+  if (jumping) {
+    place(rows[mRow + 2], M_TUCK, MARIO_COL);
+  } else {
+    place(
+      rows[3],
+      legA ? ['/', ' ', ' ', ' ', '\\'] : ['\\', ' ', ' ', ' ', '/'],
+      MARIO_COL,
+    );
   }
 
-  // Mario rendered last → overwrites pipe when they briefly overlap during jump
+  // Pipe
+  if (pipeX >= 0 && pipeX + 2 < W) {
+    place(rows[1], ['[', '=', ']'], pipeX);
+    place(rows[2], ['|', '=', '|'], pipeX);
+    place(rows[3], ['|', '=', '|'], pipeX);
+    place(rows[4], ['|', '=', '|'], pipeX);
+  }
+
+  // Mario — second pass (appears in front of pipe on overlap frames)
   if (jumping) {
-    ['(', 'o', ')'].forEach((ch, i) => {
-      rows[0][MARIO_COL + i] = ch;
-    });
-    ['/', '|', '\\'].forEach((ch, i) => {
-      rows[1][MARIO_COL + i] = ch;
-    });
-    [' ', 'U', ' '].forEach((ch, i) => {
-      rows[2][MARIO_COL + i] = ch;
-    });
+    place(rows[0], M_HEAD, MARIO_COL);
+    place(rows[1], M_BODY, MARIO_COL);
+    place(rows[2], M_TUCK, MARIO_COL);
   }
 
   return rows.map((r) => r.join(''));
