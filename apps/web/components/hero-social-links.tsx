@@ -1,5 +1,6 @@
 import { useTranslations } from 'next-intl';
 import { profile } from '../content/profile';
+import { safeHref } from '../lib/urls';
 
 /**
  * Marcas oficiais do GitHub e do LinkedIn. SVG inline em vez de biblioteca
@@ -44,9 +45,9 @@ export function HeroSocialLinks() {
 
   return (
     <>
-      {profile.links.github && (
+      {safeHref(profile.links.github) && (
         <a
-          href={profile.links.github}
+          href={safeHref(profile.links.github)!}
           target="_blank"
           // noreferrer junto de noopener: sem ele a página de destino
           // ainda descobre de onde o visitante veio
@@ -65,9 +66,9 @@ export function HeroSocialLinks() {
         </a>
       )}
 
-      {profile.links.linkedin && (
+      {safeHref(profile.links.linkedin) && (
         <a
-          href={profile.links.linkedin}
+          href={safeHref(profile.links.linkedin)!}
           target="_blank"
           rel="noopener noreferrer"
           aria-label={t('linkedin')}

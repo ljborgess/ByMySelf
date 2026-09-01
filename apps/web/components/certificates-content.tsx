@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import type { Certificate } from '../content/profile';
 import { formatIssuedAt, sortCertificates } from '../lib/certificates';
+import { safeHref } from '../lib/urls';
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
@@ -139,9 +140,9 @@ export function CertificatesContent({
             )}
           </div>
 
-          {entry.credentialUrl && (
+          {safeHref(entry.credentialUrl) && (
             <a
-              href={entry.credentialUrl}
+              href={safeHref(entry.credentialUrl)!}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex w-fit items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition-opacity hover:opacity-90"
@@ -183,7 +184,7 @@ export function CertificatesContent({
           >
             {entries.map((cert, i) => (
               <button
-                key={`${cert.issuer}-${cert.name}`}
+                key={`${cert.issuer}-${cert.name}-${cert.issuedAt ?? 'undated'}`}
                 type="button"
                 onClick={() => goTo(i)}
                 aria-label={cert.name}

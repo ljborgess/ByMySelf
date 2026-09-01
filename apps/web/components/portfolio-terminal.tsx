@@ -21,9 +21,11 @@ const COMMANDS = [
 ];
 const PROMPT = 'ljb@portfolio';
 
+let _lineId = 0;
+
 function line(type: LineType, ...texts: string[]): OutputLine[] {
   return texts.map((text) => ({
-    id: `${Date.now()}-${Math.random()}`,
+    id: String(++_lineId),
     type,
     text,
   }));

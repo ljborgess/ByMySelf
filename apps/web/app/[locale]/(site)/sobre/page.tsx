@@ -11,6 +11,7 @@ import {
   type SkillLevel,
 } from '../../../../content/profile';
 import { withOpenGraph } from '../../../../lib/site';
+import { safeHref, safeMailto } from '../../../../lib/urls';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('about');
@@ -63,9 +64,9 @@ export default function AboutPage() {
             </div>
 
             <div className="flex flex-wrap justify-center gap-2">
-              {profile.links.github && (
+              {safeHref(profile.links.github) && (
                 <a
-                  href={profile.links.github}
+                  href={safeHref(profile.links.github)!}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-mono text-[10px] tracking-widest text-foreground/50 uppercase hover:text-highlight-gold transition-colors"
@@ -73,15 +74,15 @@ export default function AboutPage() {
                   GitHub
                 </a>
               )}
-              {profile.links.linkedin && (
+              {safeHref(profile.links.linkedin) && (
                 <>
-                  {profile.links.github && (
+                  {safeHref(profile.links.github) && (
                     <span aria-hidden="true" className="text-foreground/20">
                       /
                     </span>
                   )}
                   <a
-                    href={profile.links.linkedin}
+                    href={safeHref(profile.links.linkedin)!}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-mono text-[10px] tracking-widest text-foreground/50 uppercase hover:text-highlight-gold transition-colors"
@@ -90,15 +91,16 @@ export default function AboutPage() {
                   </a>
                 </>
               )}
-              {profile.links.email && (
+              {safeMailto(profile.links.email) && (
                 <>
-                  {(profile.links.github || profile.links.linkedin) && (
+                  {(safeHref(profile.links.github) ||
+                    safeHref(profile.links.linkedin)) && (
                     <span aria-hidden="true" className="text-foreground/20">
                       /
                     </span>
                   )}
                   <a
-                    href={`mailto:${profile.links.email}`}
+                    href={safeMailto(profile.links.email)!}
                     className="font-mono text-[10px] tracking-widest text-foreground/50 uppercase hover:text-highlight-gold transition-colors"
                   >
                     Email

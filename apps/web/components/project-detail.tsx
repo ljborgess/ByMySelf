@@ -1,6 +1,7 @@
 import type { PublicProject } from '@portfolio/shared';
 import { useTranslations } from 'next-intl';
 import ReactMarkdown from 'react-markdown';
+import { safeHref } from '../lib/urls';
 import rehypeHighlight from 'rehype-highlight';
 import remarkGfm from 'remark-gfm';
 
@@ -43,9 +44,9 @@ export function ProjectDetail({ project }: { project: PublicProject }) {
 
       {(project.repoUrl || project.demoUrl) && (
         <div className="flex flex-wrap gap-3">
-          {project.repoUrl && (
+          {safeHref(project.repoUrl) && (
             <a
-              href={project.repoUrl}
+              href={safeHref(project.repoUrl)!}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:border-accent hover:text-accent inline-flex items-center gap-1 rounded-lg border border-white/15 px-4 py-2 text-sm font-medium"
@@ -55,9 +56,9 @@ export function ProjectDetail({ project }: { project: PublicProject }) {
             </a>
           )}
 
-          {project.demoUrl && (
+          {safeHref(project.demoUrl) && (
             <a
-              href={project.demoUrl}
+              href={safeHref(project.demoUrl)!}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:border-accent hover:text-accent inline-flex items-center gap-1 rounded-lg border border-white/15 px-4 py-2 text-sm font-medium"
