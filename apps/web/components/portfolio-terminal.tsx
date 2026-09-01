@@ -175,13 +175,18 @@ function buildMarioFrame(tick: number): string[] {
   return rows.map((r) => r.join(''));
 }
 
-function MarioIdle({ tick }: { tick: number }) {
-  const frames = buildMarioFrame(tick);
+function MarioIdle({
+  containerRef,
+}: {
+  containerRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const frames = buildMarioFrame(0);
   return (
-    <div aria-hidden="true" className="select-none py-2">
+    <div ref={containerRef} aria-hidden="true" className="select-none py-2">
       {frames.map((row, i) => (
         <div
           key={i}
+          data-row={i}
           className="whitespace-pre font-mono text-[11.5px] leading-[1.7] text-highlight-gold/40"
         >
           {row}
@@ -262,17 +267,28 @@ export function PortfolioTerminal({ inline = false }: { inline?: boolean }) {
   const [historyIdx, setHistoryIdx] = useState(-1);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [animated, setAnimated] = useState(true);
-  const [marioTick, setMarioTick] = useState(0);
 
   const termRef = useRef<HTMLDivElement>(null);
   const outputRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const drag = useRef({ active: false, sx: 0, sy: 0, px: 0, py: 0 });
+  const marioContainerRef = useRef<HTMLDivElement>(null);
+  const tickRef = useRef(0);
 
-  // Mario animation tick
+  // Mario animation — imperative DOM updates to avoid React re-renders
   useEffect(() => {
     if (!animated) return;
-    const id = setInterval(() => setMarioTick((t) => t + 1), 100);
+    tickRef.current = 0;
+    const id = setInterval(() => {
+      tickRef.current += 1;
+      const container = marioContainerRef.current;
+      if (!container) return;
+      const frames = buildMarioFrame(tickRef.current);
+      const rowEls = container.querySelectorAll('[data-row]');
+      frames.forEach((text, i) => {
+        if (rowEls[i]) rowEls[i].textContent = text;
+      });
+    }, 100);
     return () => clearInterval(id);
   }, [animated]);
 
@@ -333,7 +349,6 @@ export function PortfolioTerminal({ inline = false }: { inline?: boolean }) {
     if (result === 'clear') {
       setLines([]);
       setAnimated(true);
-      setMarioTick(0);
       return;
     }
     setAnimated(false);
@@ -379,7 +394,7 @@ export function PortfolioTerminal({ inline = false }: { inline?: boolean }) {
         onClick={() => inputRef.current?.focus()}
       >
         {animated ? (
-          <MarioIdle tick={marioTick} />
+          <MarioIdle containerRef={marioContainerRef} />
         ) : (
           lines.map((l) => (
             <div key={l.id} className={COLOR[l.type]}>
