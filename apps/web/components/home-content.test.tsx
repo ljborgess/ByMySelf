@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
+import type { PinnedRepo } from '@portfolio/shared';
 import { makeProfile } from '../content/profile.fixture';
-import type { PublicProjectListItem } from '../lib/projects';
 import { NAVIGATION_SECTIONS } from '../lib/navigation-sections';
 import messages from '../messages/pt.json';
 import { HomeContent } from './home-content';
@@ -55,29 +55,20 @@ beforeAll(() => {
   });
 });
 
-function project(
-  overrides: Partial<PublicProjectListItem> = {},
-): PublicProjectListItem {
+function project(overrides: Partial<PinnedRepo> = {}): PinnedRepo {
   return {
-    id: overrides.id ?? '1',
-    slug: overrides.slug ?? 'projeto',
-    title: overrides.title ?? 'Projeto',
+    name: overrides.name ?? 'Projeto',
     description: overrides.description ?? 'Descrição do projeto.',
+    url: overrides.url ?? 'https://github.com/ljborgess/projeto',
+    homepageUrl: overrides.homepageUrl ?? null,
+    imageUrl:
+      overrides.imageUrl ??
+      'https://opengraph.githubassets.com/1/ljborgess/projeto',
     techStack: overrides.techStack ?? [],
-    repoUrl: overrides.repoUrl ?? null,
-    demoUrl: overrides.demoUrl ?? null,
-    coverImageUrl: overrides.coverImageUrl ?? null,
-    status: overrides.status ?? 'completed',
-    featured: overrides.featured ?? true,
-    completedAt: overrides.completedAt ?? null,
-    updatedAt: overrides.updatedAt ?? '2026-01-01T00:00:00.000Z',
   };
 }
 
-function renderHome(
-  featuredProjects: PublicProjectListItem[] = [],
-  projectCount = 0,
-) {
+function renderHome(featuredProjects: PinnedRepo[] = [], projectCount = 0) {
   return render(
     <NextIntlClientProvider locale="pt" messages={messages}>
       <HomeContent
@@ -179,24 +170,30 @@ describe('HomeContent', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('shows a card per featured project, linking to its detail page', () => {
+    it('shows a card per pinned repo, linking out to GitHub', () => {
       renderHome([
-        project({ id: '1', slug: 'um', title: 'Projeto Um' }),
-        project({ id: '2', slug: 'dois', title: 'Projeto Dois' }),
+        project({ url: 'https://github.com/ljborgess/um', name: 'Projeto Um' }),
+        project({
+          url: 'https://github.com/ljborgess/dois',
+          name: 'Projeto Dois',
+        }),
       ]);
 
       expect(screen.getByText(messages.home.featuredHeading)).toBeVisible();
       expect(screen.getByRole('link', { name: /Projeto Um/ })).toHaveAttribute(
         'href',
-        '/pt/projetos/um',
+        'https://github.com/ljborgess/um',
       );
       expect(
         screen.getByRole('link', { name: /Projeto Dois/ }),
-      ).toHaveAttribute('href', '/pt/projetos/dois');
+      ).toHaveAttribute('href', 'https://github.com/ljborgess/dois');
     });
 
-    it('renders one card per featured project', () => {
-      renderHome([project({ id: '1' }), project({ id: '2', slug: 'dois' })]);
+    it('renders one card per pinned repo', () => {
+      renderHome([
+        project({ url: 'https://github.com/ljborgess/um' }),
+        project({ url: 'https://github.com/ljborgess/dois' }),
+      ]);
 
       const list = screen.getByRole('list', {
         name: messages.home.featuredHeading,

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import type { PublicProjectListItem } from '../lib/projects';
+import type { PinnedRepo } from '@portfolio/shared';
 import messages from '../messages/pt.json';
 import { ProjectsList } from './projects-list';
 
@@ -25,26 +25,20 @@ beforeAll(() => {
   window.matchMedia = jest.fn().mockReturnValue({ matches: false });
 });
 
-function project(
-  overrides: Partial<PublicProjectListItem> = {},
-): PublicProjectListItem {
+function repo(overrides: Partial<PinnedRepo> = {}): PinnedRepo {
   return {
-    id: overrides.id ?? '1',
-    slug: overrides.slug ?? 'projeto',
-    title: overrides.title ?? 'Projeto',
+    name: overrides.name ?? 'projeto',
     description: overrides.description ?? 'Descrição do projeto.',
+    url: overrides.url ?? 'https://github.com/ljborgess/projeto',
+    homepageUrl: overrides.homepageUrl ?? null,
+    imageUrl:
+      overrides.imageUrl ??
+      'https://opengraph.githubassets.com/1/ljborgess/projeto',
     techStack: overrides.techStack ?? [],
-    repoUrl: overrides.repoUrl ?? null,
-    demoUrl: overrides.demoUrl ?? null,
-    coverImageUrl: overrides.coverImageUrl ?? null,
-    status: overrides.status ?? 'completed',
-    featured: overrides.featured ?? false,
-    completedAt: overrides.completedAt ?? null,
-    updatedAt: overrides.updatedAt ?? '2026-01-01T00:00:00.000Z',
   };
 }
 
-function renderList(projects: PublicProjectListItem[], failed = false) {
+function renderList(projects: PinnedRepo[], failed = false) {
   return render(
     <NextIntlClientProvider locale="pt" messages={messages}>
       <ProjectsList projects={projects} failed={failed} />
@@ -61,23 +55,20 @@ describe('ProjectsList', () => {
     ).toBeVisible();
   });
 
-  it('renders one card per project, in the order given', () => {
+  it('renders one card per pinned repo, in the order given', () => {
     renderList([
-      project({ id: '1', title: 'Primeiro', slug: 'primeiro' }),
-      project({ id: '2', title: 'Segundo', slug: 'segundo' }),
+      repo({ name: 'Primeiro', url: 'https://github.com/ljborgess/primeiro' }),
+      repo({ name: 'Segundo', url: 'https://github.com/ljborgess/segundo' }),
     ]);
 
-    const links = screen.getAllByRole('link');
-    expect(links).toHaveLength(2);
-    expect(links[0]).toHaveTextContent('Primeiro');
-    expect(links[0]).toHaveAttribute('href', '/pt/projetos/primeiro');
-    expect(links[1]).toHaveTextContent('Segundo');
+    expect(screen.getByText('Primeiro')).toBeVisible();
+    expect(screen.getByText('Segundo')).toBeVisible();
   });
 
-  it('shows title, description and tech stack on each card', () => {
+  it('shows name, description and tech stack on each card', () => {
     renderList([
-      project({
-        title: 'ByMySelf',
+      repo({
+        name: 'ByMySelf',
         description: 'Portfólio pessoal.',
         techStack: ['NestJS', 'Next.js'],
       }),
@@ -89,32 +80,38 @@ describe('ProjectsList', () => {
     expect(screen.getByText('Next.js')).toBeVisible();
   });
 
-  it('visually distinguishes a featured project', () => {
-    renderList([project({ title: 'Projeto em destaque', featured: true })]);
+  it('links to the repo as the code link', () => {
+    renderList([
+      repo({ name: 'ByMySelf', url: 'https://github.com/ljborgess/bymyself' }),
+    ]);
 
-    expect(screen.getByText(messages.projects.featured)).toBeVisible();
+    const link = screen.getByRole('link', {
+      name: new RegExp(messages.projects.code),
+    });
+    expect(link).toHaveAttribute(
+      'href',
+      'https://github.com/ljborgess/bymyself',
+    );
   });
 
-  it('does not show the featured badge on a regular project', () => {
-    renderList([project({ title: 'Comum', featured: false })]);
+  it('links to the demo when homepageUrl is set', () => {
+    renderList([repo({ homepageUrl: 'https://bymyself.com.br' })]);
+
+    const link = screen.getByRole('link', {
+      name: new RegExp(messages.projects.demo),
+    });
+    expect(link).toHaveAttribute('href', 'https://bymyself.com.br');
+  });
+
+  it('does not show a demo link when homepageUrl is absent', () => {
+    renderList([repo({ homepageUrl: null })]);
 
     expect(
-      screen.queryByText(messages.projects.featured),
+      screen.queryByRole('link', { name: new RegExp(messages.projects.demo) }),
     ).not.toBeInTheDocument();
   });
 
-  it('gives a featured card more grid width than a regular one', () => {
-    renderList([
-      project({ title: 'Destaque', featured: true }),
-      project({ title: 'Comum', slug: 'comum', featured: false }),
-    ]);
-
-    const [featuredItem, regularItem] = screen.getAllByRole('listitem');
-    expect(featuredItem).toHaveClass('sm:col-span-2');
-    expect(regularItem).not.toHaveClass('sm:col-span-2');
-  });
-
-  it('says so when there is nothing published yet', () => {
+  it('says so when there are no pinned repos', () => {
     renderList([]);
 
     expect(screen.getByText(messages.projects.empty)).toBeVisible();
@@ -122,7 +119,7 @@ describe('ProjectsList', () => {
   });
 
   it('shows an error message instead of the list when the fetch failed', () => {
-    renderList([project({ title: 'Não deveria aparecer' })], true);
+    renderList([repo({ name: 'Não deveria aparecer' })], true);
 
     expect(screen.getByText(messages.projects.error)).toBeVisible();
     expect(screen.queryAllByRole('listitem')).toHaveLength(0);

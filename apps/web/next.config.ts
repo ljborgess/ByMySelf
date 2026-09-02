@@ -3,15 +3,14 @@ import { existsSync, readFileSync } from 'node:fs';
 import createNextIntlPlugin from 'next-intl/plugin';
 import type { NextConfig } from 'next';
 import { resolve } from 'node:path';
-import { apiOrigin, assertApiUrlConfigured } from './lib/api-origin';
 
 // Next only auto-loads .env files from this package's own directory, but the
 // project keeps a single .env at the repo root (see root README) shared with
 // the API. This reads just API_URL and FRONTEND_URL out of it -- not
 // @next/env's loadEnvConfig, which would load the whole file into
-// process.env. That file also holds JWT_ACCESS_SECRET, JWT_REFRESH_SECRET
-// and DATABASE_URL, which the public web server never uses and has no reason
-// to be able to leak if this process is ever compromised.
+// process.env. That file also holds GITHUB_TOKEN, which the public web
+// server never uses and has no reason to be able to leak if this process is
+// ever compromised.
 //
 // FRONTEND_URL is this app's own canonical public URL (the API already uses
 // it for CORS, see apps/api/src/main.ts) -- reused here as the SEO metadata
@@ -20,11 +19,7 @@ import { apiOrigin, assertApiUrlConfigured } from './lib/api-origin';
 // A real environment variable still wins over the file (checked first),
 // matching Next's own env precedence and letting production set these
 // directly without touching this repo-relative path at all.
-// NEXT_PUBLIC_API_URL entra na mesma lista: é o endereço público da API, usado
-// pelo login do painel a partir do browser. Sem repassar aqui, o `.env` da
-// raiz que o .env.example manda preencher seria ignorado, e o fallback de
-// localhost em lib/auth.ts esconderia a configuração faltando.
-const FORWARDED_ENV = ['API_URL', 'FRONTEND_URL', 'NEXT_PUBLIC_API_URL'];
+const FORWARDED_ENV = ['API_URL', 'FRONTEND_URL'];
 
 if (FORWARDED_ENV.some((key) => !process.env[key])) {
   const rootEnvPath = resolve(__dirname, '../../.env');
@@ -79,24 +74,10 @@ const scriptSrc = isDev
   : "script-src 'self' 'unsafe-inline'";
 
 /**
- * `connect-src` precisa da origem da API, não só de `'self'`.
- *
- * O login do painel (#23) é o primeiro fetch que sai do browser, e a API
- * mora em outra origem: outro subdomínio em produção, outra porta em
- * desenvolvimento. Com `'self'` sozinho o browser recusa a requisição, o
- * `login()` cai no `catch` e o formulário responde "não foi possível entrar"
- * para toda credencial correta.
- *
- * Em desenvolvimento isso agora para o boot em vez de virar uma política
- * inventada — ver lib/api-origin.ts. Produção continua coberta pelo
- * Dockerfile, e o `next build` do CI roda sem a variável de propósito.
+ * `'self'` alone is enough: every fetch to the API happens server-side
+ * (docs/decisao-projetos-github-pins.md's proxy decision), never from the
+ * browser, so `connect-src` never needs the API's origin.
  */
-assertApiUrlConfigured(process.env.NEXT_PUBLIC_API_URL, process.env.NODE_ENV);
-
-const connectSrc = ["'self'", apiOrigin(process.env.NEXT_PUBLIC_API_URL)]
-  .filter(Boolean)
-  .join(' ');
-
 const contentSecurityPolicy = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -110,7 +91,7 @@ const contentSecurityPolicy = [
   // would widen the policy for traffic that does not exist
   "font-src 'self'",
   "img-src 'self' https: data: blob:",
-  `connect-src ${connectSrc}`,
+  "connect-src 'self'",
   'upgrade-insecure-requests',
 ].join('; ');
 
@@ -213,98 +194,6 @@ const nextConfig: NextConfig = {
     '@formatjs/icu-skeleton-parser',
     '@formatjs/intl-localematcher',
     '@schummar/icu-type-parser',
-    // react-markdown (project detail page, RF-PUB2) and its full
-    // remark/rehype/unified dependency tree: same untranspiled-ESM situation
-    // as next-intl above, and the same reason every one of these has to be
-    // listed individually rather than just 'react-markdown'.
-    'react-markdown',
-    'remark-gfm',
-    'remark-parse',
-    'remark-rehype',
-    'remark-stringify',
-    'rehype-highlight',
-    'unified',
-    'bail',
-    'is-plain-obj',
-    'trough',
-    'vfile',
-    'vfile-message',
-    'unist-util-find-after',
-    'unist-util-is',
-    'unist-util-position',
-    'unist-util-stringify-position',
-    'unist-util-visit',
-    'unist-util-visit-parents',
-    'mdast-util-find-and-replace',
-    'mdast-util-from-markdown',
-    'mdast-util-gfm',
-    'mdast-util-gfm-autolink-literal',
-    'mdast-util-gfm-footnote',
-    'mdast-util-gfm-strikethrough',
-    'mdast-util-gfm-table',
-    'mdast-util-gfm-task-list-item',
-    'mdast-util-mdx-expression',
-    'mdast-util-mdx-jsx',
-    'mdast-util-mdxjs-esm',
-    'mdast-util-phrasing',
-    'mdast-util-to-hast',
-    'mdast-util-to-markdown',
-    'mdast-util-to-string',
-    'micromark',
-    'micromark-core-commonmark',
-    'micromark-extension-gfm',
-    'micromark-extension-gfm-autolink-literal',
-    'micromark-extension-gfm-footnote',
-    'micromark-extension-gfm-strikethrough',
-    'micromark-extension-gfm-table',
-    'micromark-extension-gfm-tagfilter',
-    'micromark-extension-gfm-task-list-item',
-    'micromark-factory-destination',
-    'micromark-factory-label',
-    'micromark-factory-space',
-    'micromark-factory-title',
-    'micromark-factory-whitespace',
-    'micromark-util-character',
-    'micromark-util-chunked',
-    'micromark-util-classify-character',
-    'micromark-util-combine-extensions',
-    'micromark-util-decode-numeric-character-reference',
-    'micromark-util-decode-string',
-    'micromark-util-encode',
-    'micromark-util-html-tag-name',
-    'micromark-util-normalize-identifier',
-    'micromark-util-resolve-all',
-    'micromark-util-sanitize-uri',
-    'micromark-util-subtokenize',
-    'micromark-util-symbol',
-    'micromark-util-types',
-    'decode-named-character-reference',
-    'character-entities',
-    'character-entities-html4',
-    'character-entities-legacy',
-    'property-information',
-    'hast-util-is-element',
-    'hast-util-to-jsx-runtime',
-    'hast-util-to-text',
-    'hast-util-whitespace',
-    'space-separated-tokens',
-    'comma-separated-tokens',
-    'html-url-attributes',
-    'zwitch',
-    'longest-streak',
-    'ccount',
-    'escape-string-regexp',
-    'markdown-table',
-    'trim-lines',
-    'devlop',
-    'stringify-entities',
-    'lowlight',
-    'highlight.js',
-    'fault',
-    'extend',
-    'estree-util-is-identifier-name',
-    'inline-style-parser',
-    'style-to-object',
   ],
 };
 

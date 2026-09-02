@@ -14,7 +14,9 @@ export function setupSwagger(app: INestApplication, nodeEnv: string): void {
 
   const config = new DocumentBuilder()
     .setTitle('ByMySelf API')
-    .setDescription('Painel administrativo e site público')
+    .setDescription(
+      'Proxy para os pinned repos do GitHub, consumido pelo site público',
+    )
     .setVersion('0.0.1')
     .build();
 

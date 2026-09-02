@@ -80,137 +80,11 @@
   },
   "projects": {
     "title": "Projetos",
-    "description": "Projetos de Luciano Borges, com stack e código.",
-    "empty": "Nenhum projeto publicado ainda.",
+    "description": "Projetos fixados no GitHub de Luciano Borges, com stack e código.",
+    "empty": "Nenhum projeto fixado no GitHub ainda.",
     "error": "Não foi possível carregar os projetos agora. Tente novamente em instantes.",
-    "featured": "Destaque"
-  },
-  "projectDetail": {
-    "repo": "Ver repositório",
-    "demo": "Ver demonstração",
-    "notFoundTitle": "Projeto não encontrado",
-    "notFoundDescription": "O projeto que você está procurando não existe ou foi removido.",
-    "backToProjects": "Voltar para Projetos"
-  },
-  "adminProjects": {
-    "title": "Projetos",
-    "create": "Novo projeto",
-    "loading": "Carregando projetos…",
-    "empty": "Nenhum projeto cadastrado ainda.",
-    "emptyAction": "Criar o primeiro",
-    "error": "Não foi possível carregar os projetos. Tente novamente em instantes.",
-    "featured": "Destaque",
-    "edit": "Editar",
-    "editNamed": "Editar {title}",
-    "columns": {
-      "title": "Título",
-      "status": "Status",
-      "slug": "Slug",
-      "actions": "Ações",
-      "order": "Ordem"
-    },
-    "status": {
-      "in_progress": "Em andamento",
-      "completed": "Concluído",
-      "archived": "Arquivado"
-    },
-    "delete": "Excluir",
-    "deleteNamed": "Excluir {title}",
-    "deleteConfirmTitle": "Excluir este projeto?",
-    "deleteConfirmDescription": "\"{title}\" sai da listagem e do site público. A exclusão é reversível pelo banco, mas não por esta tela.",
-    "deleteConfirm": "Excluir",
-    "deleting": "Excluindo…",
-    "cancel": "Cancelar",
-    "moveUpNamed": "Mover {title} para cima",
-    "moveDownNamed": "Mover {title} para baixo",
-    "errors": {
-      "actionFailed": "Não foi possível concluir a ação. Verifique sua conexão e tente novamente.",
-      "gone": "Este projeto já não existe. A listagem foi recarregada."
-    }
-  },
-  "adminSession": {
-    "panel": "Painel",
-    "logout": "Sair",
-    "leaving": "Saindo…",
-    "restoring": "Restaurando sessão…"
-  },
-  "adminProjectForm": {
-    "createTitle": "Novo projeto",
-    "createDescription": "Cadastre um projeto. Português é obrigatório; inglês pode ficar para depois.",
-    "editTitle": "Editar projeto",
-    "editDescription": "Altere o que precisar. O projeto fica exatamente como estiver nesta tela.",
-    "loading": "Carregando projeto…",
-    "notFound": "Projeto não encontrado.",
-    "loadError": "Não foi possível carregar este projeto. Tente novamente em instantes.",
-    "backToList": "Voltar para a lista",
-    "optional": "(opcional)",
-    "translationPending": "Tradução em inglês pendente: {fields}.",
-    "addTech": "Adicionar",
-    "removeTech": "Remover {tech}",
-    "cancel": "Cancelar",
-    "submitting": "Salvando…",
-    "submit": {
-      "create": "Criar projeto",
-      "edit": "Salvar alterações"
-    },
-    "sections": {
-      "identification": "Identificação",
-      "content": "Conteúdo",
-      "techStack": "Tecnologias",
-      "links": "Links",
-      "publication": "Publicação"
-    },
-    "fields": {
-      "slug": "Slug",
-      "title": "Título",
-      "description": "Descrição",
-      "content": "Conteúdo",
-      "techStack": "Tecnologia",
-      "repoUrl": "Repositório",
-      "demoUrl": "Demonstração",
-      "coverImageUrl": "Imagem de capa",
-      "status": "Status",
-      "featured": "Destacar na home",
-      "completedAt": "Concluído em"
-    },
-    "fieldsEn": {
-      "title": "Título (inglês)",
-      "description": "Descrição (inglês)",
-      "content": "Conteúdo (inglês)"
-    },
-    "hints": {
-      "slug": "Minúsculas, números e hífens simples. Faz parte da URL pública do projeto.",
-      "techStack": "Uma por vez. Enter ou \"Adicionar\" para incluir.",
-      "coverImageUrl": "Endereço de uma imagem já hospedada — não há upload.",
-      "completedAt": "Só se aplica a um projeto com status \"Concluído\"."
-    },
-    "errors": {
-      "requiredPt": "Obrigatório em português.",
-      "requiredSlug": "Obrigatório.",
-      "invalidSlug": "Use apenas minúsculas, números e hífens simples (ex: meu-projeto).",
-      "slugTooLong": "Longo demais: no máximo 255 caracteres.",
-      "invalidUrl": "Informe uma URL completa, começando com http:// ou https://.",
-      "urlTooLong": "Longa demais: no máximo 2048 caracteres.",
-      "invalidDate": "Data inválida.",
-      "invalidTech": "Tecnologia inválida.",
-      "completedAtNeedsCompleted": "Uma data de conclusão só se aplica com status \"Concluído\".",
-      "invalid": "Valor inválido.",
-      "rejected": "A API recusou os dados enviados. Revise os campos e tente novamente.",
-      "unavailable": "Não foi possível salvar agora. Verifique sua conexão e tente novamente."
-    }
-  },
-  "adminLogin": {
-    "title": "Entrar",
-    "description": "Acesso ao painel administrativo.",
-    "email": "E-mail",
-    "password": "Senha",
-    "submit": "Entrar",
-    "submitting": "Entrando…",
-    "errors": {
-      "invalid": "E-mail ou senha incorretos.",
-      "rateLimited": "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.",
-      "unavailable": "Não foi possível entrar agora. Verifique sua conexão e tente novamente."
-    }
+    "code": "Ver código",
+    "demo": "Ver demonstração"
   },
   "home": {
     "title": "Início",
@@ -225,7 +99,7 @@
     },
     "cards": {
       "about": "Quem sou, no que trabalho e o que busco.",
-      "credentials": "Formação acadêmica e certificados, com link de validação.",
+      "credentials": "Estudos e certificados, com link de validação.",
       "projects": "Projetos que construí, com stack e código."
     }
   },

@@ -160,7 +160,6 @@ jobs:
           push: true
           build-args: |
             FRONTEND_URL=${{ vars.FRONTEND_URL }}
-            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
           tags: |
             ${{ steps.prefix.outputs.value }}-web:${{ github.sha }}
             ${{ steps.prefix.outputs.value }}-web:latest

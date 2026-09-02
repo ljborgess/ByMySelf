@@ -2,10 +2,9 @@
 
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import type { PinnedRepo } from '@portfolio/shared';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
-import { Link } from '../i18n/navigation';
-import type { PublicProjectListItem } from '../lib/projects';
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
@@ -37,11 +36,7 @@ if (typeof window !== 'undefined') {
  * core-focus-section.tsx): mesmo que o ScrollTrigger dispare tarde, o
  * card real continua visível, só deslocado -- nunca lê como quebrado.
  */
-export function FeaturedProjects({
-  projects,
-}: {
-  projects: PublicProjectListItem[];
-}) {
+export function FeaturedProjects({ projects }: { projects: PinnedRepo[] }) {
   const t = useTranslations('home');
   const listRef = useRef<HTMLUListElement>(null);
 
@@ -96,36 +91,35 @@ export function FeaturedProjects({
         className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
       >
         {projects.map((project) => (
-          <li key={project.id} data-reveal-card>
-            <Link
-              href={`/projetos/${project.slug}`}
+          <li key={project.url} data-reveal-card>
+            <a
+              href={project.url}
+              target="_blank"
+              rel="noopener noreferrer"
               className="signal-glow hover:border-accent focus-visible:border-accent group flex h-full flex-col rounded-lg border border-white/15 p-5 transition-[color,border-color,transform] hover:-translate-y-0.5"
             >
-              {project.coverImageUrl && (
-                // plain <img>, not next/image -- same reasoning as
-                // projects-list.tsx: photoUrl/coverImageUrl is an arbitrary
-                // external URL the owner pastes in
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={project.coverImageUrl}
-                  alt={project.title}
-                  loading="lazy"
-                  className="mb-3 aspect-video w-full rounded bg-white/10 object-cover"
-                />
-              )}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={project.imageUrl}
+                alt=""
+                loading="lazy"
+                className="mb-3 aspect-video w-full rounded bg-white/10 object-cover"
+              />
 
               <span className="text-base font-semibold tracking-tight">
-                {project.title}
+                {project.name}
               </span>
-              <p className="mt-1 text-sm opacity-70">{project.description}</p>
+              {project.description && (
+                <p className="mt-1 text-sm opacity-70">{project.description}</p>
+              )}
 
               <span
                 aria-hidden="true"
                 className="group-hover:text-accent mt-4 font-mono text-sm opacity-50 transition-[opacity,color] group-hover:opacity-100"
               >
-                →
+                ↗
               </span>
-            </Link>
+            </a>
           </li>
         ))}
       </ul>

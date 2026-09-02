@@ -40,7 +40,7 @@ function isLoopbackOrigin(origin: string): boolean {
  */
 export function corsOptions(nodeEnv: string, frontendUrl: string): CorsOptions {
   if (nodeEnv === 'production') {
-    return { origin: frontendUrl, credentials: true };
+    return { origin: frontendUrl };
   }
 
   return {
@@ -53,6 +53,5 @@ export function corsOptions(nodeEnv: string, frontendUrl: string): CorsOptions {
       }
       callback(null, false);
     },
-    credentials: true,
   };
 }

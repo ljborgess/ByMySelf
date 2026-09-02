@@ -33,9 +33,7 @@ export default function CredentialsPage() {
       </h1>
 
       <section className="flex flex-col gap-4">
-        <h2 className="font-mono text-xs tracking-[0.2em] text-highlight-red uppercase">
-          {tEducation('title')}
-        </h2>
+        <h2 className="sr-only">{tEducation('title')}</h2>
         <EducationContent education={profile.education} />
       </section>
 

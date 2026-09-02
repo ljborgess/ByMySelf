@@ -1,1 +1,0 @@
-CREATE UNIQUE INDEX "users_single_row" ON "users" USING btree ((true));
