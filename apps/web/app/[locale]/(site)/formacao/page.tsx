@@ -13,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /**
  * RF-PUB5. Stays a Server Component with `generateMetadata` -- the actual
- * rendering (and the client boundary `HorizontalTimeline` needs) lives in
+ * rendering (and the client boundary the GSAP reveal needs) lives in
  * `EducationContent`, which is also what education-content.test.tsx
  * exercises.
  */
@@ -22,7 +22,7 @@ export default function EducationPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="font-display text-5xl font-black tracking-tight sm:text-7xl">
+      <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
         {t('title')}
       </h1>
 
