@@ -1,18 +1,19 @@
 # ByMySelf
 
-Portfólio pessoal — monorepo com API e site público, construído em NestJS + Next.js.
+Portfólio pessoal — Next.js, deploy na Vercel.
 
 ## Estrutura
 
 ```
-apps/api        NestJS — proxy fino para os pinned repos do GitHub (GraphQL)
-apps/web        Next.js — site público
-packages/shared Tipos compartilhados entre API e site
+apps/web        Next.js — site público, inclusive a busca dos pinned repos do GitHub
 ```
+
+Monorepo pnpm por convenção (ver `pnpm-workspace.yaml`), embora hoje `apps/web`
+seja o único pacote — sem API separada nem banco de dados.
 
 ## Stack
 
-TypeScript · NestJS · Next.js (App Router) · Zod · Jest · pnpm workspaces · Docker
+TypeScript · Next.js (App Router) · Tailwind · GSAP · Jest · pnpm
 
 ## Rodando localmente
 
@@ -20,42 +21,34 @@ Requer Node 22 (fixado em `.nvmrc`) e pnpm.
 
 ```bash
 pnpm install
-cp .env.example .env               # preencha GITHUB_TOKEN, ver abaixo
-pnpm --filter api start:dev        # API na 3100
-pnpm --filter web dev              # site na 3101
+cp apps/web/.env.example apps/web/.env.local   # preencha GITHUB_TOKEN, ver abaixo
+pnpm --filter web dev                          # site na 3101
 ```
 
-Portas escolhidas fora dos defaults de propósito — API em **3100**, site em **3101**. As portas óbvias (3000) são as que todo projeto local disputa, e uma delas ocupada por outro projeto é o suficiente para impedir este de subir. Ajustáveis por `PORT` e o script `dev` do `apps/web`.
+## Variáveis de ambiente
 
-### Variáveis de ambiente
+Ver `apps/web/.env.example` para a lista completa. O ponto que costuma morder:
 
-Todas validadas no startup — a aplicação recusa subir com configuração inválida, em vez de falhar na primeira requisição. Ver `.env.example` para a lista completa.
-
-Os pontos que costumam morder:
-
-- **`GITHUB_TOKEN`** — fine-grained Personal Access Token com "Public Repositories (read-only)" e nenhuma permissão extra. Sem ele a API não sobe. Passo a passo em [`docs/decisao-projetos-github-pins.md`](docs/decisao-projetos-github-pins.md).
-- **`TRUST_PROXY_HOPS`** — quantos proxies reversos ficam na frente da API. `0` em dev (conexão direta), `1` em produção atrás do Dokploy. O rate limit usa `req.ip`; atrás de um proxy sem esse ajuste todo mundo cai num balde compartilhado e o limite deixa de ser por IP. É contagem de hops e não booleano de propósito: `trust proxy: true` deixaria qualquer cliente forjar o próprio `X-Forwarded-For`.
+- **`GITHUB_TOKEN`** — fine-grained Personal Access Token com "Public Repositories (read-only)" e nenhuma permissão extra. Sem ele `/projetos` e a home falham ao carregar. Passo a passo em [`docs/decisao-projetos-github-pins.md`](docs/decisao-projetos-github-pins.md).
 
 ## `/projetos`
 
 Não tem CRUD nem admin: a página mostra os repositórios que você fixou (pin)
-no seu perfil do GitHub, buscados via GraphQL e cacheados por 1h na API. Para
+no seu perfil do GitHub, buscados via GraphQL e cacheados por 1h (`fetch` com
+`next.revalidate`, não um cache próprio — ver `apps/web/lib/projects.ts`). Para
 mudar o que aparece, edite os pins direto no GitHub.
 
 ## Deploy
 
-As duas apps têm Dockerfile multi-stage, buildado **a partir da raiz do
-repositório** (é um workspace pnpm — o build precisa do lockfile da raiz e de
-`packages/shared`):
+Vercel, deploy automático a cada push em `main` (ver
+[`docs/decisao-deploy-vercel.md`](docs/decisao-deploy-vercel.md)). Sem
+Dockerfile, sem CI de release: a integração da Vercel com o GitHub builda e
+publica sozinha.
 
-```bash
-docker build -f apps/api/Dockerfile -t bymyself-api .
-docker build -f apps/web/Dockerfile --build-arg FRONTEND_URL=https://seu-dominio.com -t bymyself-web .
-```
+Configuração do projeto na Vercel:
 
-`FRONTEND_URL` é build-arg no web porque as páginas são pré-renderizadas e o
-Next grava as URLs de metadata durante o build. Configuração completa das
-aplicações no Dokploy em [`deploy/dokploy.md`](deploy/dokploy.md).
+- **Root Directory**: `apps/web`
+- **Environment Variables**: `FRONTEND_URL`, `GITHUB_TOKEN`, `GITHUB_USERNAME` (mesmas de `apps/web/.env.example`, com o domínio real da Vercel em `FRONTEND_URL`)
 
 ## Qualidade
 
@@ -63,8 +56,10 @@ aplicações no Dokploy em [`deploy/dokploy.md`](deploy/dokploy.md).
 pnpm lint
 pnpm format:check
 pnpm -r type-check
-pnpm --filter api test:cov     # cobertura mínima de 80%, falha abaixo disso
-pnpm --filter api test:e2e
+pnpm --filter web test
+pnpm --filter web build
 ```
 
-O CI roda tudo isso a cada pull request para `main` e `dev`. Lint, format e Prettier também rodam em pre-commit via Husky, só nos arquivos staged.
+O CI (`.github/workflows/ci.yml`) roda tudo isso a cada pull request para
+`main` e `dev` — puro gate de qualidade, sem passo de deploy. Lint, format e
+Prettier também rodam em pre-commit via Husky, só nos arquivos staged.

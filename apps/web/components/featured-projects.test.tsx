@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import gsap from 'gsap';
-import type { PinnedRepo } from '@portfolio/shared';
+import type { PinnedRepo } from '../lib/projects';
 import messages from '../messages/pt.json';
 import { FeaturedProjects } from './featured-projects';
 

@@ -2,9 +2,9 @@
 
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import type { PinnedRepo } from '@portfolio/shared';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
+import type { PinnedRepo } from '../lib/projects';
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);

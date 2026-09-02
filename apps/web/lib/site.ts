@@ -3,9 +3,7 @@ import type { Metadata } from 'next';
 const DEFAULT_SITE_URL = 'http://localhost:3101';
 
 /**
- * This app's own canonical public URL. Reuses `FRONTEND_URL` -- the same env
- * var the API already reads for CORS (apps/api/src/main.ts) -- rather than
- * introducing a second name for the same URL.
+ * This app's own canonical public URL.
  *
  * Used for `metadataBase` and every absolute URL the SEO metadata (sitemap,
  * robots, Open Graph) needs to emit. A function rather than a module-level

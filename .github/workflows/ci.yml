@@ -4,32 +4,25 @@ name: CI
 # to be covered — gating only main would let every feature PR through
 # unchecked and defeat the point of catching problems before review.
 #
-# `push` on main is what releases: the quality job runs again on the merged
-# result (not just on the PR head) and, only if it passes, the deploy job
-# follows.
+# No push-to-main deploy job: the Vercel GitHub integration builds and
+# deploys on its own whenever main updates (docs/decisao-deploy-vercel.md).
+# This workflow is a pure quality gate.
 on:
   pull_request:
     branches: [main, dev]
   push:
-    branches: [main]
+    branches: [main, dev]
 
-# Least privilege por default. Sem isto o token de cada job herda a permissão
-# configurada no repositório, que costuma ser mais ampla do que o necessário —
-# e o job `quality` roda `pnpm install` mais lint e testes sobre código de pull
-# request, ou seja, executa código de terceiros com o token da vez.
-#
-# O job de release sobrescreve com o `packages: write` que ele realmente
-# precisa.
+# Least privilege por default. Sem isto o token herda a permissão configurada
+# no repositório, que costuma ser mais ampla do que o necessário — e este job
+# roda `pnpm install` mais lint e testes sobre código de pull request, ou
+# seja, executa código de terceiros com o token da vez.
 permissions:
   contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  # A new push to the same PR makes the in-flight run obsolete. A run on main
-  # does not: cancelling it half-way could abort between pushing the images
-  # and triggering the deploy, leaving the registry ahead of production with
-  # nothing to reconcile it.
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: true
 
 jobs:
   quality:
@@ -63,155 +56,18 @@ jobs:
       - name: Type-check
         run: pnpm -r type-check
 
-      # Integration (Testcontainers) and e2e (Playwright) stages get appended
-      # by the sub-issues that introduce those suites — see docs/ci-cd.md.
-      #
-      # Runs with coverage so the 80% threshold in the api's jest config
-      # (RNF-QUA4) fails the build instead of only being reported. Pure DI
-      # wiring — modules, main.ts, Drizzle schema declarations — is excluded
-      # from the measurement there rather than padded with tests that assert
-      # nothing.
-      - name: API unit tests with coverage
-        run: pnpm --filter api test:cov
-
-      - name: API e2e tests
-        run: pnpm --filter api test:e2e
-
-      # No coverage threshold on the web app yet: there is one shared layout
-      # and no pages, so a percentage now would measure almost nothing. It
-      # gets one once the page sub-issues give it something to measure.
-      - name: Web unit tests
+      - name: Unit tests
         run: pnpm --filter web test
 
       # Catches what unit tests cannot: a build that fails, or pages silently
-      # falling back to per-request rendering when they should prerender.
+      # falling back to per-request rendering when they should prerender. Dummy
+      # GITHUB_TOKEN/GITHUB_USERNAME: the build never calls GitHub for real (the
+      # fetch is caught and logged, same as a real outage -- see
+      # app/[locale]/(site)/projetos/page.tsx), it only needs the env schema
+      # check in lib/projects.ts to not throw before the try/catch runs.
       - name: Web build
         run: pnpm --filter web build
-
-  # ---------------------------------------------------------------------------
-  # Release. Only on main, only after `quality` passed (user story 3): a
-  # regression caught above blocks this job from starting at all.
-  # ---------------------------------------------------------------------------
-  build-and-deploy:
-    name: Build images and deploy
-    runs-on: ubuntu-latest
-    needs: quality
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    permissions:
-      contents: read
-      # Necessária para publicar no GHCR com o GITHUB_TOKEN, em vez de guardar
-      # credencial de registry como secret.
-      packages: write
-
-    env:
-      REGISTRY: ghcr.io
-      # `github.repository` é `owner/repo`; em minúsculas porque o GHCR rejeita
-      # maiúsculas no nome da imagem, e este repositório tem maiúsculas.
-      IMAGE_PREFIX: ghcr.io/${{ github.repository }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Lowercase image prefix
-        id: prefix
-        run: echo "value=${IMAGE_PREFIX,,}" >> "$GITHUB_OUTPUT"
-
-      - name: Set up Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      # As duas imagens são buildadas e publicadas com a tag do SHA do commit.
-      # Publicar em registry, em vez de deixar o Dokploy rebuildar da origem, é
-      # o que resolve o problema que a issue enuncia: sem isso o que roda em
-      # produção é um build diferente do que o CI validou. Com a tag imutável,
-      # é exatamente o mesmo artefato.
-      - name: Build and push API image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: apps/api/Dockerfile
-          push: true
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-          tags: |
-            ${{ steps.prefix.outputs.value }}-api:${{ github.sha }}
-            ${{ steps.prefix.outputs.value }}-api:latest
-          cache-from: type=gha,scope=api
-          cache-to: type=gha,scope=api,mode=max
-
-      # FRONTEND_URL é build arg e não runtime: as páginas são pré-renderizadas
-      # e o Next grava metadataBase (canonical, og:image, <loc> do sitemap)
-      # durante o build. Vem de uma *variable* e não de um secret — é o
-      # endereço público do site, e um secret aqui só esconderia da própria
-      # pessoa que precisa conferir se está certo.
-      - name: Build and push web image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: apps/web/Dockerfile
-          push: true
-          build-args: |
-            FRONTEND_URL=${{ vars.FRONTEND_URL }}
-          tags: |
-            ${{ steps.prefix.outputs.value }}-web:${{ github.sha }}
-            ${{ steps.prefix.outputs.value }}-web:latest
-          cache-from: type=gha,scope=web
-          cache-to: type=gha,scope=web,mode=max
-
-      # O webhook do Dokploy é a superfície de deploy; a credencial é secret.
-      # `--fail` para que um 4xx/5xx quebre o job em vez de passar silencioso —
-      # sem isso o curl retorna 0 e o pipeline reportaria sucesso com o deploy
-      # nunca disparado.
-      - name: Trigger Dokploy deploy
-        run: curl --fail --silent --show-error -X POST "$DOKPLOY_DEPLOY_WEBHOOK"
         env:
-          DOKPLOY_DEPLOY_WEBHOOK: ${{ secrets.DOKPLOY_DEPLOY_WEBHOOK }}
-
-      # User story 4. O Dokploy tem o healthcheck dele no rollout, mas o
-      # webhook responde assim que aceita o pedido — sem este passo o job
-      # ficaria verde para um deploy que subiu e não alcança o banco.
-      #
-      # Exige `status: ok` **e** que `version` seja o SHA deste commit. Só o
-      # status não basta: a versão anterior continua respondendo `ok` durante
-      # todo o rollout, então um deploy que nunca começou passaria de
-      # imediato. É a diferença entre "a API está de pé" e "a API que este
-      # pipeline construiu está de pé".
-      #
-      # Confere de fora, pelo domínio público: cobre proxy, TLS e banco junto.
-      - name: Wait for the deployed API to report healthy
-        env:
-          API_DOMAIN: ${{ vars.API_DOMAIN }}
-          EXPECTED_SHA: ${{ github.sha }}
-        run: |
-          if [ -z "$API_DOMAIN" ]; then
-            echo "::error::vars.API_DOMAIN não está definida — sem ela não há como verificar o rollout."
-            exit 1
-          fi
-
-          # ~5 minutos. O rollout precisa puxar a imagem, rodar as migrations
-          # no entrypoint e subir o Nest.
-          for attempt in $(seq 1 60); do
-            body=$(curl --silent --max-time 10 "https://${API_DOMAIN}/health" || true)
-
-            case "$body" in
-              *'"status":"ok"'*'"version":"'"$EXPECTED_SHA"'"'*)
-                echo "Deploy confirmado na tentativa ${attempt}: ${body}"
-                exit 0
-                ;;
-            esac
-
-            echo "tentativa ${attempt}/60 — ainda não é esta versão: ${body:-sem resposta}"
-            sleep 5
-          done
-
-          echo "::error::A API não reportou healthy com version=${EXPECTED_SHA} em 5 minutos."
-          echo "::error::Ou o rollout não começou, ou subiu e não alcança o banco."
-          exit 1
+          FRONTEND_URL: https://example.com
+          GITHUB_TOKEN: ci-placeholder
+          GITHUB_USERNAME: ci-placeholder
