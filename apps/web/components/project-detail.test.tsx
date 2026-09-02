@@ -4,6 +4,20 @@ import { NextIntlClientProvider } from 'next-intl';
 import messages from '../messages/pt.json';
 import { ProjectDetail } from './project-detail';
 
+jest.mock('gsap', () => ({
+  __esModule: true,
+  default: {
+    timeline: jest.fn(() => ({
+      revert: jest.fn(),
+      from: jest.fn().mockReturnThis(),
+    })),
+  },
+}));
+
+beforeAll(() => {
+  window.matchMedia = jest.fn().mockReturnValue({ matches: false });
+});
+
 function project(overrides: Partial<PublicProject> = {}): PublicProject {
   return {
     id: overrides.id ?? '1',

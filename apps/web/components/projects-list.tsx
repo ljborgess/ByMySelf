@@ -1,6 +1,15 @@
+'use client';
+
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useTranslations } from 'next-intl';
+import { useEffect, useRef } from 'react';
 import { Link } from '../i18n/navigation';
 import type { PublicProjectListItem } from '../lib/projects';
+
+if (typeof window !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 /**
  * Split out of page.tsx so the list/card/state logic can be rendered (and
@@ -15,8 +24,11 @@ import type { PublicProjectListItem } from '../lib/projects';
  * docs/design-clone-syahril.md's "Journal & Insights" section) -- a featured
  * project spans two columns instead of every card being the same size, which
  * is what made the previous carousel (#109-#115) necessary in the first
- * place. No 'use client' needed: with the carousel gone, nothing here is a
- * function prop crossing into a Client Component.
+ * place.
+ *
+ * 'use client': the scroll-triggered reveal (same stagger pattern as
+ * featured-projects.tsx/section-cards.tsx -- grilling 2026-09-02 found this
+ * was the last content page on the site with no animation at all).
  */
 export function ProjectsList({
   projects,
@@ -26,6 +38,38 @@ export function ProjectsList({
   failed: boolean;
 }) {
   const t = useTranslations('projects');
+  const listRef = useRef<HTMLUListElement>(null);
+
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+
+    const prefersReducedMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)',
+    ).matches;
+    if (prefersReducedMotion) return;
+
+    const cards = list.querySelectorAll('[data-reveal-card]');
+    if (!cards.length) return;
+
+    const tl = gsap.timeline({
+      scrollTrigger: { trigger: list, start: 'top 85%', once: true },
+    });
+
+    // y only, never opacity (#135) -- same rule every other reveal in the
+    // codebase follows.
+    tl.from(cards, {
+      y: 24,
+      stagger: 0.08,
+      duration: 0.6,
+      ease: 'power2.out',
+    });
+
+    return () => {
+      tl.scrollTrigger?.kill();
+      tl.revert();
+    };
+  }, [projects]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -38,10 +82,14 @@ export function ProjectsList({
       ) : projects.length === 0 ? (
         <p className="opacity-70">{t('empty')}</p>
       ) : (
-        <ul className="grid grid-cols-1 gap-4 [grid-auto-flow:dense] sm:grid-cols-2 lg:grid-cols-3">
+        <ul
+          ref={listRef}
+          className="grid grid-cols-1 gap-4 [grid-auto-flow:dense] sm:grid-cols-2 lg:grid-cols-3"
+        >
           {projects.map((project) => (
             <li
               key={project.id}
+              data-reveal-card
               className={project.featured ? 'sm:col-span-2' : undefined}
             >
               <Link

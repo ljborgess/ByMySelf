@@ -4,6 +4,27 @@ import type { PublicProjectListItem } from '../lib/projects';
 import messages from '../messages/pt.json';
 import { ProjectsList } from './projects-list';
 
+jest.mock('gsap', () => ({
+  __esModule: true,
+  default: {
+    registerPlugin: jest.fn(),
+    timeline: jest.fn(() => ({
+      scrollTrigger: { kill: jest.fn() },
+      revert: jest.fn(),
+      from: jest.fn().mockReturnThis(),
+    })),
+  },
+}));
+
+jest.mock('gsap/ScrollTrigger', () => ({
+  __esModule: true,
+  ScrollTrigger: {},
+}));
+
+beforeAll(() => {
+  window.matchMedia = jest.fn().mockReturnValue({ matches: false });
+});
+
 function project(
   overrides: Partial<PublicProjectListItem> = {},
 ): PublicProjectListItem {

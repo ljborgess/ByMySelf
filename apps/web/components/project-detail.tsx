@@ -1,6 +1,10 @@
+'use client';
+
 import type { PublicProject } from '@portfolio/shared';
 import { useTranslations } from 'next-intl';
+import { useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
+import gsap from 'gsap';
 import { safeHref } from '../lib/urls';
 import rehypeHighlight from 'rehype-highlight';
 import remarkGfm from 'remark-gfm';
@@ -10,14 +14,47 @@ import remarkGfm from 'remark-gfm';
  * not support unit-testing `async` Server Components, so page.tsx stays a
  * thin wrapper around the fetch and the notFound() check, and everything
  * that actually renders lives here as a plain, testable component.
+ *
+ * 'use client': a one-time fade+offset on the header block on mount, same
+ * pattern as hero-section.tsx (not scroll-triggered -- it's the first thing
+ * visible, like the hero). The markdown body stays static: animating it
+ * paragraph by paragraph would fight a reader who is trying to read, not
+ * scroll past a showcase (grilling 2026-09-02).
  */
 export function ProjectDetail({ project }: { project: PublicProject }) {
   const t = useTranslations('projectDetail');
   const tProjects = useTranslations('projects');
+  const containerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const prefersReducedMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)',
+    ).matches;
+    if (prefersReducedMotion) return;
+
+    const stages = container.querySelectorAll('[data-stage]');
+    const tl = gsap.timeline();
+    tl.from(stages, {
+      y: 24,
+      stagger: 0.1,
+      duration: 0.6,
+      ease: 'power2.out',
+    });
+
+    // .revert(), not .kill() (#135): React 18 Strict Mode double-invokes
+    // this effect in dev, and killing a .from()-based tween leaves its
+    // starting values as frozen inline styles.
+    return () => {
+      tl.revert();
+    };
+  }, []);
 
   return (
-    <article className="flex flex-col gap-6">
-      <div>
+    <article ref={containerRef} className="flex flex-col gap-6">
+      <div data-stage>
         {project.featured && (
           <span className="text-accent border-accent mb-2 inline-block rounded-full border px-2 py-0.5 text-xs font-medium tracking-wide uppercase">
             {tProjects('featured')}
@@ -36,6 +73,7 @@ export function ProjectDetail({ project }: { project: PublicProject }) {
         // URL the owner pastes in
         // eslint-disable-next-line @next/next/no-img-element
         <img
+          data-stage
           src={project.coverImageUrl}
           alt={project.title}
           className="aspect-video w-full rounded-lg bg-white/10 object-cover"
