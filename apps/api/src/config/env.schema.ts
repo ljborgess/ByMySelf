@@ -51,7 +51,6 @@ export const envSchema = z.object({
   // token even for public data.
   GITHUB_TOKEN: z.string().min(1),
   GITHUB_USERNAME: z.string().min(1),
-  SENTRY_DSN: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

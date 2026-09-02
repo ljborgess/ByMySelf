@@ -1,8 +1,4 @@
 {
-  "site": {
-    "name": "Luciano Borges",
-    "tagline": "Desenvolvedor Backend Node.js/NestJS"
-  },
   "hero": {
     "cta": "Baixar CV",
     "ctaProjects": "Ver projetos",
@@ -19,9 +15,6 @@
       "linkedin": "Perfil no LinkedIn"
     }
   },
-  "intro": {
-    "greeting": "Olá"
-  },
   "nav": {
     "label": "Navegação principal",
     "home": "Início",
@@ -33,7 +26,6 @@
   },
   "footer": {
     "rights": "Todos os direitos reservados.",
-    "builtWith": "Feito com NestJS e Next.js",
     "links": {
       "github": "GitHub",
       "linkedin": "LinkedIn",
@@ -50,7 +42,6 @@
   "about": {
     "title": "Sobre",
     "bioHeading": "Quem sou",
-    "objectiveHeading": "Objetivo",
     "skillsHeading": "Habilidades",
     "languagesHeading": "Idiomas",
     "downloadCv": "Baixar CV"
@@ -62,11 +53,7 @@
   "certificates": {
     "title": "Certificados",
     "description": "Certificados de Luciano Borges, com link de validação.",
-    "label": "Credenciais verificáveis",
-    "intro": "O documento original de cada curso, com o link de validação do emissor ao lado.",
-    "count": "{count, plural, one {# credencial} other {# credenciais}}",
     "validate": "Validar credencial",
-    "viewImage": "Ver certificado",
     "imageAlt": "Certificado de {name}, emitido por {issuer}",
     "noImage": "Documento ainda não enviado",
     "empty": "Nenhum certificado cadastrado ainda."
@@ -87,7 +74,6 @@
     "demo": "Ver demonstração"
   },
   "home": {
-    "title": "Início",
     "description": "Portfólio de Luciano Borges, desenvolvedor full-stack com foco em NestJS, Next.js e TypeScript.",
     "sectionsHeading": "Seções do site",
     "featuredHeading": "Projetos em destaque",

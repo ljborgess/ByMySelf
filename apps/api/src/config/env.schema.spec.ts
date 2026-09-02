@@ -7,7 +7,6 @@ const validEnv = {
   FRONTEND_URL: 'http://localhost:3101',
   GITHUB_TOKEN: 'github_pat_x',
   GITHUB_USERNAME: 'ljborgess',
-  SENTRY_DSN: '',
 };
 
 describe('envSchema', () => {
