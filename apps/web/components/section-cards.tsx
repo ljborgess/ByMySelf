@@ -57,7 +57,7 @@ export function SectionCards() {
 
     return () => {
       timeline.scrollTrigger?.kill();
-      timeline.kill();
+      timeline.revert();
     };
   }, []);
 

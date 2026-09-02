@@ -73,7 +73,7 @@ export function FeaturedProjects({
 
     return () => {
       timeline.scrollTrigger?.kill();
-      timeline.kill();
+      timeline.revert();
     };
   }, [projects]);
 

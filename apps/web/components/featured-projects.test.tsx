@@ -11,7 +11,7 @@ jest.mock('gsap', () => ({
     registerPlugin: jest.fn(),
     timeline: jest.fn(() => ({
       from: jest.fn(),
-      kill: jest.fn(),
+      revert: jest.fn(),
       scrollTrigger: { kill: jest.fn() },
     })),
   },
@@ -93,18 +93,21 @@ describe('FeaturedProjects', () => {
     expect(mockedGsap.timeline).not.toHaveBeenCalled();
   });
 
-  it('kills the reveal timeline and its ScrollTrigger on unmount', () => {
+  it('kills the ScrollTrigger and reverts the timeline on unmount', () => {
     mockMatchMedia(false);
     const { unmount } = renderFeatured([project()]);
 
     const timelineInstance = mockedGsap.timeline.mock.results[0].value as {
       scrollTrigger: { kill: jest.Mock };
-      kill: jest.Mock;
+      revert: jest.Mock;
     };
 
     unmount();
 
     expect(timelineInstance.scrollTrigger.kill).toHaveBeenCalled();
-    expect(timelineInstance.kill).toHaveBeenCalled();
+    // .revert(), not .kill() (#135): killing a .from()-based tween leaves
+    // its starting values as frozen inline styles, which corrupts a second
+    // mount under React 18 Strict Mode's double-invoke.
+    expect(timelineInstance.revert).toHaveBeenCalled();
   });
 });

@@ -74,11 +74,11 @@ export function SkillBar({
       <div className="relative h-px flex-1 bg-white/10">
         <div
           ref={fillRef}
-          className="absolute inset-y-0 left-0 w-full origin-left bg-highlight-gold"
+          className="absolute inset-y-0 left-0 w-full origin-left bg-foreground/70"
           style={{ transform: 'scaleX(0)' }}
         />
       </div>
-      <span className="w-14 shrink-0 text-right font-mono text-[10px] tracking-widest text-highlight-gold uppercase">
+      <span className="w-14 shrink-0 text-right font-mono text-[10px] tracking-widest text-foreground/60 uppercase">
         {displayLabel ?? config.label}
       </span>
     </div>
