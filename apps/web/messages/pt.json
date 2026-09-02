@@ -1,0 +1,105 @@
+{
+  "hero": {
+    "cta": "Baixar CV",
+    "ctaProjects": "Ver projetos",
+    "scrollHint": "Rolar para explorar",
+    "taglines": [
+      "Entre em contato comigo",
+      "Criador de Produtos",
+      "Atuo em desenvolvimento de Projetos"
+    ],
+    "status": "Disponível para projetos",
+    "greeting": "Olá, meu nome é",
+    "social": {
+      "github": "Perfil no GitHub",
+      "linkedin": "Perfil no LinkedIn"
+    }
+  },
+  "nav": {
+    "label": "Navegação principal",
+    "home": "Início",
+    "about": "Sobre",
+    "credentials": "Credenciais",
+    "projects": "Projetos",
+    "openMenu": "Abrir menu",
+    "closeMenu": "Fechar menu"
+  },
+  "footer": {
+    "rights": "Todos os direitos reservados.",
+    "links": {
+      "github": "GitHub",
+      "linkedin": "LinkedIn",
+      "email": "E-mail"
+    },
+    "cta": {
+      "headlineStrong": "Vamos conversar",
+      "headlineDim": "sobre o que posso construir para você.",
+      "support": "Disponível para novas oportunidades e colaborações.",
+      "hireMe": "Contrate-me"
+    },
+    "backToTop": "Voltar ao topo"
+  },
+  "about": {
+    "title": "Sobre",
+    "bioHeading": "Quem sou",
+    "skillsHeading": "Habilidades",
+    "languagesHeading": "Idiomas",
+    "downloadCv": "Baixar CV"
+  },
+  "credentials": {
+    "title": "Credenciais",
+    "description": "Formação acadêmica e certificados de Luciano Borges, com link de validação."
+  },
+  "certificates": {
+    "title": "Certificados",
+    "description": "Certificados de Luciano Borges, com link de validação.",
+    "validate": "Validar credencial",
+    "imageAlt": "Certificado de {name}, emitido por {issuer}",
+    "noImage": "Documento ainda não enviado",
+    "empty": "Nenhum certificado cadastrado ainda."
+  },
+  "education": {
+    "title": "Formação",
+    "description": "Formação acadêmica de Luciano Borges.",
+    "ongoing": "Em andamento",
+    "completed": "Concluído",
+    "empty": "Nenhuma formação cadastrada ainda."
+  },
+  "projects": {
+    "title": "Projetos",
+    "description": "Projetos fixados no GitHub de Luciano Borges, com stack e código.",
+    "empty": "Nenhum projeto fixado no GitHub ainda.",
+    "error": "Não foi possível carregar os projetos agora. Tente novamente em instantes.",
+    "code": "Ver código",
+    "demo": "Ver demonstração"
+  },
+  "home": {
+    "description": "Portfólio de Luciano Borges, desenvolvedor full-stack com foco em NestJS, Next.js e TypeScript.",
+    "sectionsHeading": "Seções do site",
+    "featuredHeading": "Projetos em destaque",
+    "sectionLabels": {
+      "intro": "Início",
+      "focus": "Foco",
+      "stats": "Números",
+      "projects": "Projetos"
+    },
+    "cards": {
+      "about": "Quem sou, no que trabalho e o que busco.",
+      "credentials": "Estudos e certificados, com link de validação.",
+      "projects": "Projetos que construí, com stack e código."
+    }
+  },
+  "coreFocus": {
+    "label": "Foco principal",
+    "aboutLabel": "Sobre",
+    "focusLabel": "Foco"
+  },
+  "stats": {
+    "badge": "Em números",
+    "headline": "{skills}. Uma stack, sistemas que funcionam de verdade.",
+    "projects": "Projetos publicados",
+    "technologies": "Tecnologias",
+    "certificates": "Certificados",
+    "languages": "Idiomas"
+  }
+}

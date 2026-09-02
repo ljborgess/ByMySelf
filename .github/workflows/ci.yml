@@ -1,0 +1,73 @@
+name: CI
+
+# Feature work is merged into dev, and dev is merged into main, so both need
+# to be covered — gating only main would let every feature PR through
+# unchecked and defeat the point of catching problems before review.
+#
+# No push-to-main deploy job: the Vercel GitHub integration builds and
+# deploys on its own whenever main updates (docs/decisao-deploy-vercel.md).
+# This workflow is a pure quality gate.
+on:
+  pull_request:
+    branches: [main, dev]
+  push:
+    branches: [main, dev]
+
+# Least privilege por default. Sem isto o token herda a permissão configurada
+# no repositório, que costuma ser mais ampla do que o necessário — e este job
+# roda `pnpm install` mais lint e testes sobre código de pull request, ou
+# seja, executa código de terceiros com o token da vez.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint, format and types
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # Reads the version from the packageManager field in package.json, so CI
+      # and local development cannot drift apart.
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Type-check
+        run: pnpm -r type-check
+
+      - name: Unit tests
+        run: pnpm --filter web test
+
+      # Catches what unit tests cannot: a build that fails, or pages silently
+      # falling back to per-request rendering when they should prerender. Dummy
+      # GITHUB_TOKEN/GITHUB_USERNAME: the build never calls GitHub for real (the
+      # fetch is caught and logged, same as a real outage -- see
+      # app/[locale]/(site)/projetos/page.tsx), it only needs the env schema
+      # check in lib/projects.ts to not throw before the try/catch runs.
+      - name: Web build
+        run: pnpm --filter web build
+        env:
+          FRONTEND_URL: https://example.com
+          GITHUB_TOKEN: ci-placeholder
+          GITHUB_USERNAME: ci-placeholder

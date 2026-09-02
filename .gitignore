@@ -8,10 +8,12 @@ build/
 .next/
 out/
 
-# env
+# env — ignore every variant, then re-admit the committed template.
+# The previous list missed .env.production/.env.staging, which are exactly the
+# files that would carry real credentials.
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 # logs
 *.log
@@ -25,5 +27,24 @@ Thumbs.db
 # test/coverage
 coverage/
 
+# Claude Code — skills come from the b2ml marketplace now, so nothing under
+# .claude is versioned except the config that selects them and the few skills
+# that have no marketplace equivalent yet.
+.claude/*
+!.claude/settings.json
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/README.md
+!.claude/skills/fable-method/
+!.claude/skills/full-output-enforcement/
+!.claude/skills/grill-with-docs/
+!.claude/skills/implement/
+
+# especificação do projeto — mantida local, fora do repositório
+docs/
+
 # misc
 *.tsbuildinfo
+
+# impeccable skill — local run state/cache
+.impeccable/
