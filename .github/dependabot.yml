@@ -14,10 +14,10 @@ updates:
   # ---------------------------------------------------------------------------
   #
   # Só a raiz, e não um bloco por pacote. É um workspace pnpm com um
-  # `pnpm-lock.yaml` único: o Dependabot lê esse lockfile e atualiza os quatro
-  # `package.json` a partir dele. Declarar `apps/api`, `apps/web` e
-  # `packages/shared` separadamente faria três jobs disputarem o mesmo lockfile,
-  # e o resultado seriam PRs que conflitam entre si.
+  # `pnpm-lock.yaml` único: o Dependabot lê esse lockfile e atualiza os
+  # `package.json` a partir dele. Declarar `apps/web` separadamente faria dois
+  # jobs disputarem o mesmo lockfile, e o resultado seriam PRs que conflitam
+  # entre si.
   - package-ecosystem: npm
     directory: /
 

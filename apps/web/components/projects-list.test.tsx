@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import type { PinnedRepo } from '@portfolio/shared';
+import type { PinnedRepo } from '../lib/projects';
 import messages from '../messages/pt.json';
 import { ProjectsList } from './projects-list';
 

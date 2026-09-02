@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
-import type { PinnedRepo } from '@portfolio/shared';
 import { HomeContent } from '../../../components/home-content';
 import { profile } from '../../../content/profile';
-import { getPinnedProjects } from '../../../lib/projects';
+import { getPinnedProjects, type PinnedRepo } from '../../../lib/projects';
 import { withOpenGraph } from '../../../lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {

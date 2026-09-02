@@ -1,37 +1,5 @@
-import { parse } from 'dotenv';
-import { existsSync, readFileSync } from 'node:fs';
 import createNextIntlPlugin from 'next-intl/plugin';
 import type { NextConfig } from 'next';
-import { resolve } from 'node:path';
-
-// Next only auto-loads .env files from this package's own directory, but the
-// project keeps a single .env at the repo root (see root README) shared with
-// the API. This reads just API_URL and FRONTEND_URL out of it -- not
-// @next/env's loadEnvConfig, which would load the whole file into
-// process.env. That file also holds GITHUB_TOKEN, which the public web
-// server never uses and has no reason to be able to leak if this process is
-// ever compromised.
-//
-// FRONTEND_URL is this app's own canonical public URL (the API already uses
-// it for CORS, see apps/api/src/main.ts) -- reused here as the SEO metadata
-// base rather than adding a second env var for the same URL.
-//
-// A real environment variable still wins over the file (checked first),
-// matching Next's own env precedence and letting production set these
-// directly without touching this repo-relative path at all.
-const FORWARDED_ENV = ['API_URL', 'FRONTEND_URL'];
-
-if (FORWARDED_ENV.some((key) => !process.env[key])) {
-  const rootEnvPath = resolve(__dirname, '../../.env');
-  if (existsSync(rootEnvPath)) {
-    const fromFile = parse(readFileSync(rootEnvPath, 'utf-8'));
-    for (const key of FORWARDED_ENV) {
-      if (!process.env[key] && fromFile[key]) {
-        process.env[key] = fromFile[key];
-      }
-    }
-  }
-}
 
 /**
  * The API is hardened with Helmet (issue #18); the public site had no
@@ -131,20 +99,6 @@ const allowedDevOrigins = ['localhost', '127.0.0.1', '[::1]'];
 
 const nextConfig: NextConfig = {
   allowedDevOrigins,
-
-  /**
-   * Emits `.next/standalone`, a self-contained server with only the traced
-   * dependencies, so the runtime image does not need node_modules at all
-   * (RNF-INF1 -- see apps/web/Dockerfile).
-   *
-   * `outputFileTracingRoot` is required here and not optional: tracing
-   * defaults to this package's directory, which in a pnpm workspace would
-   * miss `packages/shared` and every symlinked dependency hoisted to the
-   * repo root, producing an image that builds and then crashes on a missing
-   * module at first request.
-   */
-  output: 'standalone',
-  outputFileTracingRoot: resolve(__dirname, '../..'),
 
   // `X-Powered-By: Next.js` names the framework on every response and buys
   // nothing in return
