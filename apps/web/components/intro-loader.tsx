@@ -457,7 +457,17 @@ function PixelGroup({
 // ── component ─────────────────────────────────────────────────────────────────
 
 export function IntroLoader() {
-  const [visible, setVisible] = useState(false);
+  // Defaults to `true`, matching what the server renders. The pages this
+  // mounts on are static (SSG -- docs/decisao-deploy-vercel.md), so the raw
+  // HTML paints before any JS runs at all: no client effect, however early,
+  // can stop the browser from showing that first paint. Defaulting to
+  // visible means the *raw* HTML already covers the page with the intro
+  // overlay instead of the front page underneath it, which is the flash
+  // this exists to prevent. A returning visitor (sessionStorage already
+  // set) or prefers-reduced-motion sees the overlay for one instant before
+  // the layout effect below hides it -- worse than nothing, but far better
+  // than the page it's covering flashing first.
+  const [visible, setVisible] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<SVGTextElement>(null);
   const faceRef = useRef<SVGGElement>(null);
@@ -465,12 +475,12 @@ export function IntroLoader() {
   const glassesRef = useRef<SVGGElement>(null);
   const mustacheRef = useRef<SVGGElement>(null);
 
-  // useLayoutEffect, not useEffect: this decides whether to show the intro
-  // overlay, and useEffect fires *after* the browser has already painted --
-  // which is exactly the flash this was meant to prevent (the rest of the
-  // page shows first, then the intro pops in on top a beat later).
-  // useLayoutEffect runs synchronously before paint, so the decision lands
-  // in the same frame as the initial render.
+  // useLayoutEffect, not useEffect: this decides whether to *skip* the
+  // intro (already seen this session, or reduced motion), and useEffect
+  // fires after the browser has already painted -- which would show the
+  // full overlay for a beat even for a skip. useLayoutEffect runs
+  // synchronously before paint, so a skip resolves in the same frame the
+  // hydrated tree first paints.
   useLayoutEffect(() => {
     let alreadySeen = false;
     try {
@@ -483,10 +493,10 @@ export function IntroLoader() {
       '(prefers-reduced-motion: reduce)',
     ).matches;
 
-    if (alreadySeen || prefersReducedMotion) return;
+    if (!alreadySeen && !prefersReducedMotion) return;
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setVisible(true);
+    setVisible(false);
   }, []);
 
   useEffect(() => {
