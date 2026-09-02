@@ -14,9 +14,18 @@ if (typeof window !== 'undefined') {
 function BentoCard({
   entry,
   ongoingLabel,
+  completedLabel,
+  labels,
 }: {
   entry: Education;
   ongoingLabel: string;
+  completedLabel: string;
+  labels: {
+    status: string;
+    period: string;
+    institution: string;
+    stack: string;
+  };
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const isOngoing = entry.endDate === null;
@@ -34,11 +43,11 @@ function BentoCard({
       'perspective(900px) rotateX(0deg) rotateY(0deg) scale(1)';
   }
 
-  const borderColor = isOngoing
-    ? 'border-highlight-green/40'
-    : 'border-white/10';
-  const bgColor = isOngoing ? 'bg-highlight-green/5' : 'bg-white/[0.02]';
-  const divider = isOngoing ? 'divide-highlight-green/20' : 'divide-white/10';
+  // Neutral at rest (DESIGN.md's Card spec: no fill, border-white/15) --
+  // the only color signal left is the green pulse+label on "status", the
+  // same "live" dot every other page already uses (Sobre/Hero), not a
+  // tinted border/background/divider (highlight-green's one documented job
+  // is a status dot, not a card decoration).
   const metaText = isOngoing ? 'text-highlight-green' : 'text-foreground/60';
 
   return (
@@ -47,23 +56,21 @@ function BentoCard({
       data-bento-card
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className={`grid grid-cols-[1fr_auto] border ${borderColor} ${bgColor} transition-transform duration-200 ease-out will-change-transform`}
+      className="grid grid-cols-[1fr_auto] border border-white/15 transition-transform duration-200 ease-out will-change-transform"
       style={{ transformStyle: 'preserve-3d' }}
     >
       {/* Course name — large display, left-top */}
-      <div className={`border-b border-r ${divider} p-6 sm:p-8`}>
+      <div className="border-r border-b border-white/10 p-6 sm:p-8">
         <h2 className="font-display text-3xl font-black leading-tight tracking-tight sm:text-5xl">
           {entry.course}
         </h2>
       </div>
 
       {/* Status + Period — right column, stacked */}
-      <div
-        className={`flex flex-col divide-y ${divider} min-w-[140px] sm:min-w-[180px]`}
-      >
+      <div className="flex min-w-[140px] flex-col divide-y divide-white/10 sm:min-w-[180px]">
         <div className="flex flex-col gap-2 p-4">
-          <span className="font-mono text-[9px] tracking-[0.2em] uppercase opacity-40">
-            status
+          <span className="font-mono text-[10px] tracking-[0.2em] uppercase opacity-40">
+            {labels.status}
           </span>
           <div className="flex items-center gap-2">
             {isOngoing && (
@@ -73,14 +80,14 @@ function BentoCard({
               />
             )}
             <span className={`font-mono text-[11px] tracking-wide ${metaText}`}>
-              {isOngoing ? ongoingLabel : 'concluído'}
+              {isOngoing ? ongoingLabel : completedLabel}
             </span>
           </div>
         </div>
 
         <div className="flex flex-col gap-2 p-4">
-          <span className="font-mono text-[9px] tracking-[0.2em] uppercase opacity-40">
-            período
+          <span className="font-mono text-[10px] tracking-[0.2em] uppercase opacity-40">
+            {labels.period}
           </span>
           <span
             className={`font-mono text-[11px] ${period ? '' : 'opacity-30'}`}
@@ -91,10 +98,10 @@ function BentoCard({
       </div>
 
       {/* Institution + Stack — bottom row, full width */}
-      <div className={`col-span-2 flex border-t ${divider} divide-x`}>
-        <div className="flex flex-col gap-2 p-4 sm:p-5 min-w-[120px]">
-          <span className="font-mono text-[9px] tracking-[0.2em] uppercase opacity-40">
-            instituição
+      <div className="col-span-2 flex divide-x divide-white/10 border-t border-white/10">
+        <div className="flex min-w-[120px] flex-col gap-2 p-4 sm:p-5">
+          <span className="font-mono text-[10px] tracking-[0.2em] uppercase opacity-40">
+            {labels.institution}
           </span>
           <span
             className={`text-sm ${entry.institution ? 'opacity-80' : 'font-mono opacity-25'}`}
@@ -105,8 +112,8 @@ function BentoCard({
 
         {entry.technologies && entry.technologies.length > 0 ? (
           <div className="flex flex-1 flex-col gap-2 p-4 sm:p-5">
-            <span className="font-mono text-[9px] tracking-[0.2em] uppercase opacity-40">
-              stack
+            <span className="font-mono text-[10px] tracking-[0.2em] uppercase opacity-40">
+              {labels.stack}
             </span>
             <div className="flex flex-wrap gap-1.5">
               {entry.technologies.map((tech) => (
@@ -121,8 +128,8 @@ function BentoCard({
           </div>
         ) : (
           <div className="flex flex-1 flex-col gap-2 p-4 sm:p-5">
-            <span className="font-mono text-[9px] tracking-[0.2em] uppercase opacity-40">
-              stack
+            <span className="font-mono text-[10px] tracking-[0.2em] uppercase opacity-40">
+              {labels.stack}
             </span>
             <span className="font-mono text-sm opacity-25">—</span>
           </div>
@@ -158,8 +165,12 @@ export function EducationContent({ education }: { education: Education[] }) {
       },
     });
 
+    // y only, never opacity (#135): if the ScrollTrigger fires late (or JS
+    // is slow to hydrate), a card starting at opacity 0 could sit invisible
+    // indefinitely -- offset-only keeps it visible, just displaced, which
+    // never reads as broken. Same rule section-cards.tsx/featured-projects.tsx
+    // already follow.
     tl.from([...cards], {
-      opacity: 0,
       y: 28,
       stagger: 0.14,
       duration: 0.55,
@@ -176,6 +187,13 @@ export function EducationContent({ education }: { education: Education[] }) {
     return <p className="opacity-70">{t('empty')}</p>;
   }
 
+  const labels = {
+    status: t('labels.status'),
+    period: t('labels.period'),
+    institution: t('labels.institution'),
+    stack: t('labels.stack'),
+  };
+
   return (
     <div ref={containerRef} className="flex flex-col gap-4">
       {entries.map((entry) => (
@@ -183,6 +201,8 @@ export function EducationContent({ education }: { education: Education[] }) {
           key={`${entry.course}-${entry.institution ?? ''}`}
           entry={entry}
           ongoingLabel={t('ongoing')}
+          completedLabel={t('completed')}
+          labels={labels}
         />
       ))}
     </div>

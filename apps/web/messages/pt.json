@@ -72,7 +72,14 @@
     "title": "Formação",
     "description": "Formação acadêmica de Luciano Borges.",
     "ongoing": "Em andamento",
-    "empty": "Nenhuma formação cadastrada ainda."
+    "completed": "Concluído",
+    "empty": "Nenhuma formação cadastrada ainda.",
+    "labels": {
+      "status": "Status",
+      "period": "Período",
+      "institution": "Instituição",
+      "stack": "Stack"
+    }
   },
   "projects": {
     "title": "Projetos",
