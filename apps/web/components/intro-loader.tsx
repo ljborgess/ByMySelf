@@ -1,7 +1,7 @@
 'use client';
 
 import gsap from 'gsap';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 const STORAGE_KEY = 'portfolio-intro-seen';
 const PX = 8; // pixel block size in SVG units
@@ -465,7 +465,13 @@ export function IntroLoader() {
   const glassesRef = useRef<SVGGElement>(null);
   const mustacheRef = useRef<SVGGElement>(null);
 
-  useEffect(() => {
+  // useLayoutEffect, not useEffect: this decides whether to show the intro
+  // overlay, and useEffect fires *after* the browser has already painted --
+  // which is exactly the flash this was meant to prevent (the rest of the
+  // page shows first, then the intro pops in on top a beat later).
+  // useLayoutEffect runs synchronously before paint, so the decision lands
+  // in the same frame as the initial render.
+  useLayoutEffect(() => {
     let alreadySeen = false;
     try {
       alreadySeen = sessionStorage.getItem(STORAGE_KEY) === 'true';
