@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import gsap from 'gsap';
-import type { PublicProjectListItem } from '../lib/projects';
+import type { PinnedRepo } from '@portfolio/shared';
 import messages from '../messages/pt.json';
 import { FeaturedProjects } from './featured-projects';
 
@@ -31,26 +31,20 @@ function mockMatchMedia(reducedMotion: boolean) {
   window.matchMedia = jest.fn().mockReturnValue({ matches: reducedMotion });
 }
 
-function project(
-  overrides: Partial<PublicProjectListItem> = {},
-): PublicProjectListItem {
+function repo(overrides: Partial<PinnedRepo> = {}): PinnedRepo {
   return {
-    id: overrides.id ?? '1',
-    slug: overrides.slug ?? 'projeto',
-    title: overrides.title ?? 'Projeto',
+    name: overrides.name ?? 'Projeto',
     description: overrides.description ?? 'Descrição do projeto.',
+    url: overrides.url ?? 'https://github.com/ljborgess/projeto',
+    homepageUrl: overrides.homepageUrl ?? null,
+    imageUrl:
+      overrides.imageUrl ??
+      'https://opengraph.githubassets.com/1/ljborgess/projeto',
     techStack: overrides.techStack ?? [],
-    repoUrl: overrides.repoUrl ?? null,
-    demoUrl: overrides.demoUrl ?? null,
-    coverImageUrl: overrides.coverImageUrl ?? null,
-    status: overrides.status ?? 'completed',
-    featured: overrides.featured ?? true,
-    completedAt: overrides.completedAt ?? null,
-    updatedAt: overrides.updatedAt ?? '2026-01-01T00:00:00.000Z',
   };
 }
 
-function renderFeatured(projects: PublicProjectListItem[]) {
+function renderFeatured(projects: PinnedRepo[]) {
   return render(
     <NextIntlClientProvider locale="pt" messages={messages}>
       <FeaturedProjects projects={projects} />
@@ -63,7 +57,7 @@ describe('FeaturedProjects', () => {
     mockedGsap.timeline.mockClear();
   });
 
-  it('renders nothing when there are no featured projects', () => {
+  it('renders nothing when there are no pinned repos', () => {
     mockMatchMedia(false);
     renderFeatured([]);
 
@@ -72,11 +66,24 @@ describe('FeaturedProjects', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders one card per featured project', () => {
+  it('renders one card per pinned repo', () => {
     mockMatchMedia(false);
-    renderFeatured([project({ id: '1' }), project({ id: '2', slug: 'dois' })]);
+    renderFeatured([
+      repo({ url: 'https://github.com/ljborgess/um' }),
+      repo({ url: 'https://github.com/ljborgess/dois' }),
+    ]);
 
     expect(screen.getAllByRole('listitem')).toHaveLength(2);
+  });
+
+  it('links each card to the repo on GitHub', () => {
+    mockMatchMedia(false);
+    renderFeatured([repo({ url: 'https://github.com/ljborgess/bymyself' })]);
+
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      'https://github.com/ljborgess/bymyself',
+    );
   });
 
   it('does not set up a reveal timeline when there is nothing to reveal', () => {
@@ -88,14 +95,14 @@ describe('FeaturedProjects', () => {
 
   it('does not set up a reveal timeline under prefers-reduced-motion', () => {
     mockMatchMedia(true);
-    renderFeatured([project()]);
+    renderFeatured([repo()]);
 
     expect(mockedGsap.timeline).not.toHaveBeenCalled();
   });
 
   it('kills the ScrollTrigger and reverts the timeline on unmount', () => {
     mockMatchMedia(false);
-    const { unmount } = renderFeatured([project()]);
+    const { unmount } = renderFeatured([repo()]);
 
     const timelineInstance = mockedGsap.timeline.mock.results[0].value as {
       scrollTrigger: { kill: jest.Mock };

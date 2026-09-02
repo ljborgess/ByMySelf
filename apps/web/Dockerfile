@@ -61,29 +61,13 @@ COPY apps/web apps/web
 ARG FRONTEND_URL
 ENV FRONTEND_URL=$FRONTEND_URL
 
-# Endereço público da API, para as chamadas que saem do browser -- hoje o
-# login do painel (#23). Distinto de `API_URL`, que é o endereço interno da
-# rede do compose e que o navegador de um visitante não resolve.
-#
-# Build arg porque o Next inlina toda variável `NEXT_PUBLIC_` no bundle do
-# cliente durante o build; injetar em runtime não teria efeito. Não é segredo:
-# é o endereço de um servidor público.
-ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-
 # Sem default, e o build para em vez de seguir. Um default de localhost
 # deixaria o build passar e entregaria páginas cujas URLs canônicas, og:image
 # e entradas do sitemap apontam para localhost -- errado de um jeito que só
-# aparece quando um crawler lê. O mesmo vale para a URL da API: o formulário
-# de login apontaria para localhost e falharia no navegador de quem acessa.
+# aparece quando um crawler lê.
 RUN test -n "$FRONTEND_URL" || { \
       echo "ERROR: --build-arg FRONTEND_URL=https://your-domain is required." >&2; \
       echo "It is baked into the prerendered metadata and cannot be set later." >&2; \
-      exit 1; \
-    }
-RUN test -n "$NEXT_PUBLIC_API_URL" || { \
-      echo "ERROR: --build-arg NEXT_PUBLIC_API_URL=https://api.your-domain is required." >&2; \
-      echo "It is inlined into the client bundle and cannot be set at runtime." >&2; \
       exit 1; \
     }
 

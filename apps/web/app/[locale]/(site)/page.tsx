@@ -1,12 +1,9 @@
 import type { Metadata } from 'next';
-import { locale } from 'next/root-params';
 import { getTranslations } from 'next-intl/server';
+import type { PinnedRepo } from '@portfolio/shared';
 import { HomeContent } from '../../../components/home-content';
 import { profile } from '../../../content/profile';
-import {
-  getPublishedProjects,
-  type PublicProjectListItem,
-} from '../../../lib/projects';
+import { getPinnedProjects } from '../../../lib/projects';
 import { withOpenGraph } from '../../../lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -24,23 +21,21 @@ export async function generateMetadata(): Promise<Metadata> {
  * rendering lives in HomeContent (a plain component), which is what
  * home-content.test.tsx exercises.
  *
- * A failed fetch here just means the featured preview does not render --
- * unlike /projetos, where the fetch failing is the whole page's reason to
- * exist, this is a decorative preview on a page that works fine without it.
- * No error message, no retry affordance: silently falling back to "no
- * featured projects" is indistinguishable from an actually-quiet catalog,
- * and both are fine states for this section to be in.
+ * Every pinned repo is already the curated set (docs/decisao-projetos
+ * -github-pins.md -- no separate "featured" flag exists anymore, GitHub
+ * caps a profile at 6 pins), so the home preview shows all of them.
+ *
+ * A failed fetch here just means the preview does not render -- unlike
+ * /projetos, where the fetch failing is the whole page's reason to exist,
+ * this is a decorative preview on a page that works fine without it.
  */
 export default async function HomePage() {
-  const currentLocale = await locale();
-
-  let featuredProjects: PublicProjectListItem[] = [];
+  let featuredProjects: PinnedRepo[] = [];
   let projectCount = 0;
 
   try {
-    const projects = await getPublishedProjects(currentLocale);
-    featuredProjects = projects.filter((project) => project.featured);
-    projectCount = projects.length;
+    featuredProjects = await getPinnedProjects();
+    projectCount = featuredProjects.length;
   } catch (error) {
     console.error('Failed to load featured projects for the home page:', error);
   }

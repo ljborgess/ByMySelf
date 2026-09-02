@@ -1,31 +1,135 @@
+'use client';
+
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import type { PinnedRepo } from '@portfolio/shared';
 import { useTranslations } from 'next-intl';
-import { Link } from '../i18n/navigation';
-import type { PublicProjectListItem } from '../lib/projects';
+import { useEffect, useRef } from 'react';
+
+if (typeof window !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger);
+}
+
+function ProjectCard({
+  repo,
+  codeLabel,
+  demoLabel,
+}: {
+  repo: PinnedRepo;
+  codeLabel: string;
+  demoLabel: string;
+}) {
+  return (
+    <li
+      data-reveal-card
+      className="flex flex-col gap-4 border border-white/15 p-5 sm:flex-row sm:items-start"
+    >
+      {/* plain <img>, not next/image: openGraphImageUrl is a GitHub-hosted
+          URL, but arbitrary per repo -- same reasoning certificates-content
+          and featured-projects already follow for owner-pasted URLs */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={repo.imageUrl}
+        alt=""
+        loading="lazy"
+        className="aspect-video w-full shrink-0 rounded-lg border border-white/10 object-cover sm:w-64"
+      />
+
+      <div className="flex flex-col gap-2">
+        <h3 className="font-display text-xl font-black tracking-tight sm:text-2xl">
+          {repo.name}
+        </h3>
+        {repo.description && (
+          <p className="text-sm opacity-70">{repo.description}</p>
+        )}
+
+        {repo.techStack.length > 0 && (
+          <ul className="flex flex-wrap gap-2">
+            {repo.techStack.map((tech) => (
+              <li
+                key={tech}
+                className="rounded-full border border-white/15 px-2.5 py-0.5 text-xs"
+              >
+                {tech}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="mt-1 flex flex-wrap gap-3">
+          <a
+            href={repo.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="signal-glow inline-flex w-fit items-center gap-2 rounded-full border border-white/30 px-4 py-2 text-sm font-medium transition-colors hover:border-accent hover:text-accent"
+          >
+            {codeLabel}
+            <span aria-hidden="true">↗</span>
+          </a>
+
+          {repo.homepageUrl && (
+            <a
+              href={repo.homepageUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="signal-glow inline-flex w-fit items-center gap-2 rounded-full border border-white/30 px-4 py-2 text-sm font-medium transition-colors hover:border-accent hover:text-accent"
+            >
+              {demoLabel}
+              <span aria-hidden="true">↗</span>
+            </a>
+          )}
+        </div>
+      </div>
+    </li>
+  );
+}
 
 /**
- * Split out of page.tsx so the list/card/state logic can be rendered (and
- * tested) directly: Next.js does not yet support unit-testing `async` Server
- * Components (App Router testing guide recommends e2e for those instead), so
- * page.tsx stays a thin async wrapper around the fetch, and everything that
- * actually renders -- including the translations -- lives here as a plain
- * component.
- *
- * Renders every published project (not just featured, unlike the home
- * preview in featured-projects.tsx) as an asymmetric mosaic grid (#132,
- * docs/design-clone-syahril.md's "Journal & Insights" section) -- a featured
- * project spans two columns instead of every card being the same size, which
- * is what made the previous carousel (#109-#115) necessary in the first
- * place. No 'use client' needed: with the carousel gone, nothing here is a
- * function prop crossing into a Client Component.
+ * `/projetos` (docs/decisao-projetos-github-pins.md): mirrors
+ * certificates-content.tsx's card shape -- image, text, external link -- for
+ * the owner's pinned GitHub repos instead of an internally curated CRUD
+ * listing. No detail page: the repo itself is the detail.
  */
 export function ProjectsList({
   projects,
   failed,
 }: {
-  projects: PublicProjectListItem[];
+  projects: PinnedRepo[];
   failed: boolean;
 }) {
   const t = useTranslations('projects');
+  const listRef = useRef<HTMLUListElement>(null);
+
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+
+    const prefersReducedMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)',
+    ).matches;
+    if (prefersReducedMotion) return;
+
+    const cards = list.querySelectorAll('[data-reveal-card]');
+    if (!cards.length) return;
+
+    const tl = gsap.timeline({
+      scrollTrigger: { trigger: list, start: 'top 85%', once: true },
+    });
+
+    // y only, never opacity (#135) -- same rule every other reveal in the
+    // codebase follows.
+    tl.from(cards, {
+      y: 24,
+      stagger: 0.1,
+      duration: 0.6,
+      ease: 'power2.out',
+    });
+
+    return () => {
+      tl.scrollTrigger?.kill();
+      tl.revert();
+    };
+  }, [projects]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -38,62 +142,14 @@ export function ProjectsList({
       ) : projects.length === 0 ? (
         <p className="opacity-70">{t('empty')}</p>
       ) : (
-        <ul className="grid grid-cols-1 gap-4 [grid-auto-flow:dense] sm:grid-cols-2 lg:grid-cols-3">
-          {projects.map((project) => (
-            <li
-              key={project.id}
-              className={project.featured ? 'sm:col-span-2' : undefined}
-            >
-              <Link
-                href={`/projetos/${project.slug}`}
-                // the whole card is the target, not just the title -- a card
-                // that looks clickable but only responds on its heading is a
-                // trap
-                className={`signal-glow group hover:border-accent focus-visible:border-accent flex h-full flex-col rounded-lg border p-5 transition-[color,border-color,transform] hover:-translate-y-0.5 ${
-                  project.featured
-                    ? 'signal-glow-active border-accent'
-                    : 'border-white/15'
-                }`}
-              >
-                {project.featured && (
-                  <span className="text-accent border-accent mb-2 self-start rounded-full border px-2 py-0.5 text-xs font-medium tracking-wide uppercase">
-                    {t('featured')}
-                  </span>
-                )}
-
-                {project.coverImageUrl && (
-                  // plain <img>, not next/image: the optimizer would need
-                  // remotePatterns wide enough to cover any URL the owner
-                  // pastes in, which turns /_next/image into an open proxy
-                  // for whatever host a request's `url` param names
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={project.coverImageUrl}
-                    alt={project.title}
-                    loading="lazy"
-                    className="mb-3 aspect-video w-full rounded bg-white/10 object-cover"
-                  />
-                )}
-
-                <span className="text-base font-semibold tracking-tight">
-                  {project.title}
-                </span>
-                <p className="mt-1 text-sm opacity-70">{project.description}</p>
-
-                {project.techStack.length > 0 && (
-                  <ul className="mt-3 flex flex-wrap gap-2">
-                    {project.techStack.map((tech) => (
-                      <li
-                        key={tech}
-                        className="rounded-full border border-white/15 px-2.5 py-0.5 text-xs"
-                      >
-                        {tech}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </Link>
-            </li>
+        <ul ref={listRef} className="flex flex-col gap-4">
+          {projects.map((repo) => (
+            <ProjectCard
+              key={repo.url}
+              repo={repo}
+              codeLabel={t('code')}
+              demoLabel={t('demo')}
+            />
           ))}
         </ul>
       )}

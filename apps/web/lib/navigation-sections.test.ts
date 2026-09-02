@@ -3,12 +3,11 @@ import { NAVIGATION_SECTIONS } from './navigation-sections';
 
 describe('NAVIGATION_SECTIONS', () => {
   it('covers every section of the route contract', () => {
-    // docs/arquitetura.md: home, sobre, formação, certificados, projetos
+    // docs/arquitetura.md: home, sobre, credenciais (formação+certificados), projetos
     expect(NAVIGATION_SECTIONS.map((section) => section.href)).toEqual([
       '/',
       '/sobre',
-      '/formacao',
-      '/certificados',
+      '/credenciais',
       '/projetos',
     ]);
   });

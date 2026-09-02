@@ -13,8 +13,7 @@
 export const NAVIGATION_SECTIONS = [
   { href: '/', messageKey: 'home' },
   { href: '/sobre', messageKey: 'about' },
-  { href: '/formacao', messageKey: 'education' },
-  { href: '/certificados', messageKey: 'certificates' },
+  { href: '/credenciais', messageKey: 'credentials' },
   { href: '/projetos', messageKey: 'projects' },
 ] as const;
 

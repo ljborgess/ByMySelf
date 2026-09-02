@@ -6,8 +6,7 @@
 
 # ---------------------------------------------------------------------------
 # base -- pinned to the same major the repo pins in .nvmrc and package.json
-# engines. Alpine keeps the runtime image small; the one native dependency
-# (argon2) is handled in the deps stage below.
+# engines. Alpine keeps the runtime image small.
 # ---------------------------------------------------------------------------
 FROM node:22-alpine AS base
 ENV PNPM_HOME=/pnpm
@@ -25,18 +24,13 @@ RUN corepack enable
 FROM base AS deps
 WORKDIR /repo
 
-# argon2 publishes prebuilds for glibc but not for musl, so on Alpine it is
-# compiled from source. These are build-stage only and never reach the
-# runtime image.
-RUN apk add --no-cache python3 make g++
-
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.base.json ./
 COPY apps/api/package.json apps/api/
 # Source and not just the manifest: @portfolio/shared compiles itself in a
 # `prepare` script, and its package.json `main` points at the dist that
 # produces. Manifest alone and the install fails on tsc finding no inputs;
 # without tsconfig.base.json above it fails again on the compiler options it
-# extends. It is a handful of schema files, so the layer is cheap to bust.
+# extends. It is a handful of type files, so the layer is cheap to bust.
 COPY packages/shared packages/shared
 
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
@@ -53,7 +47,7 @@ COPY apps/api apps/api
 RUN pnpm --filter api build
 
 # Issue #35 pede uma imagem que não carregue "dev dependencies or source maps
-# unnecessarily", e o build emitia 37 `.js.map` mais os `.d.ts` (~312K).
+# unnecessarily", e o build emitia `.js.map` mais os `.d.ts`.
 #
 # São peso morto literal: `source-map-support` é devDependency, não é
 # importado em nenhum lugar do src, e nem existe no runtime — então nada
@@ -100,35 +94,18 @@ COPY --from=builder --chown=node:node /prod-api/node_modules ./node_modules
 COPY --from=builder --chown=node:node /prod-api/dist ./dist
 COPY --from=builder --chown=node:node /prod-api/package.json ./package.json
 
-# Drizzle migration files are read at runtime by the migrate entrypoint, and
-# `nest build` does not copy non-TS assets into dist.
-COPY --from=builder --chown=node:node /repo/apps/api/drizzle ./drizzle
-
-# Applies pending migrations before starting the server, so a fresh
-# production database cannot leave the API serving against missing tables
-# (issue #36). See the script for why this lives here rather than in a
-# Dokploy pre-deploy field.
-# Left owned by root, not the `node` user that runs it: a process should not
-# be able to rewrite the script that starts it.
-COPY apps/api/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod 555 /usr/local/bin/docker-entrypoint.sh
-
 USER node
 
 EXPOSE 3100
 
 # Gives Dokploy a real readiness signal instead of "the process is alive".
-# GET /health checks the database connection too, so a container that cannot
-# reach Postgres reports unhealthy rather than accepting traffic it cannot
-# serve. Uses Node rather than curl, which Alpine does not ship.
+# Sem banco (docs/decisao-projetos-github-pins.md), o probe só confirma que o
+# processo Nest está de pé. Uses Node rather than curl, which Alpine does not
+# ship.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3100)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
-# The entrypoint migrates, then `exec`s this CMD -- so the server still ends
-# up as PID 1 and SIGTERM from Dokploy reaches Node itself, letting the
-# graceful shutdown in main.ts run.
-#
 # `node dist/main` directly, not `pnpm start:prod`: one less process in the
-# tree, and a package manager in between would swallow the signal.
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+# tree, and a package manager in between would swallow the SIGTERM Dokploy
+# sends, breaking the graceful shutdown in main.ts.
 CMD ["node", "dist/main"]

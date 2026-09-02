@@ -33,6 +33,3 @@ services:
         # grava metadataBase (canonical, og:image, <loc> do sitemap) durante
         # o build. Ver apps/web/Dockerfile.
         FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
-        # Endereço público da API, inlinado no bundle do cliente (login do
-        # painel). Distinto de API_URL, que é o endereço interno.
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL is required}

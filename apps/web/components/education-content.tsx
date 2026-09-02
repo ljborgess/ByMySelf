@@ -11,144 +11,77 @@ if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
 }
 
-function BentoCard({
+function EducationCard({
   entry,
   ongoingLabel,
   completedLabel,
-  labels,
 }: {
   entry: Education;
   ongoingLabel: string;
   completedLabel: string;
-  labels: {
-    status: string;
-    period: string;
-    institution: string;
-    stack: string;
-  };
 }) {
-  const cardRef = useRef<HTMLDivElement>(null);
   const isOngoing = entry.endDate === null;
   const period = formatPeriod(entry, ongoingLabel);
 
-  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-    e.currentTarget.style.transform = `perspective(900px) rotateX(${-y * 6}deg) rotateY(${x * 6}deg) scale(1.01)`;
-  }
-
-  function handleMouseLeave(e: React.MouseEvent<HTMLDivElement>) {
-    e.currentTarget.style.transform =
-      'perspective(900px) rotateX(0deg) rotateY(0deg) scale(1)';
-  }
-
   // Neutral at rest (DESIGN.md's Card spec: no fill, border-white/15) --
   // the only color signal left is the green pulse+label on "status", the
-  // same "live" dot every other page already uses (Sobre/Hero), not a
-  // tinted border/background/divider (highlight-green's one documented job
-  // is a status dot, not a card decoration).
-  const metaText = isOngoing ? 'text-highlight-green' : 'text-foreground/60';
+  // same "live" dot every other page already uses (Sobre/Hero).
+  const statusText = isOngoing ? 'text-highlight-green' : 'text-foreground/60';
 
   return (
-    <div
-      ref={cardRef}
-      data-bento-card
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      className="grid grid-cols-[1fr_auto] border border-white/15 transition-transform duration-200 ease-out will-change-transform"
-      style={{ transformStyle: 'preserve-3d' }}
+    <li
+      data-reveal-card
+      className="flex flex-col gap-3 border border-white/15 p-5"
     >
-      {/* Course name — large display, left-top */}
-      <div className="border-r border-b border-white/10 p-6 sm:p-8">
-        <h2 className="font-display text-3xl font-black leading-tight tracking-tight sm:text-5xl">
-          {entry.course}
-        </h2>
-      </div>
+      <h3 className="font-display text-xl font-black tracking-tight sm:text-2xl">
+        {entry.course}
+      </h3>
 
-      {/* Status + Period — right column, stacked */}
-      <div className="flex min-w-[140px] flex-col divide-y divide-white/10 sm:min-w-[180px]">
-        <div className="flex flex-col gap-2 p-4">
-          <span className="font-mono text-[10px] tracking-[0.2em] uppercase opacity-40">
-            {labels.status}
-          </span>
-          <div className="flex items-center gap-2">
-            {isOngoing && (
-              <span
-                aria-hidden="true"
-                className="size-1.5 shrink-0 rounded-full bg-highlight-green motion-safe:animate-pulse"
-              />
-            )}
-            <span className={`font-mono text-[11px] tracking-wide ${metaText}`}>
-              {isOngoing ? ongoingLabel : completedLabel}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-2 p-4">
-          <span className="font-mono text-[10px] tracking-[0.2em] uppercase opacity-40">
-            {labels.period}
-          </span>
+      <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
+        {isOngoing && (
           <span
-            className={`font-mono text-[11px] ${period ? '' : 'opacity-30'}`}
-          >
-            {period ?? '—'}
-          </span>
-        </div>
-      </div>
-
-      {/* Institution + Stack — bottom row, full width */}
-      <div className="col-span-2 flex divide-x divide-white/10 border-t border-white/10">
-        <div className="flex min-w-[120px] flex-col gap-2 p-4 sm:p-5">
-          <span className="font-mono text-[10px] tracking-[0.2em] uppercase opacity-40">
-            {labels.institution}
-          </span>
-          <span
-            className={`text-sm ${entry.institution ? 'opacity-80' : 'font-mono opacity-25'}`}
-          >
-            {entry.institution ?? '—'}
-          </span>
-        </div>
-
-        {entry.technologies && entry.technologies.length > 0 ? (
-          <div className="flex flex-1 flex-col gap-2 p-4 sm:p-5">
-            <span className="font-mono text-[10px] tracking-[0.2em] uppercase opacity-40">
-              {labels.stack}
-            </span>
-            <div className="flex flex-wrap gap-1.5">
-              {entry.technologies.map((tech) => (
-                <span
-                  key={tech}
-                  className="rounded-full border border-white/15 px-2.5 py-0.5 text-xs"
-                >
-                  {tech}
-                </span>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-1 flex-col gap-2 p-4 sm:p-5">
-            <span className="font-mono text-[10px] tracking-[0.2em] uppercase opacity-40">
-              {labels.stack}
-            </span>
-            <span className="font-mono text-sm opacity-25">—</span>
-          </div>
+            aria-hidden="true"
+            className="size-1.5 shrink-0 rounded-full bg-highlight-green motion-safe:animate-pulse"
+          />
         )}
+        <span className={statusText}>
+          {isOngoing ? ongoingLabel : completedLabel}
+        </span>
+        {period && <span className="opacity-40">· {period}</span>}
       </div>
-    </div>
+
+      {entry.institution && (
+        <p className="font-mono text-xs tracking-widest text-foreground/60 uppercase">
+          {entry.institution}
+        </p>
+      )}
+
+      {entry.technologies && entry.technologies.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {entry.technologies.map((tech) => (
+            <span
+              key={tech}
+              className="rounded-full border border-white/15 px-2.5 py-0.5 text-xs"
+            >
+              {tech}
+            </span>
+          ))}
+        </div>
+      )}
+    </li>
   );
 }
 
 export function EducationContent({ education }: { education: Education[] }) {
   const t = useTranslations('education');
-  const containerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
   const entries = sortEducation(education);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    const list = listRef.current;
+    if (!list) return;
 
-    const cards = container.querySelectorAll<HTMLElement>('[data-bento-card]');
+    const cards = list.querySelectorAll<HTMLElement>('[data-reveal-card]');
     if (!cards.length) return;
 
     const prefersReducedMotion = window.matchMedia(
@@ -159,7 +92,7 @@ export function EducationContent({ education }: { education: Education[] }) {
 
     const tl = gsap.timeline({
       scrollTrigger: {
-        trigger: container,
+        trigger: list,
         start: 'top 85%',
         once: true,
       },
@@ -187,24 +120,16 @@ export function EducationContent({ education }: { education: Education[] }) {
     return <p className="opacity-70">{t('empty')}</p>;
   }
 
-  const labels = {
-    status: t('labels.status'),
-    period: t('labels.period'),
-    institution: t('labels.institution'),
-    stack: t('labels.stack'),
-  };
-
   return (
-    <div ref={containerRef} className="flex flex-col gap-4">
+    <ul ref={listRef} className="flex flex-col gap-4">
       {entries.map((entry) => (
-        <BentoCard
+        <EducationCard
           key={`${entry.course}-${entry.institution ?? ''}`}
           entry={entry}
           ongoingLabel={t('ongoing')}
           completedLabel={t('completed')}
-          labels={labels}
         />
       ))}
-    </div>
+    </ul>
   );
 }

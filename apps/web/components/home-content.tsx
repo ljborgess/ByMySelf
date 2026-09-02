@@ -1,6 +1,6 @@
+import type { PinnedRepo } from '@portfolio/shared';
 import { useTranslations } from 'next-intl';
 import { profile } from '../content/profile';
-import type { PublicProjectListItem } from '../lib/projects';
 import { CoreFocusSection } from './core-focus-section';
 import { FeaturedProjects } from './featured-projects';
 import { HeroSection } from './hero-section';
@@ -27,7 +27,7 @@ export function HomeContent({
   featuredProjects,
   projectCount,
 }: {
-  featuredProjects: PublicProjectListItem[];
+  featuredProjects: PinnedRepo[];
   projectCount: number;
 }) {
   const t = useTranslations('home');

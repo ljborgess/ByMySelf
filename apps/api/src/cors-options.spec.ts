@@ -28,17 +28,9 @@ describe('corsOptions', () => {
     });
 
     /**
-     * O painel roda no browser e depende dos cookies HttpOnly irem junto.
-     * Sem isto toda chamada autenticada responderia 401 mesmo logado.
-     */
-    it('sends credentials', () => {
-      expect(corsOptions('production', FRONTEND_URL).credentials).toBe(true);
-    });
-
-    /**
      * A brecha que este teste fecha: loopback liberado em produção deixaria
      * qualquer página que um atacante rodasse na máquina da vítima falar com
-     * a API autenticada.
+     * a API como se fosse o site de produção.
      */
     it.each(['http://localhost:3101', 'http://127.0.0.1:3101'])(
       'refuses %s, which is a development value',
@@ -79,7 +71,7 @@ describe('corsOptions', () => {
 
     /**
      * Loopback é a máquina de quem desenvolve; um host da rede não é, e
-     * liberá-lo exporia a API autenticada a qualquer um no mesmo wifi.
+     * liberá-lo exporia a API a qualquer um no mesmo wifi.
      */
     it('refuses a LAN address, which is not loopback', () => {
       expect(allows('development', 'http://192.168.10.152:3101')).toBe(false);
