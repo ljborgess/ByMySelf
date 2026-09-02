@@ -60,7 +60,7 @@ describe('EducationContent', () => {
       },
     ]);
 
-    const headings = screen.getAllByRole('heading', { level: 2 });
+    const headings = screen.getAllByRole('heading', { level: 3 });
     expect(headings[0]).toHaveTextContent('Curso em andamento');
     expect(headings[1]).toHaveTextContent('Antigo');
 

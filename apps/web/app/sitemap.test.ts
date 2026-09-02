@@ -60,8 +60,7 @@ describe('sitemap', () => {
       expect.arrayContaining([
         'https://exemplo.com/pt',
         'https://exemplo.com/pt/sobre',
-        'https://exemplo.com/pt/formacao',
-        'https://exemplo.com/pt/certificados',
+        'https://exemplo.com/pt/credenciais',
         'https://exemplo.com/pt/projetos',
       ]),
     );
@@ -82,8 +81,8 @@ describe('sitemap', () => {
         'https://exemplo.com/pt/projetos/projeto-b',
       ]),
     );
-    // 5 static routes + 2 project routes
-    expect(entries).toHaveLength(7);
+    // 4 static routes + 2 project routes
+    expect(entries).toHaveLength(6);
   });
 
   it('still returns the static routes when the API fetch fails', async () => {
@@ -91,7 +90,7 @@ describe('sitemap', () => {
 
     const entries = await sitemap();
 
-    expect(entries).toHaveLength(5);
+    expect(entries).toHaveLength(4);
     expect(entries.some((entry) => entry.url.includes('/projetos/'))).toBe(
       false,
     );

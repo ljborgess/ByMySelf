@@ -10,7 +10,7 @@ import { getSiteUrl } from '../lib/site';
  * lists ('pt') -- adding 'en' here is Fase 3, same as the routing config
  * itself (see i18n/routing.ts).
  */
-const staticRoutes = ['', '/sobre', '/formacao', '/certificados', '/projetos'];
+const staticRoutes = ['', '/sobre', '/credenciais', '/projetos'];
 
 /**
  * When this build was made. The static pages are content compiled into the

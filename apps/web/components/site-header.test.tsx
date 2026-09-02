@@ -44,8 +44,7 @@ describe('SiteHeader', () => {
     expect(hrefs).toEqual([
       '/pt',
       '/pt/sobre',
-      '/pt/formacao',
-      '/pt/certificados',
+      '/pt/credenciais',
       '/pt/projetos',
     ]);
   });

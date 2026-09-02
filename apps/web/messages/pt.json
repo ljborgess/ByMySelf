@@ -26,8 +26,7 @@
     "label": "Navegação principal",
     "home": "Início",
     "about": "Sobre",
-    "education": "Formação",
-    "certificates": "Certificados",
+    "credentials": "Credenciais",
     "projects": "Projetos",
     "openMenu": "Abrir menu",
     "closeMenu": "Fechar menu"
@@ -56,6 +55,10 @@
     "languagesHeading": "Idiomas",
     "downloadCv": "Baixar CV"
   },
+  "credentials": {
+    "title": "Credenciais",
+    "description": "Formação acadêmica e certificados de Luciano Borges, com link de validação."
+  },
   "certificates": {
     "title": "Certificados",
     "description": "Certificados de Luciano Borges, com link de validação.",
@@ -73,13 +76,7 @@
     "description": "Formação acadêmica de Luciano Borges.",
     "ongoing": "Em andamento",
     "completed": "Concluído",
-    "empty": "Nenhuma formação cadastrada ainda.",
-    "labels": {
-      "status": "Status",
-      "period": "Período",
-      "institution": "Instituição",
-      "stack": "Stack"
-    }
+    "empty": "Nenhuma formação cadastrada ainda."
   },
   "projects": {
     "title": "Projetos",
@@ -228,8 +225,7 @@
     },
     "cards": {
       "about": "Quem sou, no que trabalho e o que busco.",
-      "education": "Formação acadêmica e as tecnologias de cada etapa.",
-      "certificates": "Certificados, com link de validação.",
+      "credentials": "Formação acadêmica e certificados, com link de validação.",
       "projects": "Projetos que construí, com stack e código."
     }
   },
@@ -245,9 +241,5 @@
     "technologies": "Tecnologias",
     "certificates": "Certificados",
     "languages": "Idiomas"
-  },
-  "timeline": {
-    "previous": "Item anterior",
-    "next": "Próximo item"
   }
 }

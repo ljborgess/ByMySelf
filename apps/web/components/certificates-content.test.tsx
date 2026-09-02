@@ -1,5 +1,4 @@
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import type { Certificate } from '../content/profile';
 import messages from '../messages/pt.json';
@@ -22,12 +21,6 @@ jest.mock('gsap', () => ({
       revert: jest.fn(),
       from: jest.fn().mockReturnThis(),
     })),
-    // call onComplete immediately so goTo's state update fires in tests
-    to: jest.fn((_target: unknown, vars: { onComplete?: () => void }) => {
-      vars.onComplete?.();
-      return {};
-    }),
-    fromTo: jest.fn(),
   },
 }));
 
@@ -64,7 +57,7 @@ describe('CertificatesContent', () => {
     expect(screen.getByText(messages.certificates.empty)).toBeInTheDocument();
   });
 
-  it('shows the empty state when all certificates lack an image', () => {
+  it('renders a certificate without an image, falling back to the issuer initial', () => {
     renderContent([
       {
         name: 'Sem imagem',
@@ -75,14 +68,29 @@ describe('CertificatesContent', () => {
       },
     ]);
 
-    expect(screen.getByText(messages.certificates.empty)).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Sem imagem' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(messages.certificates.noImage)).toBeInTheDocument();
   });
 
-  it('renders the active certificate name as the page heading', () => {
-    renderContent([withImage({ name: 'Meu Certificado' })]);
+  it('renders every certificate as its own card, not just the ones with an image', () => {
+    renderContent([
+      withImage({ name: 'Com imagem' }),
+      {
+        name: 'Sem imagem',
+        issuer: 'Outro',
+        issuedAt: '2024-01-01',
+        credentialUrl: null,
+        imageUrl: null,
+      },
+    ]);
 
     expect(
-      screen.getByRole('heading', { name: 'Meu Certificado' }),
+      screen.getByRole('heading', { name: 'Com imagem' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Sem imagem' }),
     ).toBeInTheDocument();
   });
 
@@ -116,101 +124,14 @@ describe('CertificatesContent', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('hides navigation controls when there is only one certificate', () => {
-    renderContent([withImage()]);
-
-    expect(
-      screen.queryByRole('button', { name: messages.timeline.previous }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: messages.timeline.next }),
-    ).not.toBeInTheDocument();
-  });
-
-  it('disables the previous button on the first certificate', () => {
-    renderContent([
-      withImage({ name: 'Primeiro' }),
-      withImage({ name: 'Segundo', issuedAt: '2020-01-01' }),
-    ]);
-
-    expect(
-      screen.getByRole('button', { name: messages.timeline.previous }),
-    ).toBeDisabled();
-  });
-
-  it('disables the next button on the last certificate', async () => {
-    const user = userEvent.setup();
-    renderContent([
-      withImage({ name: 'Primeiro' }),
-      withImage({ name: 'Segundo', issuedAt: '2020-01-01' }),
-    ]);
-
-    await user.click(
-      screen.getByRole('button', { name: messages.timeline.next }),
-    );
-
-    expect(
-      screen.getByRole('button', { name: messages.timeline.next }),
-    ).toBeDisabled();
-  });
-
-  it('advances to the next certificate when the next button is clicked', async () => {
-    const user = userEvent.setup();
-    renderContent([
-      withImage({ name: 'Primeiro', issuedAt: '2024-06-01' }),
-      withImage({ name: 'Segundo', issuedAt: '2020-01-01' }),
-    ]);
-
-    await user.click(
-      screen.getByRole('button', { name: messages.timeline.next }),
-    );
-
-    expect(
-      screen.getByRole('heading', { name: 'Segundo' }),
-    ).toBeInTheDocument();
-  });
-
-  it('goes to a specific certificate when its dot is clicked', async () => {
-    const user = userEvent.setup();
-    renderContent([
-      withImage({ name: 'Primeiro', issuedAt: '2024-06-01' }),
-      withImage({ name: 'Segundo', issuedAt: '2020-01-01' }),
-    ]);
-
-    await user.click(screen.getByRole('button', { name: 'Segundo' }));
-
-    expect(
-      screen.getByRole('heading', { name: 'Segundo' }),
-    ).toBeInTheDocument();
-  });
-
   it('sorts dated certificates by issue date descending, with undated ones last', () => {
     renderContent([
       withImage({ name: 'Mais antigo', issuedAt: '2020-01-01' }),
       withImage({ name: 'Mais recente', issuedAt: '2024-06-01' }),
     ]);
 
-    // most recently issued is active first
-    expect(
-      screen.getByRole('heading', { name: 'Mais recente' }),
-    ).toBeInTheDocument();
-  });
-
-  it('skips certificates without imageUrl even when they have other data', () => {
-    renderContent([
-      withImage({ name: 'Com imagem' }),
-      {
-        name: 'Sem imagem',
-        issuer: 'Outro',
-        issuedAt: '2024-01-01',
-        credentialUrl: null,
-        imageUrl: null,
-      },
-    ]);
-
-    // only one cert visible → no navigation
-    expect(
-      screen.queryByRole('button', { name: messages.timeline.next }),
-    ).not.toBeInTheDocument();
+    const headings = screen.getAllByRole('heading', { level: 3 });
+    expect(headings[0]).toHaveTextContent('Mais recente');
+    expect(headings[1]).toHaveTextContent('Mais antigo');
   });
 });

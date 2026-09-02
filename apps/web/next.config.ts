@@ -173,6 +173,28 @@ const nextConfig: NextConfig = {
     return [{ source: '/:path*', headers: securityHeaders }];
   },
 
+  /**
+   * `/formacao` and `/certificados` merged into `/credenciais` (#154): the
+   * site is already indexed (RF-SEO3), so a bare 404 would strand any saved
+   * or crawled link instead of forwarding it. Hardcoded to `/pt` because
+   * `i18n/routing.ts` only lists that one locale today -- add an `/en`
+   * pair here whenever Fase 3 adds that locale.
+   */
+  async redirects() {
+    return [
+      {
+        source: '/pt/formacao',
+        destination: '/pt/credenciais',
+        permanent: true,
+      },
+      {
+        source: '/pt/certificados',
+        destination: '/pt/credenciais',
+        permanent: true,
+      },
+    ];
+  },
+
   // next-intl and its use-intl core ship as untranspiled ESM. Listing them
   // here is also what makes them testable: next/jest derives
   // transformIgnorePatterns from this field, and a custom Jest config can only
