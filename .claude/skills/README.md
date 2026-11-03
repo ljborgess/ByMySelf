@@ -13,7 +13,7 @@ Antes elas eram copiadas para cá e congeladas — o que exigia trazer melhorias
 
 ## O que ainda mora aqui
 
-Quatro skills sem equivalente no marketplace. Ficam versionadas porque não há de onde
+Cinco skills sem equivalente no marketplace. Ficam versionadas porque não há de onde
 buscá-las:
 
 | Skill | Para quê |
@@ -22,11 +22,26 @@ buscá-las:
 | `full-output-enforcement` | Contra truncamento em geração longa |
 | `grill-with-docs` | Stress-test de plano contra o modelo de domínio documentado |
 | `implement` | Do PRD ao código (o marketplace só tem `implement-prd`) |
+| `impeccable` | Design de front — shape, critique, audit, polish etc. Lê `PRODUCT.md` e `DESIGN.md` da raiz |
 
 O caminho natural é contribuí-las ao marketplace. Feito isso, podem sair daqui e o
 diretório deixa de existir.
 
+### impeccable
+
+Trazida do ProLobby (v4.3.1, engine 0.1.5). Vem com `reference/` (um playbook por
+sub-comando) e com os quatro agentes que ela despacha, em
+[`../agents/`](../agents/) (`impeccable-*`).
+
+O binário da engine (`scripts/bin/`, 15 MB por plataforma) **não** é versionado: o
+launcher `scripts/impeccable` baixa a versão fixada no primeiro uso. Precisa de rede
+nessa primeira vez.
+
+O detector roda sozinho via hook em [`../settings.json`](../settings.json): checagem
+rápida após cada `Edit`/`Write` em UI, passe completo no `Stop`. Estado local fica em
+`.impeccable/` na raiz, ignorado pelo git.
+
 ## Diretório oculto
 
-O `.gitignore` versiona apenas o `settings.json` e estas quatro skills. Todo o resto sob
-`.claude/` é estado local — não entra em commit.
+O `.gitignore` versiona apenas o `settings.json`, os agentes em `agents/` e estas cinco
+skills. Todo o resto sob `.claude/` é estado local — não entra em commit.
