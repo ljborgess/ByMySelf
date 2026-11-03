@@ -68,7 +68,7 @@ export function SkillBar({
 
   return (
     <div className="flex items-center gap-3">
-      <span className="w-32 shrink-0 font-mono text-xs text-foreground/70 truncate">
+      <span className="w-36 shrink-0 font-mono text-xs break-words text-foreground/80 sm:w-44">
         {name}
       </span>
       <div className="relative h-px flex-1 bg-white/10">
@@ -78,7 +78,7 @@ export function SkillBar({
           style={{ transform: 'scaleX(0)' }}
         />
       </div>
-      <span className="w-14 shrink-0 text-right font-mono text-[10px] tracking-widest text-foreground/60 uppercase">
+      <span className="w-16 shrink-0 text-right font-mono text-xs tracking-widest text-foreground/70 uppercase">
         {displayLabel ?? config.label}
       </span>
     </div>

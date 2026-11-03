@@ -18,10 +18,6 @@ import { StatsSection } from './stats-section';
  * projects) stays a thin wrapper and this -- the actual rendering -- is
  * what home-content.test.tsx exercises. Same split ProjectsPage/ProjectsList
  * already uses.
- *
- * Plain Tailwind, no Framer Motion. Ambient lighting comes from the
- * site-wide AuroraBackground (app/[locale]/layout.tsx), not a hero-local
- * element.
  */
 export function HomeContent({
   featuredProjects,

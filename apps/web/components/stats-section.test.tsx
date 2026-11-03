@@ -101,6 +101,14 @@ describe('StatsSection', () => {
     expect(screen.getByText(messages.stats.languages)).toBeInTheDocument();
   });
 
+  it('hides a stat whose value is 0 instead of claiming "0"', () => {
+    // a failed projects fetch reaches the component as projectCount 0
+    renderStats(0);
+
+    expect(screen.queryByText(messages.stats.projects)).not.toBeInTheDocument();
+    expect(screen.getByText(messages.stats.technologies)).toBeInTheDocument();
+  });
+
   it('shows the badge label', () => {
     renderStats();
 

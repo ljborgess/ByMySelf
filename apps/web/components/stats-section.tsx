@@ -41,7 +41,10 @@ export function StatsSection({ projectCount }: { projectCount: number }) {
       value: profile.languages.length,
       label: t('languages'),
     },
-  ];
+  ].filter((stat) => stat.value > 0);
+  // ^ um fetch de projetos que falhou chega aqui como 0 -- "0 projetos" lê
+  // como fato, não como falha. Mesmo princípio do resto do site: dado
+  // ausente esconde, nunca exibe número enganoso.
 
   return (
     <section>
@@ -102,15 +105,23 @@ export function StatsSection({ projectCount }: { projectCount: number }) {
 
         <div
           data-stage
-          className="mt-8 grid grid-cols-2 divide-x divide-y divide-dashed divide-white/15 border border-dashed border-white/15 sm:grid-cols-4 sm:divide-y-0"
+          // Borda por célula (direita + baixo) e o container fecha topo +
+          // esquerda: divide-x/divide-y somados num grid de 2 colunas
+          // dobravam a linha no topo-direito e na esquerda da 2ª linha.
+          className="mt-8 grid grid-cols-2 border-t border-l border-dashed border-white/15 sm:grid-cols-4"
         >
           {stats.map((stat) => (
-            <div key={stat.key} className="p-4 sm:p-6">
-              <p className="text-xs tracking-wide uppercase opacity-60">
+            <div
+              key={stat.key}
+              className="border-r border-b border-dashed border-white/15 p-4 sm:p-6"
+            >
+              <p className="text-xs tracking-wide uppercase opacity-70">
                 {stat.label}
               </p>
-              <p className="font-display mt-1 text-3xl font-black sm:text-4xl">
-                <span data-counter-target={stat.value}>{stat.value}</span>+
+              {/* sem "+": as contagens são exatas (6 certificados são 6),
+                  e o sufixo inflava um número verificável */}
+              <p className="font-display mt-1 text-3xl font-black tabular-nums sm:text-4xl">
+                <span data-counter-target={stat.value}>{stat.value}</span>
               </p>
             </div>
           ))}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, usePathname } from '../i18n/navigation';
 
 import { NAVIGATION_SECTIONS } from '../lib/navigation-sections';
@@ -31,6 +31,16 @@ export function SiteHeader() {
   const tNav = useTranslations('nav');
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Esc fecha o menu mobile, como qualquer painel de disclosure.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
 
   return (
     <header className="fixed inset-x-0 top-3 z-40 flex flex-col items-center px-4 sm:top-4 sm:px-6">
@@ -62,7 +72,7 @@ export function SiteHeader() {
             onClick={() => setMenuOpen((open) => !open)}
             aria-expanded={menuOpen}
             aria-controls="mobile-nav"
-            className="rounded p-2 text-sm sm:hidden"
+            className="min-h-11 rounded-full px-3 text-sm sm:hidden"
           >
             {menuOpen ? tNav('closeMenu') : tNav('openMenu')}
           </button>

@@ -103,7 +103,7 @@ export function FeaturedProjects({ projects }: { projects: PinnedRepo[] }) {
                 src={project.imageUrl}
                 alt=""
                 loading="lazy"
-                className="mb-3 aspect-video w-full rounded bg-white/10 object-cover"
+                className="mb-3 aspect-video w-full rounded-lg bg-white/10 object-cover"
               />
 
               <span className="text-base font-semibold tracking-tight">

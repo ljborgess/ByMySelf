@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { profile } from '../content/profile';
 
 type LineType = 'command' | 'output' | 'error' | 'welcome' | 'system';
@@ -98,32 +98,35 @@ function processCommand(cmd: string): OutputLine[] | 'clear' {
   if (c === '/clear') return 'clear';
 
   return [
-    ...line('error', `command not found: ${cmd}`),
+    ...line('error', `comando não encontrado: ${cmd}`),
     ...line('error', 'tente /help'),
   ];
 }
 
-// ── Mario idle animation ──────────────────────────────────────────────────────
+// ── Idle animation: a robot jumping server racks ─────────────────────────────
+//
+// Personagem próprio. Antes era o Mario pulando um cano -- personagem e
+// cenário de um jogo de terceiro, num site que é vitrine profissional.
 //
 // 5-row layout (rows 0-4):
-//   row 0  sky  — Mario head when jumping
-//   row 1  head — Mario head on ground / body when jumping
-//   row 2  body — Mario body on ground / tucked legs when jumping
-//   row 3  legs — Mario legs on ground (empty when jumping)
+//   row 0  sky  — robot head when jumping
+//   row 1  head — robot head on ground / body when jumping
+//   row 2  body — robot body on ground / tucked legs when jumping
+//   row 3  legs — robot legs on ground (empty when jumping)
 //   row 4  ─────  ground line
 //
-// Mario: 5-char wide  (o_o) head · /|M|\ body · /   \ legs
-// Pipe:  3-char wide  [=] cap (row 1) · |=| body (rows 2-4)
-// Jump trigger: pipe enters cols [0..14] → 15 frames ≈ 1.5 s air time.
-// Mario rendered last on jump frames so he appears over the pipe.
+// Robot: 5-char wide  [o_o] head · /|#|\ body · /   \ legs
+// Rack:  3-char wide  ┌─┐ top (row 1) · │▪│ body (rows 2-4)
+// Jump trigger: rack enters cols [0..14] → 15 frames ≈ 1.5 s air time.
+// Robot rendered last on jump frames so it appears over the rack.
 
 const W = 36;
 const MARIO_COL = 2;
 const CYCLE = 44;
 
-const M_HEAD = ['(', 'o', '_', 'o', ')'] as const;
-const M_BODY = ['/', '|', 'M', '|', '\\'] as const;
-const M_TUCK = [' ', '(', 'U', ')', ' '] as const;
+const M_HEAD = ['[', 'o', '_', 'o', ']'] as const;
+const M_BODY = ['/', '|', '#', '|', '\\'] as const;
+const M_TUCK = [' ', '(', '_', ')', ' '] as const;
 
 function place(row: string[], chars: readonly string[], col: number) {
   chars.forEach((ch, i) => {
@@ -161,10 +164,10 @@ function buildMarioFrame(tick: number): string[] {
 
   // Pipe
   if (pipeX >= 0 && pipeX + 2 < W) {
-    place(rows[1], ['[', '=', ']'], pipeX);
-    place(rows[2], ['|', '=', '|'], pipeX);
-    place(rows[3], ['|', '=', '|'], pipeX);
-    place(rows[4], ['|', '=', '|'], pipeX);
+    place(rows[1], ['┌', '─', '┐'], pipeX);
+    place(rows[2], ['│', '▪', '│'], pipeX);
+    place(rows[3], ['│', '▪', '│'], pipeX);
+    place(rows[4], ['┴', '─', '┴'], pipeX);
   }
 
   // Mario — second pass (appears in front of pipe on overlap frames)
@@ -184,18 +187,19 @@ function MarioIdle({
 }) {
   const frames = buildMarioFrame(0);
   return (
-    <div ref={containerRef} aria-hidden="true" className="select-none py-2">
+    <div ref={containerRef} aria-hidden="true" className="py-2 select-none">
       {frames.map((row, i) => (
         <div
           key={i}
           data-row={i}
-          className="whitespace-pre font-mono text-[11.5px] leading-[1.7] text-highlight-gold/40"
+          className="text-highlight-gold/40 font-mono text-xs leading-[1.7] whitespace-pre"
         >
           {row}
         </div>
       ))}
-      <div className="mt-3 font-mono text-[10px] text-white/15">
-        &gt; type /help to explore
+      {/* instrução, não ornamento: precisa passar AA (white/15 dava ~1.4:1) */}
+      <div className="mt-3 font-mono text-xs text-white/55">
+        &gt; digite /help para explorar
       </div>
     </div>
   );
@@ -203,66 +207,72 @@ function MarioIdle({
 
 // ── Titlebar ──────────────────────────────────────────────────────────────────
 
-interface Pos {
-  x: number;
-  y: number;
+/*
+ * Os "semáforos" são pontos de 12px, mas o alvo de toque é o botão de 24px
+ * em volta (WCAG 2.5.8) -- e o foco usa o anel global de :focus-visible em
+ * vez do `focus:outline-none` que deixava o teclado sem indicador nenhum.
+ */
+function TrafficLight({
+  label,
+  color,
+  onClick,
+}: {
+  label: string;
+  color: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="group grid size-6 place-items-center rounded-full"
+    >
+      <span
+        className={`size-3 rounded-full ${color} transition-opacity group-hover:opacity-80`}
+      />
+    </button>
+  );
 }
 
 function Titlebar({
   onClose,
   onMinimize,
-  draggable = false,
-  onMouseDown,
 }: {
   onClose: () => void;
   onMinimize: () => void;
-  draggable?: boolean;
-  onMouseDown?: (e: React.MouseEvent) => void;
 }) {
   return (
-    <div
-      onMouseDown={draggable ? onMouseDown : undefined}
-      className={[
-        'flex shrink-0 items-center gap-2 border-b border-white/[0.06] px-3 py-2.5 select-none',
-        'bg-gradient-to-b from-white/[0.07] to-transparent',
-        draggable ? 'cursor-grab active:cursor-grabbing' : '',
-      ].join(' ')}
-    >
-      <button
-        type="button"
-        onClick={onClose}
-        aria-label="Fechar"
-        className="size-3 rounded-full bg-[#ff5f57] transition-opacity hover:opacity-80 focus:outline-none"
-      />
-      <button
-        type="button"
+    <div className="flex shrink-0 items-center gap-0.5 border-b border-white/[0.06] bg-gradient-to-b from-white/[0.07] to-transparent px-2 py-1.5 select-none">
+      <TrafficLight label="Fechar" color="bg-[#ff5f57]" onClick={onClose} />
+      <TrafficLight
+        label="Minimizar"
+        color="bg-[#febc2e]"
         onClick={onMinimize}
-        aria-label="Minimizar"
-        className="size-3 rounded-full bg-[#febc2e] transition-opacity hover:opacity-80 focus:outline-none"
       />
-      <span aria-hidden className="size-3 rounded-full bg-[#28c840]/50" />
+      <span
+        aria-hidden
+        className="mx-1.5 size-3 rounded-full bg-[#28c840]/50"
+      />
 
-      <span className="mx-auto font-mono text-[10px] tracking-[0.18em] text-white/25 uppercase">
+      <span className="mx-auto pr-14 font-mono text-xs tracking-[0.18em] text-white/55 uppercase">
         portfolio.sh
       </span>
-
-      <button
-        type="button"
-        onClick={onMinimize}
-        aria-label="Minimizar terminal"
-        className="rounded px-1.5 py-0.5 font-mono text-[10px] text-white/25 transition-colors hover:bg-white/10 hover:text-white/60"
-      >
-        ─
-      </button>
     </div>
   );
 }
 
 // ── PortfolioTerminal ─────────────────────────────────────────────────────────
 
-export function PortfolioTerminal({ inline = false }: { inline?: boolean }) {
+/*
+ * Desktop (md+): janela embutida na coluna direita do hero, minimizável.
+ * Mobile: a janela some e um botão flutuante abre o terminal em tela cheia.
+ *
+ * Existia também um modo flutuante arrastável (`inline={false}`), mas nada o
+ * usava -- saiu junto com o estado de posição/arrasto que só ele lia.
+ */
+export function PortfolioTerminal() {
   const [minimized, setMinimized] = useState(false);
-  const [pos, setPos] = useState<Pos | null>(null);
   const [lines, setLines] = useState<OutputLine[]>([]);
   const [input, setInput] = useState('');
   const [cmdHistory, setCmdHistory] = useState<string[]>([]);
@@ -270,16 +280,17 @@ export function PortfolioTerminal({ inline = false }: { inline?: boolean }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [animated, setAnimated] = useState(true);
 
-  const termRef = useRef<HTMLDivElement>(null);
   const outputRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const drag = useRef({ active: false, sx: 0, sy: 0, px: 0, py: 0 });
   const marioContainerRef = useRef<HTMLDivElement>(null);
   const tickRef = useRef(0);
 
-  // Mario animation — imperative DOM updates to avoid React re-renders
+  // Mario animation — imperative DOM updates to avoid React re-renders.
+  // Quem pediu menos movimento fica com o quadro parado: este loop de 10
+  // quadros/s era a única animação do site que ignorava a preferência.
   useEffect(() => {
-    if (!animated) return;
+    if (!animated || minimized) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     tickRef.current = 0;
     const id = setInterval(() => {
       tickRef.current += 1;
@@ -292,32 +303,7 @@ export function PortfolioTerminal({ inline = false }: { inline?: boolean }) {
       });
     }, 100);
     return () => clearInterval(id);
-  }, [animated]);
-
-  useEffect(() => {
-    const el = termRef.current;
-    if (!el || window.innerWidth < 768) return;
-    setPos({ x: window.innerWidth - (el.offsetWidth || 340) - 24, y: 88 });
-  }, []);
-
-  useEffect(() => {
-    const onMove = (e: MouseEvent) => {
-      if (!drag.current.active) return;
-      setPos({
-        x: drag.current.px + e.clientX - drag.current.sx,
-        y: drag.current.py + e.clientY - drag.current.sy,
-      });
-    };
-    const onUp = () => {
-      drag.current.active = false;
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-  }, []);
+  }, [animated, minimized]);
 
   useEffect(() => {
     if (outputRef.current) {
@@ -325,20 +311,17 @@ export function PortfolioTerminal({ inline = false }: { inline?: boolean }) {
     }
   }, [lines]);
 
-  const startDrag = useCallback(
-    (e: React.MouseEvent) => {
-      if (window.innerWidth < 768) return;
-      drag.current = {
-        active: true,
-        sx: e.clientX,
-        sy: e.clientY,
-        px: pos?.x ?? window.innerWidth - 364,
-        py: pos?.y ?? 88,
-      };
-      e.preventDefault();
-    },
-    [pos],
-  );
+  // Tela cheia no celular é um diálogo modal: Esc fecha e o foco entra no
+  // campo ao abrir, senão o teclado ficava atrás do overlay.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    inputRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mobileOpen]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -369,30 +352,31 @@ export function PortfolioTerminal({ inline = false }: { inline?: boolean }) {
       setHistoryIdx(next);
       setInput(next === -1 ? '' : (cmdHistory[next] ?? ''));
     } else if (e.key === 'Tab') {
-      e.preventDefault();
+      // Só captura o Tab quando há o que completar -- antes ele era engolido
+      // sempre, e o foco do teclado ficava preso no campo (WCAG 2.1.2).
       const match = COMMANDS.find((c) => c.startsWith(input) && c !== input);
-      if (match) setInput(match);
+      if (input && match) {
+        e.preventDefault();
+        setInput(match);
+      }
     }
   };
 
+  // Todas passam AA sobre o fundo do terminal; white/20 e red/70 não passavam.
   const COLOR: Record<LineType, string> = {
     welcome: 'text-highlight-red font-semibold',
-    system: 'text-white/20',
+    system: 'text-white/40',
     command: 'text-highlight-gold',
     output: 'text-white/80',
-    error: 'text-highlight-red/70',
+    error: 'text-highlight-red',
   };
-
-  const posStyle: React.CSSProperties = pos
-    ? { left: pos.x, top: pos.y }
-    : { right: 24, top: 88 };
 
   /* ── shared body ── */
   const body = (
     <div className="flex min-h-0 flex-1 flex-col">
       <div
         ref={outputRef}
-        className="flex-1 overflow-y-auto px-4 py-3 font-mono text-[11.5px] leading-[1.7] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex-1 overflow-y-auto px-4 py-3 font-mono text-xs leading-[1.7] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         onClick={() => inputRef.current?.focus()}
       >
         {animated ? (
@@ -402,9 +386,7 @@ export function PortfolioTerminal({ inline = false }: { inline?: boolean }) {
             <div key={l.id} className={COLOR[l.type]}>
               {l.type === 'command' ? (
                 <>
-                  <span className="text-highlight-green opacity-60">
-                    {'> '}
-                  </span>
+                  <span className="text-highlight-green">{'> '}</span>
                   {l.text}
                 </>
               ) : (
@@ -417,108 +399,88 @@ export function PortfolioTerminal({ inline = false }: { inline?: boolean }) {
 
       <form
         onSubmit={submit}
-        className="flex shrink-0 items-center gap-2 border-t border-white/[0.06] px-4 py-2.5"
+        className="flex shrink-0 items-center gap-2 border-t border-white/[0.06] px-4 py-2.5 focus-within:border-white/25"
       >
-        <span className="shrink-0 font-mono text-[10px] tracking-wide text-white/30 select-none">
+        <span className="shrink-0 font-mono text-xs tracking-wide text-white/55 select-none">
           {PROMPT}
         </span>
-        <span className="text-highlight-green font-mono text-[11px] select-none">
+        <span className="text-highlight-green font-mono text-xs select-none">
           $
         </span>
+        {/* sem anel no input: a borda do form acende (focus-within) e o
+            caret vermelho já marca o campo -- um retângulo vermelho em
+            volta de uma linha de terminal quebraria a metáfora */}
         <input
           ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKeyDown}
-          className="min-w-0 flex-1 bg-transparent font-mono text-[11.5px] text-white/90 outline-none placeholder:text-white/20"
+          className="caret-highlight-red min-w-0 flex-1 bg-transparent font-mono text-xs text-white/90 outline-none placeholder:text-white/50"
           placeholder="comando..."
           autoComplete="off"
           autoCorrect="off"
           spellCheck={false}
-          aria-label="Terminal input"
+          aria-label="Comando do terminal"
         />
       </form>
     </div>
   );
 
-  /* ── mobile button ── */
-  const mobileBtn = (
-    <button
-      type="button"
-      onClick={() => setMobileOpen(true)}
-      aria-label="Abrir terminal"
-      className="md:hidden fixed bottom-6 right-6 z-40 flex items-center gap-1.5 rounded-full border border-white/15 bg-black/60 px-4 py-2 font-mono text-xs backdrop-blur-xl"
-    >
-      <span className="text-highlight-green" aria-hidden>
-        {'>'}
-      </span>
-      <span className="text-white/70">_</span>
-    </button>
-  );
-
-  /* ── mobile fullscreen ── */
-  const mobileOverlay = mobileOpen && (
-    <div
-      role="dialog"
-      aria-label="Terminal"
-      aria-modal="true"
-      className="md:hidden fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-2xl"
-    >
-      <Titlebar
-        onClose={() => setMobileOpen(false)}
-        onMinimize={() => setMobileOpen(false)}
-      />
-      {body}
-    </div>
-  );
-
-  /* ── desktop minimized pill ── */
-  const pill = minimized && (
-    <button
-      type="button"
-      onClick={() => setMinimized(false)}
-      aria-label="Restaurar terminal"
-      className={[
-        'flex items-center gap-2 rounded-full border border-white/10 bg-black/60 px-4 py-2',
-        'font-mono text-[11px] text-white/60 backdrop-blur-xl shadow-lg hover:border-white/20 transition-colors',
-        inline ? 'w-full justify-center' : 'hidden md:flex fixed z-40',
-      ].join(' ')}
-      style={inline ? undefined : posStyle}
-    >
-      <span className="text-highlight-red" aria-hidden>
-        {'>'}
-      </span>
-      _ portfolio.sh
-    </button>
-  );
-
-  /* ── desktop window ── */
-  const windowEl = !minimized && (
-    <div
-      ref={termRef}
-      className={[
-        'flex flex-col rounded-xl border border-white/[0.08] bg-black/55',
-        'shadow-[0_8px_40px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur-2xl',
-        inline ? 'w-full' : 'hidden md:flex fixed z-40 w-[340px]',
-      ].join(' ')}
-      style={{ height: 340, ...(inline ? {} : posStyle) }}
-    >
-      <Titlebar
-        onClose={() => setMinimized(true)}
-        onMinimize={() => setMinimized(true)}
-        draggable={!inline}
-        onMouseDown={startDrag}
-      />
-      {body}
-    </div>
-  );
-
   return (
     <>
-      {mobileBtn}
-      {mobileOverlay}
-      {pill}
-      {windowEl}
+      {/* ── mobile: botão flutuante ── */}
+      <button
+        type="button"
+        onClick={() => setMobileOpen(true)}
+        aria-label="Abrir terminal"
+        className="fixed right-6 bottom-6 z-40 flex min-h-11 items-center gap-1.5 rounded-full border border-white/15 bg-black/60 px-4 font-mono text-xs backdrop-blur-xl md:hidden"
+      >
+        <span className="text-highlight-green" aria-hidden>
+          {'>'}
+        </span>
+        <span className="text-white/70" aria-hidden>
+          _
+        </span>
+      </button>
+
+      {/* ── mobile: tela cheia ── */}
+      {mobileOpen && (
+        <div
+          role="dialog"
+          aria-label="Terminal"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-2xl md:hidden"
+        >
+          <Titlebar
+            onClose={() => setMobileOpen(false)}
+            onMinimize={() => setMobileOpen(false)}
+          />
+          {body}
+        </div>
+      )}
+
+      {/* ── desktop ── sem box-shadow: No-Shadow Rule (DESIGN.md) */}
+      {minimized ? (
+        <button
+          type="button"
+          onClick={() => setMinimized(false)}
+          aria-label="Restaurar terminal"
+          className="hidden min-h-11 w-full items-center justify-center gap-2 rounded-full border border-white/15 bg-black/60 px-4 font-mono text-xs text-white/70 backdrop-blur-xl transition-colors hover:border-white/30 md:flex"
+        >
+          <span className="text-highlight-red" aria-hidden>
+            {'>'}
+          </span>
+          _ portfolio.sh
+        </button>
+      ) : (
+        <div className="hidden h-[340px] w-full flex-col rounded-xl border border-white/10 bg-black/55 backdrop-blur-2xl md:flex">
+          <Titlebar
+            onClose={() => setMinimized(true)}
+            onMinimize={() => setMinimized(true)}
+          />
+          {body}
+        </div>
+      )}
     </>
   );
 }

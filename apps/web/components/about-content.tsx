@@ -96,18 +96,10 @@ export function AboutContent() {
               <p className="font-display text-2xl font-black tracking-tight">
                 {profile.name}
               </p>
-              <p className="font-mono text-xs tracking-widest text-foreground/60 uppercase">
-                {profile.headline}
-              </p>
-              <div className="mt-1 flex items-center justify-center gap-2">
-                <span
-                  aria-hidden="true"
-                  className="size-1.5 rounded-full bg-highlight-green motion-safe:animate-pulse"
-                />
-                <span className="font-mono text-[10px] tracking-widest text-highlight-green uppercase">
-                  online
-                </span>
-              </div>
+              <p className="text-sm text-foreground/70">{profile.headline}</p>
+              {/* Sem selo "online": nada aqui sabe se o dono está online, e
+                  PRODUCT.md proíbe alegação não verificável. O status real
+                  ("Disponível para projetos") já vive no hero. */}
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-2">
@@ -116,7 +108,7 @@ export function AboutContent() {
                   href={safeHref(profile.links.github)!}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-mono text-[10px] tracking-widest text-foreground/50 uppercase transition-colors hover:text-accent"
+                  className="inline-block py-1.5 font-mono text-xs tracking-widest text-foreground/70 uppercase transition-colors hover:text-accent"
                 >
                   GitHub
                 </a>
@@ -132,7 +124,7 @@ export function AboutContent() {
                     href={safeHref(profile.links.linkedin)!}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-mono text-[10px] tracking-widest text-foreground/50 uppercase transition-colors hover:text-accent"
+                    className="inline-block py-1.5 font-mono text-xs tracking-widest text-foreground/70 uppercase transition-colors hover:text-accent"
                   >
                     LinkedIn
                   </a>
@@ -148,7 +140,7 @@ export function AboutContent() {
                   )}
                   <a
                     href={safeMailto(profile.links.email)!}
-                    className="font-mono text-[10px] tracking-widest text-foreground/50 uppercase transition-colors hover:text-accent"
+                    className="inline-block py-1.5 font-mono text-xs tracking-widest text-foreground/70 uppercase transition-colors hover:text-accent"
                   >
                     Email
                   </a>
@@ -156,7 +148,7 @@ export function AboutContent() {
               )}
             </div>
 
-            {profile.cvUrl && <CvDownloadButton />}
+            <CvDownloadButton />
           </div>
 
           <hr data-reveal="rule" className="border-white/15 sm:hidden" />
@@ -198,7 +190,7 @@ export function AboutContent() {
           </h2>
           <p
             data-reveal="bio"
-            className="mt-4 leading-relaxed whitespace-pre-line opacity-80"
+            className="mt-4 max-w-[60ch] leading-relaxed whitespace-pre-line opacity-80"
           >
             {profile.bio}
           </p>
