@@ -216,10 +216,11 @@ export function HeroSection() {
       </div>
       {/* end left column */}
 
-      {/* ── Right: terminal (desktop only — mobile handled inside component) ── */}
-      <div className="hidden md:block">
-        <PortfolioTerminal inline />
-      </div>
+      {/* ── Right: terminal. Sem wrapper `hidden`: o botão flutuante que abre
+          o terminal no celular mora dentro do componente, e um pai com
+          display:none o escondia junto -- o terminal era inalcançável abaixo
+          de md. A janela em si se esconde no mobile por conta própria. ── */}
+      <PortfolioTerminal />
     </div>
   );
 }

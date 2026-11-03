@@ -574,6 +574,8 @@ export function IntroLoader() {
     <div
       ref={containerRef}
       aria-hidden="true"
+      // failsafe em globals.css: some sozinho se o JS nunca chegar
+      data-intro-loader
       className="bg-background fixed inset-0 z-50 flex flex-col items-center justify-center gap-5"
     >
       <svg viewBox="0 0 224 168" width={196} height={147} aria-hidden="true">

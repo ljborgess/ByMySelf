@@ -37,7 +37,7 @@ function CertificateCard({
   return (
     <li
       data-reveal-card
-      className="flex flex-col gap-4 border border-white/15 p-5 sm:flex-row sm:items-start"
+      className="flex flex-col gap-4 rounded-lg border border-white/15 p-5 sm:flex-row sm:items-start"
     >
       {entry.imageUrl ? (
         <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-lg border border-white/10 sm:w-48">
@@ -66,9 +66,9 @@ function CertificateCard({
         <p className="font-mono text-xs tracking-widest text-foreground/60 uppercase">
           {entry.issuer}
         </p>
-        {issuedAt && <p className="font-mono text-xs opacity-40">{issuedAt}</p>}
+        {issuedAt && <p className="font-mono text-xs opacity-70">{issuedAt}</p>}
         {!entry.imageUrl && (
-          <p className="font-mono text-xs opacity-40">{noImageLabel}</p>
+          <p className="font-mono text-xs opacity-70">{noImageLabel}</p>
         )}
 
         {safeHref(entry.credentialUrl) && (
@@ -147,7 +147,7 @@ export function CertificatesContent({
   return (
     <div className="flex flex-col gap-6">
       {/* "CERTIFICADOS" label — mirrors hero status pill */}
-      <p className="flex items-center gap-3 font-mono text-xs tracking-[0.2em] uppercase opacity-50">
+      <p className="flex items-center gap-3 font-mono text-xs tracking-[0.2em] uppercase opacity-70">
         <span aria-hidden="true" className="h-px w-8 bg-current" />
         {t('title')}
       </p>

@@ -31,7 +31,7 @@ function EducationCard({
   return (
     <li
       data-reveal-card
-      className="flex flex-col gap-3 border border-white/15 p-5"
+      className="flex flex-col gap-3 rounded-lg border border-white/15 p-5"
     >
       <h3 className="font-display text-xl font-black tracking-tight sm:text-2xl">
         {entry.course}
@@ -47,7 +47,7 @@ function EducationCard({
         <span className={statusText}>
           {isOngoing ? ongoingLabel : completedLabel}
         </span>
-        {period && <span className="opacity-40">· {period}</span>}
+        {period && <span className="opacity-70">· {period}</span>}
       </div>
 
       {entry.institution && (

@@ -32,6 +32,7 @@ coverage/
 # that have no marketplace equivalent yet.
 .claude/*
 !.claude/settings.json
+!.claude/agents/
 !.claude/skills/
 .claude/skills/*
 !.claude/skills/README.md
@@ -39,6 +40,9 @@ coverage/
 !.claude/skills/full-output-enforcement/
 !.claude/skills/grill-with-docs/
 !.claude/skills/implement/
+!.claude/skills/impeccable/
+# binário da engine (15 MB, por plataforma) — o launcher baixa no primeiro uso
+.claude/skills/impeccable/scripts/bin/
 
 # especificação do projeto — mantida local, fora do repositório
 docs/

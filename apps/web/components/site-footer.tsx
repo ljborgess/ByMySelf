@@ -106,12 +106,13 @@ export function SiteFooter() {
                 // o estilo, ver hero-section.tsx)
                 className="signal-glow inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition-opacity hover:opacity-90"
               >
-                <span aria-hidden="true">✉</span>
+                {/* sem ✉: o glifo vira emoji colorido em parte dos sistemas
+                    e destoa das setas tipográficas do resto do site */}
                 {t('cta.hireMe')}
               </a>
             )}
 
-            <CvDownloadButton variant="outline" />
+            <CvDownloadButton />
           </div>
         </div>
       </section>

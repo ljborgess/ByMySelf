@@ -92,7 +92,7 @@ export function ScrollProgress() {
         // --background, abaixo dos 4.5:1 do AA (medido pelo axe). O
         // `aria-hidden` acima não isenta -- ele esconde de leitor de tela,
         // não de quem enxerga. 70% dá ~6.3:1 e continua discreto.
-        <span className="font-mono text-[10px] tracking-[0.2em] uppercase opacity-70 [writing-mode:vertical-rl]">
+        <span className="font-mono text-xs tracking-[0.2em] uppercase opacity-70 [writing-mode:vertical-rl]">
           {label}
         </span>
       )}

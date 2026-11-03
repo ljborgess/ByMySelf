@@ -22,7 +22,7 @@ function ProjectCard({
   return (
     <li
       data-reveal-card
-      className="flex flex-col gap-4 border border-white/15 p-5 sm:flex-row sm:items-start"
+      className="flex flex-col gap-4 rounded-lg border border-white/15 p-5 sm:flex-row sm:items-start"
     >
       {/* plain <img>, not next/image: openGraphImageUrl is a GitHub-hosted
           URL, but arbitrary per repo -- same reasoning certificates-content
